@@ -1,0 +1,19 @@
+Husk laver en gammel Android-telefon om til et fjernstyret kamera og en kontrol-rig paa dit
+eget private netvaerk (Tailscale), uden root.
+
+Funktioner:
+* Kamera-streaming (MJPEG) du kan se i en browser eller bruge som webcam i et moede.
+* En accessibility-automations-motor til haandfri, scriptede skaerm-handlinger.
+* Genopretning af Traadloes fejlfinding i appen efter en genstart.
+* En app-native adb-bro saa du kan spejle og styre telefonen fra en PC med scrcpy
+  (en lille PC-companion findes paa xplat.co/husk).
+* Valgfri "hold Samsung DeX forbundet"-toggle (vises kun paa DeX-kapable telefoner).
+* Starter automatisk efter en genstart.
+
+Privatliv og netvaerk: alle netvaerks-tjenester binder KUN til localhost og din Tailscale-VPN-
+adresse, aldrig til 0.0.0.0 / det aabne internet. Intet sendes til en ekstern server. Appen er
+100% open source (GPLv3) og bruger kun AOSP-framework-API'er (ingen trackere, ingen reklamer).
+
+Bemaerk: Husk bruger AccessibilityService-API'et til at automatisere skaerm-handlinger og
+eksponerer en adb-bro over dit Tailscale-netvaerk til fjernstyring. Begraens adgang med en
+Tailscale-ACL. Disse evner er selve formaalet med appen og dokumenteres her for gennemsigtighed.

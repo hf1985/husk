@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    // INGEN namespace her: AGP 7.4 laeser pakken fra AndroidManifest.xml (package="co.xplat.husk"),
+    // saa SAMME manifest virker baade for Gradle OG on-phone aapt2 (AGP 8 ville kraeve namespace +
+    // forbyde manifest-package; derfor AGP 7.4.2).
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "co.xplat.husk"
+        minSdk 30
+        targetSdk 33
+        versionCode 1
+        versionName "0.1"
+        resConfigs "en", "da"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    // Reproducerbare builds (F-Droid): ingen dependency-metadata-blok i APK'en.
+    dependenciesInfo {
+        includeInApk false
+        includeInBundle false
+    }
+}
+// INGEN dependencies: ren framework-app (ingen AndroidX) -> nem F-Droid-build.

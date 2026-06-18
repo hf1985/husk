@@ -1,0 +1,2 @@
+rootProject.name = "Husk"
+include ':app'

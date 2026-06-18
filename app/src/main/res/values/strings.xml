@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- DEFAULT = English. Danish lives in values-da/. The system loads Danish only on da-locale
+     devices and falls back to this file everywhere else. -->
+<resources>
+    <string name="app_name">Husk</string>
+    <string name="tagline">Turn a spare phone into a remote camera &amp; control rig over your own Tailscale network.</string>
+
+    <!-- Foreground notification -->
+    <string name="notif_title">Husk</string>
+    <string name="notif_text">Camera and recovery active</string>
+
+    <!-- Status -->
+    <string name="status_heading">Status</string>
+    <string name="status_engine">Automation engine (accessibility)</string>
+    <string name="status_camera">Camera</string>
+    <string name="status_on">on</string>
+    <string name="status_off">off</string>
+
+    <!-- Toggles -->
+    <string name="toggle_camera">Camera streaming</string>
+    <string name="toggle_dex">Keep Samsung DeX connected</string>
+    <string name="toggle_wd">Wireless-debugging recovery</string>
+    <string name="toggle_boot">Start automatically after reboot</string>
+
+    <!-- Settings deep-links -->
+    <string name="settings_heading">Open required settings</string>
+    <string name="btn_accessibility">Accessibility (enable Husk)</string>
+    <string name="btn_devoptions">Developer options / Wireless debugging</string>
+    <string name="btn_battery">Battery optimisation (allow)</string>
+    <string name="btn_appdetails">App permissions</string>
+    <string name="setting_unavailable">Not available on this device</string>
+
+    <!-- Companion -->
+    <string name="companion_heading">PC companion (screen mirroring)</string>
+    <string name="companion_explain">To mirror and control this phone from a PC, install the small companion from:</string>
+    <string name="companion_url">xplat.co/husk</string>
+    <string name="btn_get_companion">Get the PC companion</string>
+</resources>

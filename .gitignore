@@ -1,0 +1,12 @@
+# Byggeinput (store/binaere; on-phone build henter dem fra ~/dexrpc, Gradle bruger SDK)
+android.jar
+debug.keystore
+*.keystore
+# Byggeoutput
+obj/
+bin/
+build/
+.gradle/
+local.properties
+# OS/editor
+.DS_Store

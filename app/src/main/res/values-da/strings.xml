@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- DANSK. Loades kun naar enhedens sprog er dansk; ellers bruges values/ (engelsk). -->
+<resources>
+    <string name="app_name">Husk</string>
+    <string name="tagline">Lav en gammel telefon om til et fjernstyret kamera og en kontrol-rig over dit eget Tailscale-net.</string>
+
+    <string name="notif_title">Husk</string>
+    <string name="notif_text">Kamera og recovery aktiv</string>
+
+    <string name="status_heading">Status</string>
+    <string name="status_engine">Automations-motor (tilgaengelighed)</string>
+    <string name="status_camera">Kamera</string>
+    <string name="status_on">til</string>
+    <string name="status_off">fra</string>
+
+    <string name="toggle_camera">Kamera-streaming</string>
+    <string name="toggle_dex">Hold Samsung DeX forbundet</string>
+    <string name="toggle_wd">Genopret traadloes fejlfinding</string>
+    <string name="toggle_boot">Start automatisk efter genstart</string>
+
+    <string name="settings_heading">Aabn noedvendige indstillinger</string>
+    <string name="btn_accessibility">Tilgaengelighed (aktiver Husk)</string>
+    <string name="btn_devoptions">Udviklerindstillinger / Traadloes fejlfinding</string>
+    <string name="btn_battery">Batterioptimering (tillad)</string>
+    <string name="btn_appdetails">App-tilladelser</string>
+    <string name="setting_unavailable">Ikke tilgaengelig paa denne enhed</string>
+
+    <string name="companion_heading">PC-companion (skaerm-spejling)</string>
+    <string name="companion_explain">For at spejle og styre denne telefon fra en PC, installer den lille companion fra:</string>
+    <string name="companion_url">xplat.co/husk</string>
+    <string name="btn_get_companion">Hent PC-companion</string>
+</resources>
