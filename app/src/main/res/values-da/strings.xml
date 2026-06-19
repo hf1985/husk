@@ -24,6 +24,8 @@
     <string name="btn_devoptions">Udviklerindstillinger / Trådløs fejlfinding</string>
     <string name="btn_battery">Batterioptimering (tillad)</string>
     <string name="btn_appdetails">App-tilladelser</string>
+    <string name="btn_aboutphone">Om telefonen (lås Udviklerindstillinger op)</string>
+    <string name="devhint">Kun til PC-skærmspejling: på en ny telefon skal du åbne Om telefonen og tappe Build-nummer 7 gange for at låse Udviklerindstillinger op, og derefter slå Trådløs fejlfinding til.</string>
     <string name="setting_unavailable">Ikke tilgængelig på denne enhed</string>
 
     <string name="companion_heading">PC-companion (skærm-spejling)</string>

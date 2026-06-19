@@ -116,6 +116,11 @@ public class MainActivity extends Activity {
         root.addView(title(getString(R.string.settings_heading), 16, false));
         root.addView(settingsButton(getString(R.string.btn_accessibility),
                 new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        // Udviklerindstillinger skal laases op FOERST (7x tap paa Build-nummer i "Om telefonen")
+        // foer ACTION_APPLICATION_DEVELOPMENT_SETTINGS virker. Kun noedvendigt til scrcpy/PC-spejling.
+        root.addView(body(getString(R.string.devhint)));
+        root.addView(settingsButton(getString(R.string.btn_aboutphone),
+                new Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)));
         root.addView(settingsButton(getString(R.string.btn_devoptions),
                 new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)));
         root.addView(settingsButton(getString(R.string.btn_battery),

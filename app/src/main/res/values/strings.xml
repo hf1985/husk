@@ -29,6 +29,8 @@
     <string name="btn_devoptions">Developer options / Wireless debugging</string>
     <string name="btn_battery">Battery optimisation (allow)</string>
     <string name="btn_appdetails">App permissions</string>
+    <string name="btn_aboutphone">About phone (unlock Developer options)</string>
+    <string name="devhint">For PC screen mirroring only: on a new phone, open About phone and tap Build number 7 times to unlock Developer options, then enable Wireless debugging.</string>
     <string name="setting_unavailable">Not available on this device</string>
 
     <!-- Companion -->
