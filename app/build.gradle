@@ -4,18 +4,15 @@ plugins {
 }
 
 android {
-    // INGEN namespace her: AGP 7.4 laeser pakken fra AndroidManifest.xml (package="co.xplat.husk"),
-    // saa SAMME manifest virker baade for Gradle OG on-phone aapt2 (AGP 8 ville kraeve namespace +
-    // forbyde manifest-package; derfor AGP 7.4.2).
-    compileSdk 33
+    namespace 'co.xplat.husk'
+    compileSdk 34
 
     defaultConfig {
         applicationId "co.xplat.husk"
         minSdk 30
-        targetSdk 33
-        versionCode 1
-        versionName "0.1"
-        resConfigs "en", "da"
+        targetSdk 34
+        versionCode 2
+        versionName "0.1.1"
     }
 
     buildTypes {
@@ -25,8 +22,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     // Reproducerbare builds (F-Droid): ingen dependency-metadata-blok i APK'en.
@@ -35,4 +32,4 @@ android {
         includeInBundle false
     }
 }
-// INGEN dependencies: ren framework-app (ingen AndroidX) -> nem F-Droid-build.
+// INGEN dependencies: ren framework-app (ingen AndroidX) -> nem F-Droid-build (AGP 8.5 / Gradle 8.7 / JDK 21).

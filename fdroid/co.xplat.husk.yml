@@ -1,6 +1,3 @@
-# F-Droid metadata for Husk. Reference-kopi; den faktiske indsendelse er en merge request mod
-# gitlab.com/fdroid/fdroiddata paa stien metadata/co.xplat.husk.yml.
-# Forudsaetter et offentligt repo med en v0.1-git-tag.
 Categories:
   - Multimedia
   - Connectivity
@@ -10,21 +7,18 @@ WebSite: https://xplat.co/husk
 SourceCode: https://github.com/hf1985/husk
 IssueTracker: https://github.com/hf1985/husk/issues
 
-AutoName: Husk
-Summary: Turn a spare phone into a remote camera and control rig
-
 RepoType: git
 Repo: https://github.com/hf1985/husk.git
 
 Builds:
-  - versionName: '0.1'
-    versionCode: 1
-    commit: v0.1
+  - versionName: 0.1.1
+    versionCode: 2
+    commit: v0.1.1
     subdir: app
     gradle:
       - yes
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
-CurrentVersion: '0.1'
-CurrentVersionCode: 1
+CurrentVersion: 0.1.1
+CurrentVersionCode: 2

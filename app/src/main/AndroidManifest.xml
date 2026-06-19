@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="co.xplat.husk"
-    android:versionCode="1"
-    android:versionName="0.1">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- INTERNET: kun den lokale HTTP-server (ControlServer) + adb-broen (AdbForward), som BINDER
          til loopback + Tailscale-IP, aldrig 0.0.0.0. CAMERA: capture. FOREGROUND_SERVICE(_CAMERA):

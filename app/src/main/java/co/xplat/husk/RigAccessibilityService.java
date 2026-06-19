@@ -51,6 +51,7 @@ public class RigAccessibilityService extends AccessibilityService {
 
     private Handler mainHandler;
     private boolean serverStarted = false;
+    private volatile boolean serverRunning = false;
     private ServerSocket tcpServer;
 
     interface Job { String run() throws Exception; }
@@ -72,37 +73,46 @@ public class RigAccessibilityService extends AccessibilityService {
     // scroll, global. Node-ops broer til main via onMain (a11y-API kraever main-traad).
 
     private void startTcpServer() {
+        serverRunning = true;
         Thread th = new Thread(new Runnable() {
             public void run() {
-                // Bind med SO_REUSEADDR + retry: ved cutover slipper dextap 8127 og vi overtager den.
-                // dextap's socket kan ligge i TIME_WAIT et oejeblik; SO_REUSEADDR + et par forsoeg
-                // sikrer at handoff'en lykkes uden at vente ~60s eller kraeve en a11y-genbinding.
-                ServerSocket ss = null;
-                for (int attempt = 0; attempt < 12 && ss == null; attempt++) {
-                    try {
-                        ss = new ServerSocket();
-                        ss.setReuseAddress(true);
-                        ss.bind(new java.net.InetSocketAddress(InetAddress.getByName("127.0.0.1"), TCP_PORT), 8);
-                    } catch (Throwable t) {
-                        // Forventet FOER cutover: en koerende dextap ejer 8127. HTTP-fladen + WD-recovery
-                        // virker alligevel (de kalder a11y in-process, ikke over 8127). Proev igen lidt senere.
-                        ss = null;
-                        if (attempt == 0) Log.w(TAG, "8127 optaget (dextap koerer?) - retry", t);
+                // WATCHDOG: ydre loop re-binder + genstarter accept-loopet hvis det doer, saa 8127
+                // ALDRIG forsvinder permanent ved en transient fejl (laering fra incident 2026-06-19:
+                // en doed motor uden remote-vej er fatal). Stopper kun naar serverRunning=false (onDestroy).
+                while (serverRunning) {
+                    ServerSocket ss = null;
+                    // Bind med SO_REUSEADDR + retry (TIME_WAIT-handoff fra en tidligere ejer af 8127).
+                    for (int attempt = 0; attempt < 12 && ss == null && serverRunning; attempt++) {
+                        try {
+                            ss = new ServerSocket();
+                            ss.setReuseAddress(true);
+                            ss.bind(new java.net.InetSocketAddress(InetAddress.getByName("127.0.0.1"), TCP_PORT), 8);
+                        } catch (Throwable t) {
+                            ss = null;
+                            if (attempt == 0) Log.w(TAG, "8127 optaget - retry", t);
+                            try { Thread.sleep(5000); } catch (InterruptedException ie) { return; }
+                        }
+                    }
+                    if (ss == null) {
+                        Log.e(TAG, "kunne ikke binde 8127 - venter og proever igen (HTTP/WD virker imens)");
                         try { Thread.sleep(5000); } catch (InterruptedException ie) { return; }
+                        continue;   // watchdog: bliv ved med at proeve
                     }
-                }
-                if (ss == null) { Log.e(TAG, "kunne ikke binde 8127 efter retries - RPC inaktiv (HTTP/WD virker)"); return; }
-                tcpServer = ss;
-                Log.i(TAG, "tcp socket up: 127.0.0.1:" + TCP_PORT);
-                try {
-                    while (true) {
-                        Socket c = tcpServer.accept();
-                        try { serve(c.getInputStream(), c.getOutputStream()); }
-                        catch (Throwable t) { Log.e(TAG, "serve(tcp)", t); }
-                        finally { try { c.close(); } catch (Throwable ig) { } }
+                    tcpServer = ss;
+                    Log.i(TAG, "tcp socket up: 127.0.0.1:" + TCP_PORT);
+                    try {
+                        while (serverRunning) {
+                            Socket c = ss.accept();
+                            try { serve(c.getInputStream(), c.getOutputStream()); }
+                            catch (Throwable t) { Log.e(TAG, "serve(tcp)", t); }
+                            finally { try { c.close(); } catch (Throwable ig) { } }
+                        }
+                    } catch (Throwable t) {
+                        Log.e(TAG, "tcp accept-loop doede - watchdog re-binder", t);
+                    } finally {
+                        try { ss.close(); } catch (Throwable ig) { }
                     }
-                } catch (Throwable t) {
-                    Log.e(TAG, "tcp accept-loop doede", t);
+                    if (serverRunning) { try { Thread.sleep(2000); } catch (InterruptedException ie) { return; } }
                 }
             }
         }, "rig-rpc-tcp");
@@ -200,6 +210,7 @@ public class RigAccessibilityService extends AccessibilityService {
     @Override
     public void onDestroy() {
         if (Rig.a11y == this) Rig.a11y = null;
+        serverRunning = false;
         if (tcpServer != null) { try { tcpServer.close(); } catch (Exception e) { } }
         super.onDestroy();
     }

@@ -37,7 +37,11 @@ if [ "$ENABLE_A11Y" = "1" ]; then
   adb shell settings put secure accessibility_enabled 1
 fi
 
-say "start app (paalidelig FGS-start via MainActivity; saetter evt. DeX-reconnect + token)"
+# ADVARSEL (incident 2026-06-19): start KUN headless (--ez finish true). Launch ALDRIG MainActivity
+# til FORGRUND paa en koerende DeX-rig - Samsungs "app running on another display"-dialog tvinger en
+# app-genstart der kan dræbe a11y/8127 + kameraet. Headless (finish=true) finisher foer noget vindue
+# vises og er sikker. Daglig drift starter motoren via boot (BootReceiver -> CameraService direkte).
+say "start app headless (FGS via MainActivity --ez finish true; saetter evt. DeX-reconnect + token)"
 EXTRAS="--ez finish true"
 [ "$DEX_RECONNECT" = "1" ] && EXTRAS="$EXTRAS --ez dexreconnect true"
 [ -n "$RIG_TOKEN" ] && EXTRAS="$EXTRAS --es token $RIG_TOKEN"
