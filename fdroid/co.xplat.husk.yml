@@ -1,11 +1,13 @@
 Categories:
-  - Multimedia
   - Connectivity
+  - Multimedia
 License: GPL-3.0-or-later
 AuthorName: xplat
 WebSite: https://xplat.co/husk
 SourceCode: https://github.com/hf1985/husk
 IssueTracker: https://github.com/hf1985/husk/issues
+
+AutoName: Husk
 
 RepoType: git
 Repo: https://github.com/hf1985/husk.git
@@ -18,7 +20,7 @@ Builds:
     gradle:
       - yes
 
-AutoUpdateMode: Version v%v
+AutoUpdateMode: Version
 UpdateCheckMode: Tags
 CurrentVersion: 0.1.3
 CurrentVersionCode: 4
