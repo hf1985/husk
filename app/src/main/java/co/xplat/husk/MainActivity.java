@@ -31,6 +31,7 @@ public class MainActivity extends Activity {
     static final String PREFS = "husk";
     static final String KEY_DEX = "dex_reconnect";
     static final String COMPANION_URL = "https://xplat.co/husk";
+    static final int REQ_SCREEN = 7;
 
     private TextView statusView;
 
@@ -110,6 +111,16 @@ public class MainActivity extends Activity {
             });
             root.addView(dex);
         }
+        space(root, dp, 16);
+
+        // Skaermdeling (MediaProjection) - se+styr skaermen i browseren over Tailscale. scrcpy-
+        // erstatning til enheder UDEN Wireless Debugging (Android 9 osv.); klik injiceres via a11y.
+        Button screenBtn = new Button(this);
+        screenBtn.setText(getString(R.string.btn_screenshare));
+        screenBtn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { startScreenShare(); }
+        });
+        root.addView(screenBtn);
         space(root, dp, 16);
 
         // Deep-links til noedvendige indstillinger
@@ -203,6 +214,33 @@ public class MainActivity extends Activity {
 
     private void startService2(Intent svc) {
         if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc); else startService(svc);
+    }
+
+    // ---------------- skaermdeling (MediaProjection) ----------------
+
+    private void startScreenShare() {
+        try {
+            android.media.projection.MediaProjectionManager mpm =
+                (android.media.projection.MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+            startActivityForResult(mpm.createScreenCaptureIntent(), REQ_SCREEN);
+        } catch (Throwable t) {
+            Toast.makeText(this, getString(R.string.setting_unavailable), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req != REQ_SCREEN) return;
+        if (res == RESULT_OK && data != null) {
+            Intent svc = new Intent(this, ScreenService.class);
+            svc.putExtra("resultCode", res);
+            svc.putExtra("data", data);
+            startService2(svc);
+            Toast.makeText(this, getString(R.string.screen_on), Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, getString(R.string.screen_cancel), Toast.LENGTH_SHORT).show();
+        }
     }
 
     // ---------------- smaa view-hjaelpere ----------------

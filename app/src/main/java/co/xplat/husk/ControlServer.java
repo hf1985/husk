@@ -110,6 +110,12 @@ public class ControlServer {
         if (path.equals("/pair"))     { writePair(out); return; }
         if (path.equals("/flags"))    { writeFlags(out); return; }
         if (path.equals("/set"))      { applySet(query); writeText(out, 200, "ok"); return; }
+        if (path.equals("/screen"))     { writeScreenStream(c, out); return; }
+        if (path.equals("/screen.jpg")) { writeScreenSnapshot(out); return; }
+        if (path.equals("/control"))    { writeText(out, 200, controlHtml(query), "text/html; charset=utf-8"); return; }
+        if (path.equals("/tap"))        { writeText(out, 200, rpc("tap " + intp(query,"x",0) + " " + intp(query,"y",0) + " 0")); return; }
+        if (path.equals("/swipe"))      { writeText(out, 200, rpc("swipe " + intp(query,"x1",0) + " " + intp(query,"y1",0) + " " + intp(query,"x2",0) + " " + intp(query,"y2",0) + " 0 " + intp(query,"ms",200))); return; }
+        if (path.equals("/key"))        { writeText(out, 200, rpc("global " + keyName(param(query,"k")))); return; }
 
         writeText(out, 404, "not found");
     }
@@ -210,6 +216,102 @@ public class ControlServer {
              + "<title>Husk</title><body style='margin:0;background:#111'>"
              + "<img id=v style='width:100%;height:auto' src='/stream'>"
              + "<script>var t=location.search;if(t){document.getElementById('v').src='/stream'+t;}</script>";
+    }
+
+    // ---------------- skaerm (MediaProjection) + input-proxy til 8127-motoren ----------------
+
+    private void writeScreenSnapshot(OutputStream out) throws IOException {
+        byte[] jpeg = Rig.latestScreenJpeg;
+        if (jpeg == null) { writeText(out, 503, "no screen frame (start skaermdeling i appen)"); return; }
+        StringBuilder hdr = new StringBuilder();
+        hdr.append("HTTP/1.0 200 OK\r\n")
+           .append("Content-Type: image/jpeg\r\n")
+           .append("Content-Length: ").append(jpeg.length).append("\r\n")
+           .append("Cache-Control: no-store\r\n\r\n");
+        out.write(hdr.toString().getBytes("UTF-8"));
+        out.write(jpeg);
+        out.flush();
+    }
+
+    private void writeScreenStream(Socket c, OutputStream out) throws IOException {
+        c.setSoTimeout(0);
+        String boundary = "rigscreen";
+        String head = "HTTP/1.0 200 OK\r\n" +
+                "Cache-Control: no-store\r\nConnection: close\r\n" +
+                "Content-Type: multipart/x-mixed-replace; boundary=" + boundary + "\r\n\r\n";
+        out.write(head.getBytes("UTF-8"));
+        out.flush();
+        long sent = -1;
+        while (running) {
+            byte[] jpeg = Rig.latestScreenJpeg;
+            long seq = Rig.latestScreenSeq;
+            if (jpeg != null && seq != sent) {
+                sent = seq;
+                StringBuilder p = new StringBuilder();
+                p.append("--").append(boundary).append("\r\n")
+                 .append("Content-Type: image/jpeg\r\n")
+                 .append("Content-Length: ").append(jpeg.length).append("\r\n\r\n");
+                out.write(p.toString().getBytes("UTF-8"));
+                out.write(jpeg);
+                out.write("\r\n".getBytes("UTF-8"));
+                out.flush();
+            }
+            try { Thread.sleep(120); } catch (InterruptedException e) { break; }
+        }
+    }
+
+    // Proxy en kommando til a11y-motoren paa 127.0.0.1:8127 (samme linjeprotokol som engine.rpc),
+    // saa browser-styring (/tap //swipe //key) injiceres via a11y - ingen adb/WD noedvendig.
+    private String rpc(String cmd) {
+        Socket s = null;
+        try {
+            s = new Socket();
+            s.connect(new InetSocketAddress("127.0.0.1", 8127), 3000);
+            s.setSoTimeout(8000);
+            s.getOutputStream().write((cmd + "\n").getBytes("UTF-8"));
+            s.getOutputStream().flush();
+            BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream(), "UTF-8"));
+            String line = br.readLine();
+            return line == null ? "" : line;
+        } catch (Throwable t) {
+            return "ERR a11y (8127) ikke oppe";
+        } finally {
+            if (s != null) { try { s.close(); } catch (Throwable ignored) {} }
+        }
+    }
+
+    private static String keyName(String k) {
+        if (k != null && (k.equals("home") || k.equals("recents") || k.equals("back") || k.equals("notifications"))) return k;
+        return "back";
+    }
+
+    private static int intp(String query, String key, int def) {
+        try { String v = param(query, key); return v == null ? def : Integer.parseInt(v); } catch (Throwable t) { return def; }
+    }
+
+    // /control: skaerm-stream + klik->a11y-tap (mapper klik-px til de RIGTIGE skaerm-px via screenW/H)
+    // + Tilbage/Hjem/Recents. token arves fra ?token= saa img + fetch er autoriseret.
+    private String controlHtml(String query) {
+        String tok = param(query, "token");
+        String amp = (tok == null || tok.isEmpty()) ? "" : "&token=" + tok;
+        String tq = (tok == null || tok.isEmpty()) ? "" : "?token=" + tok;
+        int w = Rig.screenW, h = Rig.screenH;
+        return "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
+             + "<title>Husk control</title>"
+             + "<body style='margin:0;background:#111;color:#ccc;font-family:sans-serif;text-align:center;touch-action:manipulation'>"
+             + "<div style='padding:6px'>"
+             + "<button onclick=\"k('back')\">Tilbage</button> "
+             + "<button onclick=\"k('home')\">Hjem</button> "
+             + "<button onclick=\"k('recents')\">Recents</button></div>"
+             + "<img id=v style='max-width:100%;height:auto;display:inline-block' src='/screen" + tq + "'>"
+             + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "';"
+             + "var img=document.getElementById('v');"
+             + "function k(n){fetch('/key?k='+n+A);}"
+             + "img.addEventListener('click',function(e){var r=img.getBoundingClientRect();"
+             + "if(!W||!H)return;"
+             + "var x=Math.round((e.clientX-r.left)/r.width*W),y=Math.round((e.clientY-r.top)/r.height*H);"
+             + "fetch('/tap?x='+x+'&y='+y+A);});"
+             + "</script>";
     }
 
     // ---------------- helpers ----------------

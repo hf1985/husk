@@ -37,4 +37,9 @@
     <string name="companion_explain">For at spejle og styre denne telefon fra en PC, installer den lille companion fra:</string>
     <string name="companion_url">xplat.co/husk</string>
     <string name="btn_get_companion">Hent PC-companion</string>
+
+    <!-- Skaermdeling (MediaProjection) -->
+    <string name="btn_screenshare">Start skærmdeling (browser)</string>
+    <string name="screen_on">Skærmdeling slået til - åbn http://TELEFON-IP:8090/control på en PC (samme Tailscale-net).</string>
+    <string name="screen_cancel">Skærmdeling annulleret.</string>
 </resources>

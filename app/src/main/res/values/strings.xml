@@ -43,4 +43,9 @@
     <string name="companion_explain">To mirror and control this phone from a PC, install the small companion from:</string>
     <string name="companion_url">xplat.co/husk</string>
     <string name="btn_get_companion">Get the PC companion</string>
+
+    <!-- Screen sharing (MediaProjection) -->
+    <string name="btn_screenshare">Start screen sharing (browser)</string>
+    <string name="screen_on">Screen sharing on - open http://PHONE-IP:8090/control on a PC (same Tailscale network).</string>
+    <string name="screen_cancel">Screen sharing cancelled.</string>
 </resources>

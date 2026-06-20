@@ -14,6 +14,13 @@ public final class Rig {
     public static volatile byte[] latestJpeg = null;
     public static volatile long   latestSeq  = 0;     // taeller, saa /stream kun sender nye frames
 
+    // Seneste JPEG-frame fra SKAERMEN (MediaProjection, ScreenService). Workaround til scrcpy paa
+    // enheder uden Wireless Debugging (fx Android 9): se skaermen i browseren over Tailscale, og
+    // styr den med klik->a11y-tap. screenW/H = RIGTIGE skaerm-px (til klik-koordinat-mapping).
+    public static volatile byte[] latestScreenJpeg = null;
+    public static volatile long   latestScreenSeq  = 0;
+    public static volatile int    screenW = 0, screenH = 0;
+
     // Kamera-config (kan saettes via control-endpoint /set). Rotation = JPEG_ORIENTATION i grader.
     public static volatile int     rotation = 0;       // 0|90|180|270
     public static volatile boolean flip     = false;   // horisontal spejling
