@@ -116,9 +116,15 @@ public class MainActivity extends Activity {
         root.addView(title(getString(R.string.settings_heading), 16, false));
         root.addView(settingsButton(getString(R.string.btn_accessibility),
                 new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
-        // Udviklerindstillinger skal laases op FOERST (7x tap paa Build-nummer i "Om telefonen")
-        // foer ACTION_APPLICATION_DEVELOPMENT_SETTINGS virker. Kun noedvendigt til scrcpy/PC-spejling.
+        // Udviklerindstillinger skal laases op (7x tap paa Build-nummer) foer WD/scrcpy virker.
+        // Husk goer det AUTOMATISK via a11y (som WD-recovery); "Om telefonen" + Dev-options er manuel fallback.
         root.addView(body(getString(R.string.devhint)));
+        Button devbtn = new Button(this);
+        devbtn.setText(getString(R.string.btn_enabledev));
+        devbtn.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { autoEnableDevOptions(); }
+        });
+        root.addView(devbtn);
         root.addView(settingsButton(getString(R.string.btn_aboutphone),
                 new Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)));
         root.addView(settingsButton(getString(R.string.btn_devoptions),
@@ -164,6 +170,20 @@ public class MainActivity extends Activity {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         if (intent.resolveActivity(getPackageManager()) != null) startActivity(intent);
         else Toast.makeText(this, getString(R.string.setting_unavailable), Toast.LENGTH_SHORT).show();
+    }
+
+    // Aktiver Udviklerindstillinger automatisk via a11y-motoren (samme idé som WD-recovery: a11y
+    // driver Settings-UI'et og tapper Build-nummer). Kraever at Husk-a11y er slaaet til.
+    private void autoEnableDevOptions() {
+        final RigAccessibilityService svc = Rig.a11y;
+        if (svc == null) { Toast.makeText(this, getString(R.string.need_a11y), Toast.LENGTH_LONG).show(); return; }
+        Toast.makeText(this, getString(R.string.dev_working), Toast.LENGTH_SHORT).show();
+        new Thread(new Runnable() { public void run() {
+            final boolean ok = svc.ensureDeveloperOptions(false);
+            runOnUiThread(new Runnable() { public void run() {
+                Toast.makeText(MainActivity.this, getString(ok ? R.string.dev_ok : R.string.dev_fail), Toast.LENGTH_LONG).show();
+            } });
+        } }, "husk-devopt").start();
     }
 
     // ---------------- kamera-service ----------------

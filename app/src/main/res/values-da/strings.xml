@@ -24,8 +24,13 @@
     <string name="btn_devoptions">Udviklerindstillinger / Trådløs fejlfinding</string>
     <string name="btn_battery">Batterioptimering (tillad)</string>
     <string name="btn_appdetails">App-tilladelser</string>
-    <string name="btn_aboutphone">Om telefonen (lås Udviklerindstillinger op)</string>
-    <string name="devhint">Kun til PC-skærmspejling: på en ny telefon skal du åbne Om telefonen og tappe Build-nummer 7 gange for at låse Udviklerindstillinger op, og derefter slå Trådløs fejlfinding til.</string>
+    <string name="btn_enabledev">Lås Udviklerindstillinger op (automatisk)</string>
+    <string name="btn_aboutphone">Om telefonen (manuelt)</string>
+    <string name="devhint">Kun til PC-skærmspejling. Husk kan låse Udviklerindstillinger op for dig (tapper Build-nummer automatisk, ligesom den gen-tænder Trådløs fejlfinding). Bliver du bedt om PIN/mønster, så tag det ene trin manuelt.</string>
+    <string name="need_a11y">Aktivér Husk-tilgængelighedstjenesten først (Tilgængelighed-knappen ovenfor).</string>
+    <string name="dev_working">Arbejder - åbner Om telefonen og tapper Build-nummer...</string>
+    <string name="dev_ok">Udviklerindstillinger låst op.</string>
+    <string name="dev_fail">Kunne ikke låse op automatisk - blev du bedt om PIN, så åbn Om telefonen og tap Build-nummer 7 gange manuelt.</string>
     <string name="setting_unavailable">Ikke tilgængelig på denne enhed</string>
 
     <string name="companion_heading">PC-companion (skærm-spejling)</string>

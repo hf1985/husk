@@ -14,6 +14,7 @@ import android.hardware.display.DisplayManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
@@ -198,6 +199,10 @@ public class RigAccessibilityService extends AccessibilityService {
                 final String name = tok.length > 1 ? tok[1] : "";
                 return onMain(new Job() { public String run() { return doGlobal(name); } }, 3000);
             }
+            if (cmd.equals("devoptions")) {   // aktiver Udviklerindstillinger (7-tap) via a11y; 'probe' = kun navigation
+                final boolean probe = tok.length > 1 && tok[1].equals("probe");
+                return ensureDeveloperOptions(probe) ? (probe ? "OK found" : "OK enabled") : "ERR not-enabled";
+            }
         } catch (Exception e) {
             return "ERR " + e;
         }
@@ -286,7 +291,60 @@ public class RigAccessibilityService extends AccessibilityService {
     // spike) og laeser den nye ip:port direkte fra skaermen. Returnerer "ip:port" eller null.
     // Koeres paa en arbejder-traad (IKKE main) - de enkelte node-ops broer selv til main via onMain.
     // Display 0 = telefonskaermen; kraever vaaken skaerm (stay_on_while_plugged_in=7).
+    // Aktiver Udviklerindstillinger automatisk (a11y-drevet "tap Build-nummer 7x"), ligesom WD-recovery
+    // driver Settings-UI'et. Springer over hvis allerede aktiveret. Samsung One UI nester Build-nummer
+    // under "Software information". Kraever enheden en lock-credential (PIN/moenster/kode) efter tap'ene,
+    // kan a11y ikke indtaste den -> afbryder + logger (det ene trin er saa engangs-manuelt).
+    // probeOnly=true: navigér + rapportér om Build-nummer-raekken findes UDEN at taste (sikkert naar Dev
+    // Options allerede er paa). Returnerer true hvis Dev Options er (blevet) aktiveret / fundet ved probe.
+    boolean ensureDeveloperOptions(boolean probeOnly) {
+        final int d = 0;
+        if (!probeOnly) {
+            try {
+                if (Settings.Global.getInt(getContentResolver(), Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1) {
+                    Log.i(TAG, "dev-options: allerede aktiveret"); return true;
+                }
+            } catch (Throwable t) { }
+        }
+        final String bn = "build.?number|byggenummer|build.?nummer|versionsnummer";
+        Log.i(TAG, "dev-options: aabner Om telefonen");
+        launchD(d, "android.settings.DEVICE_INFO_SETTINGS");
+        sleep(2000);
+        // Samsung: Build-nummer ligger under "Software information". Gaa derind hvis raekken findes.
+        for (int i = 0; i < 6; i++) {
+            if ("1".equals(stateD(d, bn))) break;
+            if ("1".equals(stateD(d, "software information|softwareoplysninger"))) {
+                clickD(d, "software information|softwareoplysninger"); sleep(1500); break;
+            }
+            scrollD(d); sleep(700);
+        }
+        boolean found = false;
+        for (int i = 0; i < 8; i++) {
+            if ("1".equals(stateD(d, bn))) { found = true; break; }
+            scrollD(d); sleep(700);
+        }
+        if (!found) { Log.w(TAG, "dev-options: fandt ikke Build-nummer-raekken"); return false; }
+        if (probeOnly) { Log.i(TAG, "dev-options: probe OK - Build-nummer fundet"); return true; }
+        Log.i(TAG, "dev-options: tapper Build-nummer (op til 8x)");
+        final String pin = "enter.*pin|indtast.*pin|enter.*pattern|tegn.*m.nster|enter.*password|indtast.*adgangskode|confirm.*pin|bekr.ft.*pin";
+        for (int i = 0; i < 8; i++) {
+            clickD(d, bn);
+            sleep(800);
+            if ("1".equals(stateD(d, pin))) {
+                Log.w(TAG, "dev-options: enheden kraever lock-credential - kan ikke automatiseres (engangs-manuel)");
+                return false;
+            }
+            try { if (Settings.Global.getInt(getContentResolver(), Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1) break; } catch (Throwable t) { }
+        }
+        boolean ok;
+        try { ok = Settings.Global.getInt(getContentResolver(), Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1; }
+        catch (Throwable t) { ok = false; }
+        Log.i(TAG, "dev-options: " + (ok ? "aktiveret" : "ikke aktiveret"));
+        return ok;
+    }
+
     String recoverWirelessDebugging() {
+        ensureDeveloperOptions(false);   // automatisk 7-tap hvis Dev Options ikke er paa (ellers no-op)
         final int d = 0;
         final Pattern ipPort = Pattern.compile("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+");
 

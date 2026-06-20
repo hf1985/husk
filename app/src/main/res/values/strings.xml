@@ -29,8 +29,13 @@
     <string name="btn_devoptions">Developer options / Wireless debugging</string>
     <string name="btn_battery">Battery optimisation (allow)</string>
     <string name="btn_appdetails">App permissions</string>
-    <string name="btn_aboutphone">About phone (unlock Developer options)</string>
-    <string name="devhint">For PC screen mirroring only: on a new phone, open About phone and tap Build number 7 times to unlock Developer options, then enable Wireless debugging.</string>
+    <string name="btn_enabledev">Unlock Developer options (automatic)</string>
+    <string name="btn_aboutphone">About phone (manual)</string>
+    <string name="devhint">Needed only for PC screen mirroring. Husk can unlock Developer options for you (it taps Build number automatically, like it re-enables Wireless debugging). If your phone asks for a PIN/pattern, do that one step by hand.</string>
+    <string name="need_a11y">Enable the Husk accessibility service first (Accessibility button above).</string>
+    <string name="dev_working">Working - opening About phone and tapping Build number...</string>
+    <string name="dev_ok">Developer options unlocked.</string>
+    <string name="dev_fail">Could not unlock automatically - if your phone asked for a PIN, open About phone and tap Build number 7 times by hand.</string>
     <string name="setting_unavailable">Not available on this device</string>
 
     <!-- Companion -->
