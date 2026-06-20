@@ -12,6 +12,7 @@ import android.graphics.Path;
 import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -448,7 +449,9 @@ public class RigAccessibilityService extends AccessibilityService {
         final int dex = 2;
         if ("1".equals(stateD(dex, "."))) return true;   // DeX-displayet har allerede noder -> oppe
         Log.i(TAG, "dex-up: DeX nede - forsoeger at taende via quick-settings");
-        onMain(new Job() { public String run() { performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS); return "OK"; } }, 3000);
+        if (Build.VERSION.SDK_INT >= 31) {
+            onMain(new Job() { public String run() { performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS); return "OK"; } }, 3000);
+        }
         sleep(1500);
         clickD(0, "^dex,|samsung dex");          // DeX-tile (desc fx "DeX, Off., Button")
         sleep(2000);
@@ -520,9 +523,7 @@ public class RigAccessibilityService extends AccessibilityService {
     }
 
     private String dumpDisplay(int displayId) {
-        SparseArray<List<AccessibilityWindowInfo>> all = getWindowsOnAllDisplays();
-        if (all == null) return "NONE (no windows)";
-        List<AccessibilityWindowInfo> wins = all.get(displayId);
+        List<AccessibilityWindowInfo> wins = windowsForDisplay(displayId);
         if (wins == null) return "NONE (no windows on display " + displayId + ")";
         StringBuilder sb = new StringBuilder();
         int[] count = new int[]{0};
@@ -570,7 +571,9 @@ public class RigAccessibilityService extends AccessibilityService {
                         new GestureDescription.StrokeDescription(p, 0L, (long) dur);
                 GestureDescription.Builder b = new GestureDescription.Builder();
                 b.addStroke(stroke);
-                try { b.setDisplayId(displayId); } catch (Throwable t) { Log.e(TAG, "setDisplayId", t); }
+                if (Build.VERSION.SDK_INT >= 30) {
+                    try { b.setDisplayId(displayId); } catch (Throwable t) { Log.e(TAG, "setDisplayId", t); }
+                }
                 boolean ok = dispatchGesture(b.build(), new GestureResultCallback() {
                     @Override public void onCompleted(GestureDescription g) { completed[0] = true; latch.countDown(); }
                     @Override public void onCancelled(GestureDescription g) { completed[0] = false; latch.countDown(); }
@@ -585,10 +588,20 @@ public class RigAccessibilityService extends AccessibilityService {
 
     // ---------------- node-helpers (uaendret fra DexRPC's logik) ----------------
 
+    // Vinduer for et display. API 30+: alle displays (multi-display/DeX). <30: kun det aktive
+    // (default) display via getWindows() - aeldre Android (8-10) har ikke getWindowsOnAllDisplays,
+    // saa multi-display/DeX falder gracefuldt bort og appen virker enkelt-display.
+    private List<AccessibilityWindowInfo> windowsForDisplay(int d) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            SparseArray<List<AccessibilityWindowInfo>> all = getWindowsOnAllDisplays();
+            return all == null ? null : all.get(d);
+        }
+        if (d == Display.DEFAULT_DISPLAY) return getWindows();
+        return null;
+    }
+
     private String matchText(int d, Pattern pat) {
-        SparseArray<List<AccessibilityWindowInfo>> all = getWindowsOnAllDisplays();
-        if (all == null) return "NONE";
-        List<AccessibilityWindowInfo> wins = all.get(d);
+        List<AccessibilityWindowInfo> wins = windowsForDisplay(d);
         if (wins == null) return "NONE";
         for (int i = 0; i < wins.size(); i++) {
             AccessibilityWindowInfo w = wins.get(i);
@@ -616,9 +629,7 @@ public class RigAccessibilityService extends AccessibilityService {
     }
 
     private AccessibilityNodeInfo findNode(int displayId, Pattern pat) {
-        SparseArray<List<AccessibilityWindowInfo>> all = getWindowsOnAllDisplays();
-        if (all == null) return null;
-        List<AccessibilityWindowInfo> wins = all.get(displayId);
+        List<AccessibilityWindowInfo> wins = windowsForDisplay(displayId);
         if (wins == null) return null;
         for (int i = 0; i < wins.size(); i++) {
             AccessibilityWindowInfo w = wins.get(i);
@@ -654,9 +665,7 @@ public class RigAccessibilityService extends AccessibilityService {
     }
 
     private AccessibilityNodeInfo findScrollable(int displayId) {
-        SparseArray<List<AccessibilityWindowInfo>> all = getWindowsOnAllDisplays();
-        if (all == null) return null;
-        List<AccessibilityWindowInfo> wins = all.get(displayId);
+        List<AccessibilityWindowInfo> wins = windowsForDisplay(displayId);
         if (wins == null) return null;
         for (int i = 0; i < wins.size(); i++) {
             AccessibilityWindowInfo w = wins.get(i);
