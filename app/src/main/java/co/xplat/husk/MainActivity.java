@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
     static final String PREFS = "husk";
     static final String KEY_DEX = "dex_reconnect";
     static final String COMPANION_URL = "https://xplat.co/husk";
-    static final int REQ_SCREEN = 7;
+    static final String KEY_SCREEN = "screen_share";
 
     private TextView statusView;
 
@@ -113,14 +113,23 @@ public class MainActivity extends Activity {
         }
         space(root, dp, 16);
 
-        // Skaermdeling (MediaProjection) - se+styr skaermen i browseren over Tailscale. scrcpy-
-        // erstatning til enheder UDEN Wireless Debugging (Android 9 osv.); klik injiceres via a11y.
-        Button screenBtn = new Button(this);
-        screenBtn.setText(getString(R.string.btn_screenshare));
-        screenBtn.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) { startScreenShare(); }
+        // Toggle: skaermdeling (PERMANENT) - se+styr skaermen i browseren over Tailscale. scrcpy-
+        // erstatning til enheder UDEN Wireless Debugging. Naar TIL: a11y tapper selv "Start nu" og
+        // appen gen-etablerer skaermdeling efter boot (ScreenConsentActivity). Klik i browser -> a11y-tap.
+        Switch scr = new Switch(this);
+        scr.setText(getString(R.string.toggle_screen));
+        scr.setTextColor(Color.WHITE);
+        scr.setChecked(Rig.screenRunning || getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_SCREEN, false));
+        scr.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton v, boolean on) {
+                getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_SCREEN, on).apply();
+                if (on) startScreenShare();
+                else stopService(new Intent(MainActivity.this, ScreenService.class));
+                refreshStatus();
+            }
         });
-        root.addView(screenBtn);
+        root.addView(scr);
+        root.addView(body(getString(R.string.screen_hint)));
         space(root, dp, 16);
 
         // Deep-links til noedvendige indstillinger
@@ -165,7 +174,14 @@ public class MainActivity extends Activity {
         if (statusView == null) return;
         String on = getString(R.string.status_on), off = getString(R.string.status_off);
         statusView.setText(getString(R.string.status_engine) + ": " + (Rig.a11y != null ? on : off) + "\n"
-                 + getString(R.string.status_camera) + ": " + (Rig.latestJpeg != null ? on : off));
+                 + getString(R.string.status_camera) + ": " + (Rig.cameraRunning ? on : off) + "\n"
+                 + getString(R.string.status_screen) + ": " + (Rig.screenRunning ? on : off));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshStatus();   // vis FAKTISK tilstand naar appen aabnes igen (ikke stale)
     }
 
     private Button settingsButton(String label, final Intent intent) {
@@ -219,28 +235,12 @@ public class MainActivity extends Activity {
     // ---------------- skaermdeling (MediaProjection) ----------------
 
     private void startScreenShare() {
-        try {
-            android.media.projection.MediaProjectionManager mpm =
-                (android.media.projection.MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-            startActivityForResult(mpm.createScreenCaptureIntent(), REQ_SCREEN);
-        } catch (Throwable t) {
-            Toast.makeText(this, getString(R.string.setting_unavailable), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int req, int res, Intent data) {
-        super.onActivityResult(req, res, data);
-        if (req != REQ_SCREEN) return;
-        if (res == RESULT_OK && data != null) {
-            Intent svc = new Intent(this, ScreenService.class);
-            svc.putExtra("resultCode", res);
-            svc.putExtra("data", data);
-            startService2(svc);
-            Toast.makeText(this, getString(R.string.screen_on), Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(this, getString(R.string.screen_cancel), Toast.LENGTH_SHORT).show();
-        }
+        // ScreenConsentActivity haandterer MediaProjection-samtykket (a11y tapper selv "Start nu") +
+        // starter ScreenService. Samme vej som boot-auto-start, saa adfaerden er ens.
+        Intent i = new Intent(this, ScreenConsentActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(i);
+        Toast.makeText(this, getString(R.string.screen_on), Toast.LENGTH_LONG).show();
     }
 
     // ---------------- smaa view-hjaelpere ----------------

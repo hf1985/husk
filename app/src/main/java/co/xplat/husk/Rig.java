@@ -30,6 +30,22 @@ public final class Rig {
     // Delt token. Tom = ingen token sat (kun loopback+Tailscale-bind beskytter da, jf. ACL-laget).
     public static volatile String token = "";
 
+    // FAKTISK koerende-tilstand (ikke bare den gemte toggle) - status/UI/flags SKAL vise sandt.
+    // cameraRunning saettes af CameraService naar capture reelt koerer; screenRunning af ScreenService.
+    public static volatile boolean cameraRunning = false;
+    public static volatile boolean screenRunning = false;
+
+    // Proces-singleton HTTP-server (8090), AFKOBLET fra CameraService saa skaermdeling + /control
+    // virker UDEN kameraet. Een instans pr. proces; startes idempotent af hvilken-som-helst service.
+    public static volatile ControlServer controlServer = null;
+    public static synchronized void ensureControlServer() {
+        if (controlServer == null) {
+            ControlServer cs = new ControlServer();
+            cs.start();
+            controlServer = cs;
+        }
+    }
+
     // Reference til den forbundne a11y-service (sat i onServiceConnected). null = a11y ikke aktiveret.
     public static volatile RigAccessibilityService a11y = null;
 

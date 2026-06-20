@@ -58,6 +58,7 @@ public class ScreenService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        Rig.ensureControlServer();   // 8090 op uafhaengigt af kameraet -> /screen + /control virker uden kamera
         createChannel();
         Notification n = new Notification.Builder(this, CHANNEL)
                 .setContentTitle("Husk")
@@ -104,6 +105,7 @@ public class ScreenService extends Service {
             }, handler);
             vdisplay = projection.createVirtualDisplay("husk-screen", sw, sh, dpi,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader.getSurface(), null, handler);
+            Rig.screenRunning = true;   // skaermdeling koerer reelt nu
             Log.i(TAG, "screen: capture " + sw + "x" + sh + " (rigtig " + w + "x" + h + ")");
         } catch (Throwable t) {
             Log.e(TAG, "startCapture", t);
@@ -154,6 +156,7 @@ public class ScreenService extends Service {
         try { if (projection != null) projection.stop(); } catch (Throwable ignored) {}
         try { if (thread != null) thread.quitSafely(); } catch (Throwable ignored) {}
         Rig.latestScreenJpeg = null;
+        Rig.screenRunning = false;
         super.onDestroy();
     }
 }

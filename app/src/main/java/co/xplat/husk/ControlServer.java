@@ -38,18 +38,41 @@ public class ControlServer {
     private volatile boolean running = false;
     private AdbForward adbForward;   // app-native scrcpy/adb-over-Tailscale (Termux-uafhaengig bro)
 
+    private final java.util.Set<String> boundHosts = new java.util.HashSet<String>();
+
     public void start() {
         running = true;
-        // Altid loopback; desuden Tailscale-IP'en hvis den findes.
-        bindAndServe("127.0.0.1");
-        String ts = tailscaleIp();
-        if (ts != null) bindAndServe(ts);
-        Log.i(TAG, "control-server lytter paa " + PORT + " (loopback" + (ts != null ? " + " + ts : "") + ")");
-        // adb-bro paa Tailscale-IP (scrcpy = del af appen, ingen socat/Termux). Kun naar Tailscale findes.
-        if (ts != null) {
-            adbForward = new AdbForward();
-            adbForward.start(ts);
-        }
+        bindHost("127.0.0.1");        // altid loopback med det samme
+        startRebindLoop();            // bind Tailscale-IP'en saa snart den dukker op (ogsaa efter boot)
+        Log.i(TAG, "control-server lytter paa " + PORT + " (loopback; Tailscale bindes naar den er oppe)");
+    }
+
+    // Bind een host idempotent (undgaa dobbelt-bind af samme adresse).
+    private synchronized void bindHost(String host) {
+        if (boundHosts.contains(host)) return;
+        bindAndServe(host);
+        boundHosts.add(host);
+    }
+
+    // Tailscale-IP'en findes maaske ikke ved boot (Husk kan starte FOER Tailscale er oppe). Poll og
+    // bind den naar den dukker op - saa slipper man for at toggle noget manuelt efter reboot. Starter
+    // ogsaa adb-broen (scrcpy) naar Tailscale er der. Een gang pr. fundet IP.
+    private void startRebindLoop() {
+        Thread t = new Thread(new Runnable() { public void run() {
+            while (running) {
+                try {
+                    String ts = tailscaleIp();
+                    if (ts != null && !boundHosts.contains(ts)) {
+                        bindHost(ts);
+                        if (adbForward == null) { adbForward = new AdbForward(); adbForward.start(ts); }
+                        Log.i(TAG, "control-server bandt Tailscale-IP " + ts);
+                    }
+                } catch (Throwable ignored) {}
+                try { Thread.sleep(12000); } catch (InterruptedException e) { break; }
+            }
+        } }, "rig-http-rebind");
+        t.setDaemon(true);
+        t.start();
     }
 
     private void bindAndServe(final String host) {
@@ -195,7 +218,8 @@ public class ControlServer {
     private void writeFlags(OutputStream out) throws IOException {
         String json = "{\"dexReconnect\":" + Rig.dexReconnect
                     + ",\"a11y\":" + (Rig.a11y != null)
-                    + ",\"camera\":" + (Rig.latestJpeg != null) + "}";
+                    + ",\"camera\":" + Rig.cameraRunning
+                    + ",\"screen\":" + Rig.screenRunning + "}";
         writeText(out, 200, json, "application/json");
     }
 

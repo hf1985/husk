@@ -256,6 +256,23 @@ public class RigAccessibilityService extends AccessibilityService {
         } }, 6000);
     }
 
+    // Tap "Start nu"/"Start now" i MediaProjection-samtykke-dialogen, saa skaermdeling kan etableres
+    // hands-free (permanent efter boot). Tikker "Vis ikke igen" een gang foerst hvis den findes (Android
+    // 9 husker da samtykket). Retry mens dialogen dukker op. Koeres paa arbejder-traad (klik broer til main).
+    String acceptScreenConsent() {
+        boolean ticked = false;
+        for (int i = 0; i < 14; i++) {
+            if (!ticked) {
+                String dnt = clickD(0, "don.?t show again|vis ikke igen");
+                if (dnt != null && !dnt.equals("NONE")) ticked = true;
+            }
+            String r = clickD(0, "start now|start nu");
+            if (r != null && !r.equals("NONE")) return r;   // knap fundet + klik forsoegt
+            sleep(500);
+        }
+        return "NONE";
+    }
+
     String gettextD(final int d, final String regex) {  // returnerer foerste match-tekst eller "NONE"
         final Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
         return onMain(new Job() { public String run() {

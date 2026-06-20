@@ -42,4 +42,7 @@
     <string name="btn_screenshare">Start skærmdeling (browser)</string>
     <string name="screen_on">Skærmdeling slået til - åbn http://TELEFON-IP:8090/control på en PC (samme Tailscale-net).</string>
     <string name="screen_cancel">Skærmdeling annulleret.</string>
+    <string name="status_screen">Skærmdeling</string>
+    <string name="toggle_screen">Skærmdeling (hold tændt)</string>
+    <string name="screen_hint">Se + styr telefonen fra en browser på http://TELEFON-IP:8090/control. Forbliver tændt efter reboot; tilgængeligheds-motoren giver samtykket automatisk.</string>
 </resources>

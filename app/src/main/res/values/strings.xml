@@ -48,4 +48,7 @@
     <string name="btn_screenshare">Start screen sharing (browser)</string>
     <string name="screen_on">Screen sharing on - open http://PHONE-IP:8090/control on a PC (same Tailscale network).</string>
     <string name="screen_cancel">Screen sharing cancelled.</string>
+    <string name="status_screen">Screen sharing</string>
+    <string name="toggle_screen">Screen sharing (keep on)</string>
+    <string name="screen_hint">View + control this phone from a browser at http://PHONE-IP:8090/control. Stays on across reboots; the accessibility engine grants it automatically.</string>
 </resources>

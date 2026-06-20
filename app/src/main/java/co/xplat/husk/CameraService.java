@@ -57,7 +57,6 @@ public class CameraService extends Service {
     private CameraDevice cameraDevice;
     private CameraCaptureSession captureSession;
     private ImageReader imageReader;
-    private ControlServer server;
     private PowerManager.WakeLock wakeLock;
     private volatile boolean started = false;
 
@@ -103,6 +102,7 @@ public class CameraService extends Service {
             startServer();
             camHandler.post(new Runnable() { public void run() { openCamera(); } });
             maybeReconnectDex();
+            maybeAutoScreenShare();
         }
         return START_STICKY;   // genstart hvis systemet draeber os (recovery-venlig)
     }
@@ -116,11 +116,33 @@ public class CameraService extends Service {
 
     private void startServer() {
         try {
-            server = new ControlServer();
-            server.start();
+            Rig.ensureControlServer();   // proces-singleton; lever uafhaengigt af kameraet (skaerm + /control)
         } catch (Throwable t) {
             Log.e(TAG, "control-server start fejlede", t);
         }
+    }
+
+    // Permanent skaermdeling: hvis brugeren har slaaet den til (pref), gen-etabler den efter boot/start.
+    // Forsinket saa a11y + Tailscale er oppe; a11y tapper selv "Start nu"-samtykket via ScreenConsentActivity.
+    // Springes over hvis allerede koerende. (Kun naar pref er sat -> rig'en der kun bruger kamera roeres ikke.)
+    private void maybeAutoScreenShare() {
+        boolean want = getSharedPreferences("husk", Context.MODE_PRIVATE).getBoolean("screen_share", false);
+        if (!want) return;
+        camHandler.postDelayed(new Runnable() {
+            int tries = 0;
+            public void run() {
+                if (Rig.screenRunning) return;
+                if (Rig.a11y != null) {
+                    try {
+                        Intent i = new Intent(CameraService.this, ScreenConsentActivity.class);
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(i);
+                    } catch (Throwable t) { Log.e(TAG, "auto-screenshare", t); }
+                    return;
+                }
+                if (++tries < 8) camHandler.postDelayed(this, 5000);
+            }
+        }, 18000);
     }
 
     // DeX-reconnect ved boot/start: laes brugerens toggle og bring DeX op via a11y hvis slaaet til.
@@ -162,8 +184,8 @@ public class CameraService extends Service {
 
             cameraManager.openCamera(camId, new CameraDevice.StateCallback() {
                 public void onOpened(CameraDevice device) { cameraDevice = device; createSession(); }
-                public void onDisconnected(CameraDevice device) { Log.w(TAG, "kamera disconnected"); device.close(); cameraDevice = null; }
-                public void onError(CameraDevice device, int error) { Log.e(TAG, "kamera-fejl " + error); device.close(); cameraDevice = null; }
+                public void onDisconnected(CameraDevice device) { Log.w(TAG, "kamera disconnected"); Rig.cameraRunning = false; device.close(); cameraDevice = null; }
+                public void onError(CameraDevice device, int error) { Log.e(TAG, "kamera-fejl " + error); Rig.cameraRunning = false; device.close(); cameraDevice = null; }
             }, camHandler);
         } catch (CameraAccessException e) {
             Log.e(TAG, "openCamera", e);
@@ -196,6 +218,7 @@ public class CameraService extends Service {
             b.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
             b.set(CaptureRequest.JPEG_ORIENTATION, normRot(Rig.rotation));
             captureSession.setRepeatingRequest(b.build(), null, camHandler);
+            Rig.cameraRunning = true;   // capture koerer reelt nu -> status/flags maa vise "on"
             Log.i(TAG, "repeating capture i gang");
         } catch (CameraAccessException e) {
             Log.e(TAG, "startRepeating", e);
@@ -265,7 +288,7 @@ public class CameraService extends Service {
 
     @Override
     public void onDestroy() {
-        try { if (server != null) server.stopServer(); } catch (Throwable ignored) {}
+        Rig.cameraRunning = false;   // kamera stoppes -> status/flags maa vise "off" (ControlServer lever videre)
         try { if (captureSession != null) captureSession.close(); } catch (Throwable ignored) {}
         try { if (cameraDevice != null) cameraDevice.close(); } catch (Throwable ignored) {}
         try { if (imageReader != null) imageReader.close(); } catch (Throwable ignored) {}
