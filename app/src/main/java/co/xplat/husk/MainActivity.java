@@ -80,6 +80,15 @@ public class MainActivity extends Activity {
         refreshStatus();
         space(root, dp, 16);
 
+        // Opdatér: hent nyeste version fra xplat.co/husk/latest.json + installer (PackageInstaller)
+        Button upd = new Button(this);
+        upd.setText(getString(R.string.btn_update));
+        upd.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { Updater.checkAndUpdate(MainActivity.this); }
+        });
+        root.addView(upd);
+        space(root, dp, 16);
+
         // Toggle: kamera-streaming (start/stop servicen)
         Switch cam = new Switch(this);
         cam.setText(getString(R.string.toggle_camera));
@@ -173,9 +182,12 @@ public class MainActivity extends Activity {
     private void refreshStatus() {
         if (statusView == null) return;
         String on = getString(R.string.status_on), off = getString(R.string.status_off);
+        String lan = Net.localIp(), ts = Net.tailscaleIp();
         statusView.setText(getString(R.string.status_engine) + ": " + (Rig.a11y != null ? on : off) + "\n"
                  + getString(R.string.status_camera) + ": " + (Rig.cameraRunning ? on : off) + "\n"
-                 + getString(R.string.status_screen) + ": " + (Rig.screenRunning ? on : off));
+                 + getString(R.string.status_screen) + ": " + (Rig.screenRunning ? on : off) + "\n"
+                 + getString(R.string.status_local_ip) + ": " + (lan != null ? lan : "-") + "\n"
+                 + getString(R.string.status_ts_ip) + ": " + (ts != null ? ts : "-"));
     }
 
     @Override

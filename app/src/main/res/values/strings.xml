@@ -51,4 +51,14 @@
     <string name="status_screen">Screen sharing</string>
     <string name="toggle_screen">Screen sharing (keep on)</string>
     <string name="screen_hint">View + control this phone from a browser at http://PHONE-IP:8090/control. Stays on across reboots; the accessibility engine grants it automatically.</string>
+
+    <!-- IP display + updates -->
+    <string name="status_local_ip">Local IP</string>
+    <string name="status_ts_ip">Tailscale IP</string>
+    <string name="btn_update">Update Husk (from xplat)</string>
+    <string name="update_checking">Checking for updates...</string>
+    <string name="update_latest">Already on the latest version.</string>
+    <string name="update_downloading">Downloading</string>
+    <string name="update_failed">Update failed - check your connection.</string>
+    <string name="update_done">Husk updated.</string>
 </resources>

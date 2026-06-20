@@ -45,4 +45,14 @@
     <string name="status_screen">Skærmdeling</string>
     <string name="toggle_screen">Skærmdeling (hold tændt)</string>
     <string name="screen_hint">Se + styr telefonen fra en browser på http://TELEFON-IP:8090/control. Forbliver tændt efter reboot; tilgængeligheds-motoren giver samtykket automatisk.</string>
+
+    <!-- IP-visning + opdatering -->
+    <string name="status_local_ip">Lokal IP</string>
+    <string name="status_ts_ip">Tailscale-IP</string>
+    <string name="btn_update">Opdatér Husk (fra xplat)</string>
+    <string name="update_checking">Tjekker for opdatering...</string>
+    <string name="update_latest">Allerede nyeste version.</string>
+    <string name="update_downloading">Henter</string>
+    <string name="update_failed">Opdatering fejlede - tjek forbindelsen.</string>
+    <string name="update_done">Husk opdateret.</string>
 </resources>

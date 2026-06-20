@@ -11,11 +11,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 
 // Lille HTTP-server (raa ServerSocket, ingen lib) til den samlede rig. Den BINDER KUN til
@@ -43,8 +41,8 @@ public class ControlServer {
     public void start() {
         running = true;
         bindHost("127.0.0.1");        // altid loopback med det samme
-        startRebindLoop();            // bind Tailscale-IP'en saa snart den dukker op (ogsaa efter boot)
-        Log.i(TAG, "control-server lytter paa " + PORT + " (loopback; Tailscale bindes naar den er oppe)");
+        startRebindLoop();            // bind LAN + Tailscale saa snart de dukker op (ogsaa efter boot)
+        Log.i(TAG, "control-server lytter paa " + PORT + " (loopback; LAN + Tailscale bindes naar de er oppe)");
     }
 
     // Bind een host idempotent (undgaa dobbelt-bind af samme adresse).
@@ -61,11 +59,12 @@ public class ControlServer {
         Thread t = new Thread(new Runnable() { public void run() {
             while (running) {
                 try {
-                    String ts = tailscaleIp();
-                    if (ts != null && !boundHosts.contains(ts)) {
-                        bindHost(ts);
-                        if (adbForward == null) { adbForward = new AdbForward(); adbForward.start(ts); }
-                        Log.i(TAG, "control-server bandt Tailscale-IP " + ts);
+                    for (String ip : Net.serveIps()) {     // LAN + Tailscale -> virker baade med og uden Tailscale
+                        if (!boundHosts.contains(ip)) {
+                            bindHost(ip);
+                            if (Net.isTailscale(ip) && adbForward == null) { adbForward = new AdbForward(); adbForward.start(ip); }
+                            Log.i(TAG, "control-server bandt " + ip);
+                        }
                     }
                 } catch (Throwable ignored) {}
                 try { Thread.sleep(12000); } catch (InterruptedException e) { break; }
@@ -365,31 +364,6 @@ public class ControlServer {
         out.write(hdr.toString().getBytes("UTF-8"));
         out.write(b);
         out.flush();
-    }
-
-    // Find en IPv4 i Tailscale's CGNAT-omraade 100.64.0.0/10 (100.64.x - 100.127.x).
-    private static String tailscaleIp() {
-        try {
-            Enumeration<NetworkInterface> ifs = NetworkInterface.getNetworkInterfaces();
-            while (ifs.hasMoreElements()) {
-                NetworkInterface ni = ifs.nextElement();
-                Enumeration<InetAddress> addrs = ni.getInetAddresses();
-                while (addrs.hasMoreElements()) {
-                    InetAddress a = addrs.nextElement();
-                    if (a instanceof java.net.Inet4Address) {
-                        String ip = a.getHostAddress();
-                        String[] o = ip.split("\\.");
-                        if (o.length == 4) {
-                            int a0 = Integer.parseInt(o[0]), a1 = Integer.parseInt(o[1]);
-                            if (a0 == 100 && a1 >= 64 && a1 <= 127) return ip;
-                        }
-                    }
-                }
-            }
-        } catch (Throwable t) {
-            Log.e(TAG, "tailscaleIp", t);
-        }
-        return null;
     }
 
     public void stopServer() {
