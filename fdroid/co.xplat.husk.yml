@@ -13,7 +13,7 @@ RepoType: git
 Repo: https://github.com/hf1985/husk.git
 
 Builds:
-  - versionName: "0.2"
+  - versionName: '0.2'
     versionCode: 12
     commit: v0.2
     subdir: app
@@ -22,5 +22,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: "0.2"
+CurrentVersion: '0.2'
 CurrentVersionCode: 12
