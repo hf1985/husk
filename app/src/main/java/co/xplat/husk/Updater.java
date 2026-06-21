@@ -28,8 +28,16 @@ import java.net.URL;
 // ukendte apps" for Husk (systemet beder selv om det foerste gang via samtykke-dialogen).
 public final class Updater {
     static final String TAG = "Husk";
-    static final String LATEST = "https://xplat.co/husk/latest.json";
     static final String INSTALL_ACTION = "co.xplat.husk.INSTALL_STATUS";
+
+    // Version-kilder, proeves i raekkefoelge. xplat.co's cert kaeder til Google Trust Services, hvis
+    // krydssignering Android 9's system-trust-store ofte IKKE kan bygge (handshake-fejl) - derfor faldes
+    // tilbage til raw.githubusercontent.com, der bruger Let's Encrypt / ISRG Root X1 (indbygget i Android
+    // 7.1.1+). APK'en ligger paa objects.githubusercontent.com (ogsaa ISRG) -> Android-9-betroet hele vejen.
+    static final String[] SOURCES = {
+        "https://xplat.co/husk/latest.json",
+        "https://raw.githubusercontent.com/hf1985/husk/main/latest.json"
+    };
 
     private Updater() {}
 
@@ -40,19 +48,29 @@ public final class Updater {
         new Thread(new Runnable() { public void run() {
             try {
                 int cur = currentVersionCode(ctx);
-                JSONObject j = new JSONObject(httpGet(LATEST));
+                JSONObject j = null; String src = null; StringBuilder errs = new StringBuilder();
+                for (String url : SOURCES) {
+                    String tag = url.contains("xplat") ? "xplat" : "github";
+                    try { j = new JSONObject(httpGet(url)); src = tag; break; }
+                    catch (Throwable e) { errs.append(tag).append("=").append(e.getClass().getSimpleName()).append("; "); }
+                }
+                if (j == null) {
+                    Rig.lastUpdate = "ERR alle kilder fejlede: " + errs;
+                    toast(main, ctx, ctx.getString(R.string.update_failed) + " (" + errs + ")");
+                    return;
+                }
                 int latest = j.getInt("versionCode");
                 String apk = j.getString("apk");
                 String ver = j.optString("versionName", "");
                 if (latest <= cur) {
-                    Rig.lastUpdate = "latest (have " + cur + ", remote " + latest + ")";
+                    Rig.lastUpdate = "latest via " + src + " (have " + cur + ", remote " + latest + ")" + (errs.length() > 0 ? " [" + errs + "]" : "");
                     toast(main, ctx, ctx.getString(R.string.update_latest));
                     return;
                 }
-                Rig.lastUpdate = "downloading " + ver;
+                Rig.lastUpdate = "downloading " + ver + " via " + src;
                 toast(main, ctx, ctx.getString(R.string.update_downloading) + " " + ver);
                 installApk(ctx, httpGetBytes(apk));
-                Rig.lastUpdate = "install requested " + ver;
+                Rig.lastUpdate = "install requested " + ver + " via " + src;
             } catch (Throwable t) {
                 // Eksponer den PRAECISE aarsag (klasse + besked) via Rig.lastUpdate -> /flags, saa den
                 // kan laeses remote over Tailscale. SSLHandshakeException = MITM; UnknownHost = DNS; osv.
