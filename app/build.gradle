@@ -11,8 +11,8 @@ android {
         applicationId "co.xplat.husk"
         minSdk 26
         targetSdk 34
-        versionCode 13
-        versionName "0.3"
+        versionCode 14
+        versionName "0.4"
     }
 
     buildTypes {

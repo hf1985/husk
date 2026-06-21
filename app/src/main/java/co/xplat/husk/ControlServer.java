@@ -159,6 +159,19 @@ public class ControlServer {
         if (path.equals("/update"))     { writeText(out, 200, triggerUpdate()); return; }
         // --- generisk a11y-passthrough (alle 8127-kommandoer; cmd URL-encodet) ---
         if (path.equals("/rpc"))        { writeText(out, 200, rpc(dparam(query,"cmd"))); return; }
+        // --- hardware (sensorer + fysisk styring; Android 8+) ---
+        if (path.equals("/sensors"))      { writeAuto(out, Hardware.sensorsList(Rig.ctx())); return; }
+        if (path.equals("/sensor"))       { writeAuto(out, Hardware.readSensor(Rig.ctx(), param(query, "type"))); return; }
+        if (path.equals("/battery"))      { writeAuto(out, Hardware.batteryJson(Rig.ctx())); return; }
+        if (path.equals("/torch"))        { writeAuto(out, Hardware.torch(Rig.ctx(), boolp(query, "on"))); return; }
+        if (path.equals("/vibrate"))      { writeAuto(out, Hardware.vibrate(Rig.ctx(), intp(query, "ms", 300))); return; }
+        if (path.equals("/volume"))       { writeAuto(out, Hardware.volume(Rig.ctx(), param(query, "stream"), intOrNull(query, "level"))); return; }
+        if (path.equals("/ringer"))       { writeAuto(out, Hardware.ringer(Rig.ctx(), param(query, "mode"))); return; }
+        if (path.equals("/brightness"))   { writeAuto(out, Hardware.brightness(Rig.ctx(), intOrNull(query, "level"))); return; }
+        if (path.equals("/display"))      { writeAuto(out, Hardware.displayJson(Rig.ctx())); return; }
+        if (path.equals("/connectivity")) { writeAuto(out, Hardware.connectivityJson(Rig.ctx())); return; }
+        if (path.equals("/location"))     { writeAuto(out, Hardware.locationJson(Rig.ctx())); return; }
+        if (path.equals("/mic"))          { writeAuto(out, Hardware.micLevel(Rig.ctx())); return; }
 
         writeText(out, 404, "not found");
     }
@@ -310,6 +323,23 @@ public class ControlServer {
     }
 
     private static String opt(String s) { return (s == null || s.isEmpty()) ? "" : (" " + s); }
+
+    // Skriv med auto-valgt content-type: JSON hvis body ligner JSON ({ eller [), ellers text/plain.
+    private void writeAuto(OutputStream out, String body) throws IOException {
+        String ct = (body.startsWith("{") || body.startsWith("[")) ? "application/json; charset=utf-8" : "text/plain; charset=utf-8";
+        writeText(out, 200, body, ct);
+    }
+
+    private static boolean boolp(String query, String key) {
+        String v = param(query, key);
+        return "1".equals(v) || "true".equalsIgnoreCase(v) || "on".equalsIgnoreCase(v);
+    }
+
+    private static Integer intOrNull(String query, String key) {
+        String v = param(query, key);
+        if (v == null) return null;
+        try { return Integer.valueOf(v); } catch (Throwable t) { return null; }
+    }
 
     private void applySet(String query) {
         String rot = param(query, "rot");

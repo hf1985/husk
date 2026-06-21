@@ -58,6 +58,7 @@ public class ScreenService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        Rig.appContext = getApplicationContext();
         Rig.ensureControlServer();   // 8090 op uafhaengigt af kameraet -> /screen + /control virker uden kamera
         createChannel();
         Notification n = new Notification.Builder(this, CHANNEL)

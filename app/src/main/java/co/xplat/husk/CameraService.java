@@ -65,6 +65,7 @@ public class CameraService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        Rig.appContext = getApplicationContext();
         createChannel();
         Notification n = new Notification.Builder(this, CHANNEL)
                 .setContentTitle("Husk")

@@ -51,6 +51,12 @@ public final class Rig {
         }
     }
 
+    // App-Context (sat af services i onCreate) saa hardware/info-endpoints virker UDEN at a11y er oppe.
+    public static volatile android.content.Context appContext = null;
+
+    // Bedste tilgaengelige Context: app-context hvis sat, ellers a11y-servicen (selv en Context), ellers null.
+    public static android.content.Context ctx() { return appContext != null ? appContext : a11y; }
+
     // Reference til den forbundne a11y-service (sat i onServiceConnected). null = a11y ikke aktiveret.
     public static volatile RigAccessibilityService a11y = null;
 
