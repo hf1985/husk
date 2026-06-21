@@ -3,6 +3,7 @@
 
 package co.xplat.husk;
 
+import android.os.Build;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -126,19 +127,38 @@ public class ControlServer {
 
         if (!tokenOk(query)) { writeText(out, 401, "unauthorized"); return; }
 
-        if (path.equals("/snapshot")) { writeSnapshot(out); return; }
-        if (path.equals("/stream"))   { writeStream(c, out); return; }
-        if (path.equals("/wd"))       { writeWd(out); return; }
-        if (path.equals("/pair"))     { writePair(out); return; }
-        if (path.equals("/flags"))    { writeFlags(out); return; }
-        if (path.equals("/set"))      { applySet(query); writeText(out, 200, "ok"); return; }
+        // --- status / info ---
+        if (path.equals("/info"))       { writeText(out, 200, infoJson(), "application/json"); return; }
+        if (path.equals("/flags"))      { writeFlags(out); return; }
+        // --- kamera ---
+        if (path.equals("/snapshot"))   { writeSnapshot(out); return; }
+        if (path.equals("/stream"))     { writeStream(c, out); return; }
+        if (path.equals("/set"))        { applySet(query); writeText(out, 200, "ok"); return; }
+        // --- skaerm (MediaProjection) ---
         if (path.equals("/screen"))     { writeScreenStream(c, out); return; }
         if (path.equals("/screen.jpg")) { writeScreenSnapshot(out); return; }
         if (path.equals("/control"))    { writeText(out, 200, controlHtml(query), "text/html; charset=utf-8"); return; }
-        if (path.equals("/tap"))        { writeText(out, 200, rpc("tap " + intp(query,"x",0) + " " + intp(query,"y",0) + " 0")); return; }
-        if (path.equals("/swipe"))      { writeText(out, 200, rpc("swipe " + intp(query,"x1",0) + " " + intp(query,"y1",0) + " " + intp(query,"x2",0) + " " + intp(query,"y2",0) + " 0 " + intp(query,"ms",200))); return; }
+        // --- input (a11y-motor, proxy til 8127); d = display (default 0) ---
+        if (path.equals("/tap"))        { writeText(out, 200, rpc("tap " + intp(query,"x",0) + " " + intp(query,"y",0) + " " + intp(query,"d",0) + " " + intp(query,"ms",60))); return; }
+        if (path.equals("/swipe"))      { writeText(out, 200, rpc("swipe " + intp(query,"x1",0) + " " + intp(query,"y1",0) + " " + intp(query,"x2",0) + " " + intp(query,"y2",0) + " " + intp(query,"d",0) + " " + intp(query,"ms",200))); return; }
         if (path.equals("/key"))        { writeText(out, 200, rpc("global " + keyName(param(query,"k")))); return; }
+        if (path.equals("/click"))      { writeText(out, 200, rpc("click " + intp(query,"d",0) + " " + dparam(query,"match"))); return; }
+        // --- UI-inspektion (a11y) ---
+        if (path.equals("/find"))       { writeText(out, 200, rpc("find " + intp(query,"d",0) + " " + dparam(query,"match"))); return; }
+        if (path.equals("/gettext"))    { writeText(out, 200, rpc("gettext " + intp(query,"d",0) + " " + dparam(query,"match"))); return; }
+        if (path.equals("/exists"))     { writeText(out, 200, rpc("state " + intp(query,"d",0) + " " + dparam(query,"match"))); return; }
+        if (path.equals("/dump"))       { writeText(out, 200, rpc("dump " + intp(query,"d",0))); return; }
+        if (path.equals("/displays"))   { writeText(out, 200, rpc("displays")); return; }
+        if (path.equals("/scroll"))     { writeText(out, 200, rpc("scroll " + intp(query,"d",0) + ("back".equals(param(query,"dir")) ? " b" : ""))); return; }
+        // --- navigation / launch ---
+        if (path.equals("/launch"))     { writeText(out, 200, rpc("launch " + intp(query,"d",0) + " " + dparam(query,"action") + opt(dparam(query,"data")) + opt(dparam(query,"pkg")))); return; }
+        // --- management ---
+        if (path.equals("/wd"))         { writeWd(out); return; }
+        if (path.equals("/pair"))       { writePair(out); return; }
+        if (path.equals("/devoptions")) { writeText(out, 200, rpc("devoptions" + ("1".equals(param(query,"probe")) ? " probe" : ""))); return; }
         if (path.equals("/update"))     { writeText(out, 200, triggerUpdate()); return; }
+        // --- generisk a11y-passthrough (alle 8127-kommandoer; cmd URL-encodet) ---
+        if (path.equals("/rpc"))        { writeText(out, 200, rpc(dparam(query,"cmd"))); return; }
 
         writeText(out, 404, "not found");
     }
@@ -244,6 +264,52 @@ public class ControlServer {
         }
         return b.toString();
     }
+
+    // /info: ét kald der giver alt om host-enheden (app, OS, skaerm, net, batteri, services). Bruger
+    // a11y-servicen som Context; Context-afhaengige felter udelades (tomme/-1) hvis a11y ikke er oppe.
+    private String infoJson() {
+        String vn = "", vc = "";
+        boolean dexCap = false, hasCam = false;
+        int sw = Rig.screenW, sh = Rig.screenH, batt = -1;
+        boolean charging = false;
+        android.content.Context c = Rig.a11y;
+        if (c != null) {
+            try {
+                android.content.pm.PackageInfo pi = c.getPackageManager().getPackageInfo(c.getPackageName(), 0);
+                vn = pi.versionName;
+                vc = String.valueOf(Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : pi.versionCode);
+            } catch (Throwable t) {}
+            try { dexCap = DeXDetector.isDeXCapable(c); } catch (Throwable t) {}
+            try { hasCam = c.getPackageManager().hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY); } catch (Throwable t) {}
+            try { android.util.DisplayMetrics m = c.getResources().getDisplayMetrics(); if (sw == 0) { sw = m.widthPixels; sh = m.heightPixels; } } catch (Throwable t) {}
+            try {
+                android.os.BatteryManager bm = (android.os.BatteryManager) c.getSystemService(android.content.Context.BATTERY_SERVICE);
+                batt = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY);
+                if (Build.VERSION.SDK_INT >= 23) charging = bm.isCharging();
+            } catch (Throwable t) {}
+        }
+        String lan = Net.localIp(), ts = Net.tailscaleIp();
+        StringBuilder b = new StringBuilder();
+        b.append("{\"app\":{\"package\":\"co.xplat.husk\",\"versionName\":\"").append(jsonEsc(vn)).append("\",\"versionCode\":\"").append(vc).append("\"},");
+        b.append("\"device\":{\"manufacturer\":\"").append(jsonEsc(Build.MANUFACTURER)).append("\",\"model\":\"").append(jsonEsc(Build.MODEL))
+         .append("\",\"androidRelease\":\"").append(jsonEsc(Build.VERSION.RELEASE)).append("\",\"sdkInt\":").append(Build.VERSION.SDK_INT)
+         .append(",\"dexCapable\":").append(dexCap).append(",\"hasCamera\":").append(hasCam).append("},");
+        b.append("\"screen\":{\"width\":").append(sw).append(",\"height\":").append(sh).append("},");
+        b.append("\"net\":{\"localIp\":").append(lan == null ? "null" : ("\"" + lan + "\"")).append(",\"tailscaleIp\":").append(ts == null ? "null" : ("\"" + ts + "\"")).append("},");
+        b.append("\"battery\":{\"level\":").append(batt).append(",\"charging\":").append(charging).append("},");
+        b.append("\"services\":{\"a11y\":").append(Rig.a11y != null).append(",\"camera\":").append(Rig.cameraRunning).append(",\"screen\":").append(Rig.screenRunning).append(",\"dexReconnect\":").append(Rig.dexReconnect).append("},");
+        b.append("\"lastUpdate\":\"").append(jsonEsc(Rig.lastUpdate)).append("\"}");
+        return b.toString();
+    }
+
+    // URL-decoded query-param (til regex/tekst/URL-vaerdier i /click //find //rpc //launch osv.).
+    private static String dparam(String query, String key) {
+        String v = param(query, key);
+        if (v == null) return "";
+        try { return java.net.URLDecoder.decode(v, "UTF-8"); } catch (Throwable t) { return v; }
+    }
+
+    private static String opt(String s) { return (s == null || s.isEmpty()) ? "" : (" " + s); }
 
     private void applySet(String query) {
         String rot = param(query, "rot");
