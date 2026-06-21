@@ -37,40 +37,32 @@ public class ControlServer {
     private volatile boolean running = false;
     private AdbForward adbForward;   // app-native scrcpy/adb-over-Tailscale (Termux-uafhaengig bro)
 
-    private final java.util.Set<String> boundHosts = new java.util.HashSet<String>();
-
     public void start() {
         running = true;
-        bindHost("127.0.0.1");        // altid loopback med det samme
-        startRebindLoop();            // bind LAN + Tailscale saa snart de dukker op (ogsaa efter boot)
-        Log.i(TAG, "control-server lytter paa " + PORT + " (loopback; LAN + Tailscale bindes naar de er oppe)");
+        // EN listener paa 0.0.0.0 -> altid naabar paa loopback + LAN + Tailscale, uanset om Tailscale-IP'en
+        // kan enumereres som interface-adresse. Foer bandt vi kun de enumererede private interfaces; naar
+        // Android-Tailscale-tun'en blev rekonfigureret (IP-skift, reconnect, doze/wake, app-restart) forsvandt
+        // Tailscale-IP'en fra enumereringen, saa 8090 var kun paa loopback/LAN -> "disconnected" paa alle tre.
+        // 0.0.0.0 kan ikke ramme det. Sikkerheden er nu kilde-IP-ACL'en (allowedPeer) + valgfri token.
+        bindAndServe("0.0.0.0");
+        startTailscaleWatch();   // starter adb-broen (scrcpy) naar/hvis en Tailscale-IP er tilgaengelig
+        Log.i(TAG, "control-server lytter paa 0.0.0.0:" + PORT + " (kilde-ACL: kun loopback/privat/Tailscale)");
     }
 
-    // Bind een host idempotent (undgaa dobbelt-bind af samme adresse).
-    private synchronized void bindHost(String host) {
-        if (boundHosts.contains(host)) return;
-        bindAndServe(host);
-        boundHosts.add(host);
-    }
-
-    // Tailscale-IP'en findes maaske ikke ved boot (Husk kan starte FOER Tailscale er oppe). Poll og
-    // bind den naar den dukker op - saa slipper man for at toggle noget manuelt efter reboot. Starter
-    // ogsaa adb-broen (scrcpy) naar Tailscale er der. Een gang pr. fundet IP.
-    private void startRebindLoop() {
+    // Reachability afhaenger IKKE laengere af at finde Tailscale-IP'en (0.0.0.0 daekker den). Denne watch
+    // starter blot adb-broen (scrcpy) naar en Tailscale-IP dukker op - best effort, ikke kritisk for 8090.
+    private void startTailscaleWatch() {
         Thread t = new Thread(new Runnable() { public void run() {
             while (running) {
                 try {
-                    for (String ip : Net.serveIps()) {     // LAN + Tailscale -> virker baade med og uden Tailscale
-                        if (!boundHosts.contains(ip)) {
-                            bindHost(ip);
-                            if (Net.isTailscale(ip) && adbForward == null) { adbForward = new AdbForward(); adbForward.start(ip); }
-                            Log.i(TAG, "control-server bandt " + ip);
-                        }
+                    if (adbForward == null) {
+                        String ts = Net.tailscaleIp();
+                        if (ts != null) { adbForward = new AdbForward(); adbForward.start(ts); Log.i(TAG, "adb-bro startet paa " + ts); }
                     }
                 } catch (Throwable ignored) {}
                 try { Thread.sleep(12000); } catch (InterruptedException e) { break; }
             }
-        } }, "rig-http-rebind");
+        } }, "rig-ts-watch");
         t.setDaemon(true);
         t.start();
     }
@@ -93,6 +85,7 @@ public class ControlServer {
         while (running) {
             try {
                 final Socket c = ss.accept();
+                if (!allowedPeer(c)) { try { c.close(); } catch (Throwable ignored) {} continue; }
                 Thread th = new Thread(new Runnable() { public void run() {
                     try { handle(c); } catch (Throwable t) { /* klient lukkede */ }
                     finally { try { c.close(); } catch (Throwable ignored) {} }
@@ -104,6 +97,22 @@ public class ControlServer {
                 else break;
             }
         }
+    }
+
+    // Kilde-IP-ACL: kun loopback + privat (RFC1918) + Tailscale (CGNAT 100.64/10, ULA fc00::/7) peers maa naa
+    // serveren. Dette erstatter den gamle "bind kun private interfaces"-beskyttelse og er sikkert med 0.0.0.0-bind,
+    // fordi det tjekker PEER-adressen (en offentlig kilde, fx paa mobildata, afvises uanset bind).
+    private boolean allowedPeer(Socket c) {
+        try {
+            java.net.SocketAddress sa = c.getRemoteSocketAddress();
+            if (!(sa instanceof InetSocketAddress)) return false;
+            InetAddress a = ((InetSocketAddress) sa).getAddress();
+            if (a == null) return false;
+            if (a.isLoopbackAddress() || a.isLinkLocalAddress()) return true;
+            byte[] raw = a.getAddress();
+            if (raw.length == 4) return Net.isPrivate(a.getHostAddress());   // IPv4: 10/172.16-31/192.168/100.64-127
+            return (raw[0] & 0xfe) == 0xfc;                                  // IPv6 ULA fc00::/7 (Tailscale fd7a:)
+        } catch (Throwable t) { return false; }
     }
 
     private void handle(Socket c) throws IOException {
