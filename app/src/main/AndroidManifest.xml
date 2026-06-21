@@ -19,6 +19,7 @@
     <!-- Hardware-styring/laesning (Device API). VIBRATE auto-gives; de oevrige er dangerous/special og
          skal gives af brugeren - endpoints'ene degraderer paent hvis ikke givet. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
