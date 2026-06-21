@@ -479,14 +479,18 @@ public class ControlServer {
              + "<button onclick=\"k('back')\">Tilbage</button> "
              + "<button onclick=\"k('home')\">Hjem</button> "
              + "<button onclick=\"k('recents')\">Recents</button></div>"
-             + "<img id=v style='max-width:100%;height:auto;display:inline-block' src='/screen" + tq + "'>"
+             + "<div style='font-size:12px;color:#888;padding:2px'>klik = tap &middot; traek = swipe/scroll</div>"
+             + "<img id=v style='max-width:100%;height:auto;display:inline-block;touch-action:none' src='/screen" + tq + "'>"
              + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "';"
-             + "var img=document.getElementById('v');"
+             + "var img=document.getElementById('v'),sx=0,sy=0,st=0,dn=false;"
              + "function k(n){fetch('/key?k='+n+A);}"
-             + "img.addEventListener('click',function(e){var r=img.getBoundingClientRect();"
-             + "if(!W||!H)return;"
-             + "var x=Math.round((e.clientX-r.left)/r.width*W),y=Math.round((e.clientY-r.top)/r.height*H);"
-             + "fetch('/tap?x='+x+'&y='+y+A);});"
+             + "function rp(e){var r=img.getBoundingClientRect();return{cx:e.clientX-r.left,cy:e.clientY-r.top,rw:r.width,rh:r.height};}"
+             // traek = swipe (scroll/skift skaerm), kort klik = tap. Pointer-events daekker baade mus + touch.
+             + "img.addEventListener('pointerdown',function(e){if(!W||!H)return;var p=rp(e);sx=p.cx;sy=p.cy;st=Date.now();dn=true;e.preventDefault();});"
+             + "img.addEventListener('pointerup',function(e){if(!dn||!W||!H)return;dn=false;var p=rp(e);"
+             + "var X1=Math.round(sx/p.rw*W),Y1=Math.round(sy/p.rh*H),X2=Math.round(p.cx/p.rw*W),Y2=Math.round(p.cy/p.rh*H);"
+             + "if(Math.abs(p.cx-sx)+Math.abs(p.cy-sy)<10){fetch('/tap?x='+X1+'&y='+Y1+A);}"
+             + "else{fetch('/swipe?x1='+X1+'&y1='+Y1+'&x2='+X2+'&y2='+Y2+'&ms='+Math.min(800,Math.max(60,Date.now()-st))+A);}});"
              + "</script>";
     }
 
