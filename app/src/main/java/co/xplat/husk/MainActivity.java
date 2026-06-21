@@ -34,6 +34,11 @@ public class MainActivity extends Activity {
     static final String KEY_SCREEN = "screen_share";
 
     private TextView statusView;
+    private boolean hasCamera;   // host har et kamera (ellers skjules kamera-funktioner)
+
+    // Wireless Debugging (som scrcpy/adb-broen + companion afhaenger af) findes foerst i Android 11 (API 30).
+    // Paa aeldre enheder (fx Android 9) skjules WD/dev-options/companion - kun browser-skaermdeling virker der.
+    private static boolean wdCapable() { return Build.VERSION.SDK_INT >= 30; }
 
     @Override
     protected void onCreate(Bundle b) {
@@ -41,8 +46,9 @@ public class MainActivity extends Activity {
 
         SharedPreferences prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         Rig.dexReconnect = prefs.getBoolean(KEY_DEX, false);
+        hasCamera = getPackageManager().hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY);
 
-        if (Build.VERSION.SDK_INT >= 23 &&
+        if (hasCamera && Build.VERSION.SDK_INT >= 23 &&
             checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{ android.Manifest.permission.CAMERA }, 1);
         }
@@ -54,8 +60,10 @@ public class MainActivity extends Activity {
             prefs.edit().putBoolean(KEY_DEX, Rig.dexReconnect).apply();
         }
         boolean headless = in != null && in.getBooleanExtra("finish", false);
-        if (in != null) forwardCameraExtras(in);
-        startCamera();
+        if (hasCamera) {
+            if (in != null) forwardCameraExtras(in);
+            startCamera();
+        }
         if (headless) { finish(); return; }
 
         setContentView(buildUi());
@@ -89,18 +97,20 @@ public class MainActivity extends Activity {
         root.addView(upd);
         space(root, dp, 16);
 
-        // Toggle: kamera-streaming (start/stop servicen)
-        Switch cam = new Switch(this);
-        cam.setText(getString(R.string.toggle_camera));
-        cam.setTextColor(Color.WHITE);
-        cam.setChecked(true);
-        cam.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton v, boolean on) {
-                if (on) startCamera(); else stopCamera();
-                refreshStatus();
-            }
-        });
-        root.addView(cam);
+        // Toggle: kamera-streaming (start/stop servicen) - KUN hvis enheden har et kamera
+        if (hasCamera) {
+            Switch cam = new Switch(this);
+            cam.setText(getString(R.string.toggle_camera));
+            cam.setTextColor(Color.WHITE);
+            cam.setChecked(Rig.cameraRunning);
+            cam.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                public void onCheckedChanged(CompoundButton v, boolean on) {
+                    if (on) startCamera(); else stopCamera();
+                    refreshStatus();
+                }
+            });
+            root.addView(cam);
+        }
 
         // Toggle: DeX-reconnect - KUN paa DeX-kapable enheder (universel app)
         if (DeXDetector.isDeXCapable(this)) {
@@ -145,34 +155,39 @@ public class MainActivity extends Activity {
         root.addView(title(getString(R.string.settings_heading), 16, false));
         root.addView(settingsButton(getString(R.string.btn_accessibility),
                 new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
-        // Udviklerindstillinger skal laases op (7x tap paa Build-nummer) foer WD/scrcpy virker.
-        // Husk goer det AUTOMATISK via a11y (som WD-recovery); "Om telefonen" + Dev-options er manuel fallback.
-        root.addView(body(getString(R.string.devhint)));
-        Button devbtn = new Button(this);
-        devbtn.setText(getString(R.string.btn_enabledev));
-        devbtn.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) { autoEnableDevOptions(); }
-        });
-        root.addView(devbtn);
-        root.addView(settingsButton(getString(R.string.btn_aboutphone),
-                new Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)));
-        root.addView(settingsButton(getString(R.string.btn_devoptions),
-                new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)));
+        // Udviklerindstillinger + Wireless Debugging (til scrcpy/adb-bro) - KUN paa Android 11+ (API 30),
+        // hvor Wireless Debugging findes. Paa aeldre enheder (fx Android 9) virker scrcpy ikke -> skjules.
+        if (wdCapable()) {
+            root.addView(body(getString(R.string.devhint)));
+            Button devbtn = new Button(this);
+            devbtn.setText(getString(R.string.btn_enabledev));
+            devbtn.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) { autoEnableDevOptions(); }
+            });
+            root.addView(devbtn);
+            root.addView(settingsButton(getString(R.string.btn_aboutphone),
+                    new Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)));
+            root.addView(settingsButton(getString(R.string.btn_devoptions),
+                    new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)));
+        }
         root.addView(settingsButton(getString(R.string.btn_battery),
                 new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()))));
         root.addView(settingsButton(getString(R.string.btn_appdetails),
                 new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", getPackageName(), null))));
         space(root, dp, 16);
 
-        // Companion (simpel forklaring + link til xplat.co)
-        root.addView(title(getString(R.string.companion_heading), 16, false));
-        root.addView(body(getString(R.string.companion_explain) + "\n" + getString(R.string.companion_url)));
-        Button comp = new Button(this);
-        comp.setText(getString(R.string.btn_get_companion));
-        comp.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) { safeStart(new Intent(Intent.ACTION_VIEW, Uri.parse(COMPANION_URL))); }
-        });
-        root.addView(comp);
+        // Companion (scrcpy-skaermspejling via Wireless Debugging) - KUN paa Android 11+; ellers er
+        // browser-skaermdelingen ovenfor den rette vej (companion/scrcpy virker ikke uden WD).
+        if (wdCapable()) {
+            root.addView(title(getString(R.string.companion_heading), 16, false));
+            root.addView(body(getString(R.string.companion_explain) + "\n" + getString(R.string.companion_url)));
+            Button comp = new Button(this);
+            comp.setText(getString(R.string.btn_get_companion));
+            comp.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) { safeStart(new Intent(Intent.ACTION_VIEW, Uri.parse(COMPANION_URL))); }
+            });
+            root.addView(comp);
+        }
 
         ScrollView sv = new ScrollView(this);
         sv.addView(root);
@@ -183,11 +198,13 @@ public class MainActivity extends Activity {
         if (statusView == null) return;
         String on = getString(R.string.status_on), off = getString(R.string.status_off);
         String lan = Net.localIp(), ts = Net.tailscaleIp();
-        statusView.setText(getString(R.string.status_engine) + ": " + (Rig.a11y != null ? on : off) + "\n"
-                 + getString(R.string.status_camera) + ": " + (Rig.cameraRunning ? on : off) + "\n"
-                 + getString(R.string.status_screen) + ": " + (Rig.screenRunning ? on : off) + "\n"
-                 + getString(R.string.status_local_ip) + ": " + (lan != null ? lan : "-") + "\n"
-                 + getString(R.string.status_ts_ip) + ": " + (ts != null ? ts : "-"));
+        StringBuilder s = new StringBuilder();
+        s.append(getString(R.string.status_engine)).append(": ").append(Rig.a11y != null ? on : off);
+        if (hasCamera) s.append("\n").append(getString(R.string.status_camera)).append(": ").append(Rig.cameraRunning ? on : off);
+        s.append("\n").append(getString(R.string.status_screen)).append(": ").append(Rig.screenRunning ? on : off);
+        s.append("\n").append(getString(R.string.status_local_ip)).append(": ").append(lan != null ? lan : "-");
+        s.append("\n").append(getString(R.string.status_ts_ip)).append(": ").append(ts != null ? ts : "-");
+        statusView.setText(s.toString());
     }
 
     @Override
