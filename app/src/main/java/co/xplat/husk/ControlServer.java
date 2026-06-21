@@ -45,26 +45,10 @@ public class ControlServer {
         // Tailscale-IP'en fra enumereringen, saa 8090 var kun paa loopback/LAN -> "disconnected" paa alle tre.
         // 0.0.0.0 kan ikke ramme det. Sikkerheden er nu kilde-IP-ACL'en (allowedPeer) + valgfri token.
         bindAndServe("0.0.0.0");
-        startTailscaleWatch();   // starter adb-broen (scrcpy) naar/hvis en Tailscale-IP er tilgaengelig
+        // adb-broen (scrcpy) binder ogsaa 0.0.0.0 + samme kilde-ACL, saa den ikke afhaenger af at kunne
+        // enumerere Tailscale-IP'en (samme svaghed som 8090 havde). Startes een gang; WD-recovery er lazy.
+        try { adbForward = new AdbForward(); adbForward.start(); } catch (Throwable t) { Log.e(TAG, "adb-bro start fejlede", t); }
         Log.i(TAG, "control-server lytter paa 0.0.0.0:" + PORT + " (kilde-ACL: kun loopback/privat/Tailscale)");
-    }
-
-    // Reachability afhaenger IKKE laengere af at finde Tailscale-IP'en (0.0.0.0 daekker den). Denne watch
-    // starter blot adb-broen (scrcpy) naar en Tailscale-IP dukker op - best effort, ikke kritisk for 8090.
-    private void startTailscaleWatch() {
-        Thread t = new Thread(new Runnable() { public void run() {
-            while (running) {
-                try {
-                    if (adbForward == null) {
-                        String ts = Net.tailscaleIp();
-                        if (ts != null) { adbForward = new AdbForward(); adbForward.start(ts); Log.i(TAG, "adb-bro startet paa " + ts); }
-                    }
-                } catch (Throwable ignored) {}
-                try { Thread.sleep(12000); } catch (InterruptedException e) { break; }
-            }
-        } }, "rig-ts-watch");
-        t.setDaemon(true);
-        t.start();
     }
 
     private void bindAndServe(final String host) {
@@ -106,12 +90,7 @@ public class ControlServer {
         try {
             java.net.SocketAddress sa = c.getRemoteSocketAddress();
             if (!(sa instanceof InetSocketAddress)) return false;
-            InetAddress a = ((InetSocketAddress) sa).getAddress();
-            if (a == null) return false;
-            if (a.isLoopbackAddress() || a.isLinkLocalAddress()) return true;
-            byte[] raw = a.getAddress();
-            if (raw.length == 4) return Net.isPrivate(a.getHostAddress());   // IPv4: 10/172.16-31/192.168/100.64-127
-            return (raw[0] & 0xfe) == 0xfc;                                  // IPv6 ULA fc00::/7 (Tailscale fd7a:)
+            return Net.peerAllowed(((InetSocketAddress) sa).getAddress());   // delt ACL (loopback/RFC1918/Tailscale)
         } catch (Throwable t) { return false; }
     }
 
@@ -181,14 +160,48 @@ public class ControlServer {
         if (path.equals("/connectivity")) { writeAuto(out, Hardware.connectivityJson(Rig.ctx())); return; }
         if (path.equals("/location"))     { writeAuto(out, Hardware.locationJson(Rig.ctx())); return; }
         if (path.equals("/mic"))          { writeAuto(out, Hardware.micLevel(Rig.ctx())); return; }
+        // --- bevaegelses-alarm (motion-detection + ntfy-push) ---
+        if (path.equals("/motion"))       { writeText(out, 200, configMotion(query), "application/json"); return; }
+        if (path.equals("/events"))       { writeText(out, 200, motionEventsJson(), "application/json"); return; }
 
         writeText(out, 404, "not found");
     }
 
+    // /motion?on=1&topic=...&server=...&sensitivity=1..10 -> konfigurér bevaegelses-alarm (persisteres). Uden
+    // parametre returneres blot den nuvaerende config. ntfy-topic tom = detektér + log (/events), men ingen push.
+    private String configMotion(String query) {
+        if (param(query, "on") != null)          Rig.motionEnabled = "1".equals(param(query, "on")) || "true".equals(param(query, "on"));
+        if (dparam(query, "topic") != null)      Rig.ntfyTopic = dparam(query, "topic");
+        if (dparam(query, "server") != null)     { String s = dparam(query, "server"); if (s != null && !s.isEmpty()) Rig.ntfyServer = s; }
+        if (param(query, "sensitivity") != null) Rig.motionSensitivity = Math.max(1, Math.min(10, intp(query, "sensitivity", Rig.motionSensitivity)));
+        try { Rig.saveMotionPrefs(Rig.ctx()); } catch (Throwable ignored) {}
+        StringBuilder b = new StringBuilder();
+        b.append("{\"enabled\":").append(Rig.motionEnabled)
+         .append(",\"ntfyServer\":\"").append(jsonEsc(Rig.ntfyServer)).append("\"")
+         .append(",\"ntfyTopic\":\"").append(jsonEsc(Rig.ntfyTopic)).append("\"")
+         .append(",\"sensitivity\":").append(Rig.motionSensitivity)
+         .append(",\"lastNtfy\":\"").append(jsonEsc(Rig.lastNtfy)).append("\"}");
+        return b.toString();
+    }
+
+    private String motionEventsJson() {
+        StringBuilder b = new StringBuilder("[");
+        synchronized (Rig.motionEvents) {
+            for (int i = 0; i < Rig.motionEvents.size(); i++) {
+                if (i > 0) b.append(",");
+                b.append(Rig.motionEvents.get(i));
+            }
+        }
+        return b.append("]").toString();
+    }
+
     private boolean tokenOk(String query) {
         String want = Rig.token;
-        if (want == null || want.isEmpty()) return true;   // ingen token sat -> kun ACL/bind beskytter
-        return want.equals(param(query, "token"));
+        if (want == null || want.isEmpty()) return true;   // ingen token sat -> kun kilde-IP-ACL beskytter
+        String got = param(query, "token");
+        if (got == null) return false;
+        try { return java.security.MessageDigest.isEqual(want.getBytes("UTF-8"), got.getBytes("UTF-8")); }  // konstant-tid
+        catch (Throwable t) { return want.equals(got); }
     }
 
     private void writeSnapshot(OutputStream out) throws IOException {
@@ -258,11 +271,23 @@ public class ControlServer {
 
     // /flags: skrivebeskyttet app-tilstand, saa en evt. overbygning kan laese fx DeX-reconnect-toggle.
     private void writeFlags(OutputStream out) throws IOException {
+        boolean battOpt = false;   // ignorerer enheden batteri-optimering for Husk? (vigtigt for unattended drift)
+        try {
+            android.content.Context c = Rig.ctx();
+            if (c != null) {
+                android.os.PowerManager pm = (android.os.PowerManager) c.getSystemService(android.content.Context.POWER_SERVICE);
+                battOpt = pm != null && pm.isIgnoringBatteryOptimizations(c.getPackageName());
+            }
+        } catch (Throwable ignored) {}
         String json = "{\"dexReconnect\":" + Rig.dexReconnect
                     + ",\"a11y\":" + (Rig.a11y != null)
                     + ",\"camera\":" + Rig.cameraRunning
                     + ",\"screen\":" + Rig.screenRunning
-                    + ",\"lastUpdate\":\"" + jsonEsc(Rig.lastUpdate) + "\"}";
+                    + ",\"motion\":" + Rig.motionEnabled
+                    + ",\"ntfy\":" + (Rig.ntfyTopic != null && !Rig.ntfyTopic.isEmpty())
+                    + ",\"batteryOptIgnored\":" + battOpt
+                    + ",\"lastUpdate\":\"" + jsonEsc(Rig.lastUpdate) + "\""
+                    + ",\"lastNtfy\":\"" + jsonEsc(Rig.lastNtfy) + "\"}";
         writeText(out, 200, json, "application/json");
     }
 
@@ -373,7 +398,7 @@ public class ControlServer {
 
     private void writeScreenSnapshot(OutputStream out) throws IOException {
         byte[] jpeg = Rig.latestScreenJpeg;
-        if (jpeg == null) { writeText(out, 503, "no screen frame (start skaermdeling i appen)"); return; }
+        if (jpeg == null) { writeText(out, 503, "ingen skærm-frame (slå skærmdeling til i appen)"); return; }
         StringBuilder hdr = new StringBuilder();
         hdr.append("HTTP/1.0 200 OK\r\n")
            .append("Content-Type: image/jpeg\r\n")

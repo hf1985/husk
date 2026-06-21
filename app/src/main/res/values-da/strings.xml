@@ -55,4 +55,12 @@
     <string name="update_downloading">Henter</string>
     <string name="update_failed">Opdatering fejlede - tjek forbindelsen.</string>
     <string name="update_done">Husk opdateret.</string>
+
+    <!-- Bevaegelses-alarm (sikkerhedskamera-tilstand) -->
+    <string name="motion_heading">Bevægelses-alarm (sikkerhedskamera)</string>
+    <string name="toggle_motion">Bevægelses-alarm</string>
+    <string name="motion_topic_hint">ntfy-emne (fx husk-mit-hjem-7f3k)</string>
+    <string name="motion_hint">Gør denne telefon til et gratis, privat sikkerhedskamera: når den ser bevægelse, sender den en push til dit ntfy-emne med et live-snapshot. Installér ntfy-appen og abonnér på samme emne.</string>
+    <string name="motion_on">Bevægelses-alarm slået til.</string>
+    <string name="motion_off">Bevægelses-alarm slået fra.</string>
 </resources>

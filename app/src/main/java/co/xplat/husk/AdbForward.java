@@ -19,10 +19,10 @@ import java.net.Socket;
 // paa loopback). WD-porten skifter ved reboot; vi henter den fra Rig.lastWdIpPort (appens egen
 // in-process WD-recovery cacher den; tom -> trigger recovery).
 //
-// SIKKERHED: samme posture som den gamle socat-forward - en adb-forbindelse = fuld enhedskontrol.
-// Broen binder KUN Tailscale-IP'en (aldrig 0.0.0.0/LAN), saa fjernfladen daekkes af Tailscale-ACL'en
-// (manuelt admin-konsol-punkt: begraens 5557 til PC'en). adbd's egen RSA-noegle-godkendelse gaelder
-// stadig pr. host (PC'ens noegle godkendes een gang; RigAccessibilityService kan auto-acceptere dialogen).
+// SIKKERHED: en adb-forbindelse = fuld enhedskontrol. Broen binder 0.0.0.0 (saa den overlever Tailscale-IP-
+// skift, praecis som ControlServer i v0.8 - ellers gik scrcpy permanent moerk ved reconnect), men er beskyttet
+// af den DELTE kilde-IP-ACL (Net.peerAllowed: kun loopback/RFC1918/Tailscale). adbd's egen RSA-noegle-
+// godkendelse gaelder stadig pr. host. Anbefalet: begraens desuden 5557 til PC'en i Tailscale-admin-ACL'en.
 public class AdbForward {
     static final String TAG = "Husk";
     static final int LISTEN_PORT = 5557;
@@ -30,18 +30,17 @@ public class AdbForward {
     private volatile boolean running = false;
     private ServerSocket server;
 
-    public void start(final String tsIp) {
-        if (tsIp == null) { Log.w(TAG, "adb-forward: ingen Tailscale-IP -> bro ikke startet"); return; }
+    public void start() {
         try {
             server = new ServerSocket();
             server.setReuseAddress(true);
-            server.bind(new InetSocketAddress(InetAddress.getByName(tsIp), LISTEN_PORT), 16);
+            server.bind(new InetSocketAddress((InetAddress) null, LISTEN_PORT), 16);   // 0.0.0.0 -> overlever Tailscale-IP-skift
         } catch (Throwable t) {
-            Log.e(TAG, "adb-forward kunne ikke binde " + tsIp + ":" + LISTEN_PORT, t);
+            Log.e(TAG, "adb-forward kunne ikke binde 0.0.0.0:" + LISTEN_PORT, t);
             return;
         }
         running = true;
-        Log.i(TAG, "adb-forward lytter paa " + tsIp + ":" + LISTEN_PORT + " -> 127.0.0.1:<WD>");
+        Log.i(TAG, "adb-forward lytter paa 0.0.0.0:" + LISTEN_PORT + " (kilde-ACL) -> 127.0.0.1:<WD>");
         Thread th = new Thread(new Runnable() { public void run() { acceptLoop(); } }, "rig-adbfwd");
         th.setDaemon(true);
         th.start();
@@ -51,6 +50,9 @@ public class AdbForward {
         while (running) {
             try {
                 final Socket client = server.accept();
+                if (!Net.peerAllowed(((InetSocketAddress) client.getRemoteSocketAddress()).getAddress())) {
+                    try { client.close(); } catch (Throwable ig) {} continue;   // kun loopback/RFC1918/Tailscale
+                }
                 Thread t = new Thread(new Runnable() { public void run() { handle(client); } }, "rig-adbfwd-conn");
                 t.setDaemon(true);
                 t.start();

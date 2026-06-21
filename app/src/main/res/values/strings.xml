@@ -61,4 +61,12 @@
     <string name="update_downloading">Downloading</string>
     <string name="update_failed">Update failed - check your connection.</string>
     <string name="update_done">Husk updated.</string>
+
+    <!-- Motion alerts (security-camera mode) -->
+    <string name="motion_heading">Motion alerts (security camera)</string>
+    <string name="toggle_motion">Motion alerts</string>
+    <string name="motion_topic_hint">ntfy topic (e.g. husk-mit-hjem-7f3k)</string>
+    <string name="motion_hint">Turns this phone into a free, private security camera: when it sees movement it sends a push to your ntfy topic with a live snapshot. Install the ntfy app and subscribe to the same topic.</string>
+    <string name="motion_on">Motion alerts on.</string>
+    <string name="motion_off">Motion alerts off.</string>
 </resources>

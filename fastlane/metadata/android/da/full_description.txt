@@ -7,12 +7,16 @@ Funktioner:
 * Genopretning af Trådløs fejlfinding i appen efter en genstart.
 * En app-native adb-bro så du kan spejle og styre telefonen fra en PC med scrcpy
   (en lille PC-companion findes på xplat.co/husk).
+* Bevægelses-alarm: en gratis, privat sikkerhedskamera-tilstand der sender en push (via ntfy)
+  med et live-snapshot, når kameraet eller skærmen ser bevægelse.
 * Valgfri "hold Samsung DeX forbundet"-toggle (vises kun på DeX-kapable telefoner).
 * Starter automatisk efter en genstart.
 
-Privatliv og netværk: alle netværks-tjenester binder KUN til localhost og din Tailscale-VPN-
-adresse, aldrig til 0.0.0.0 / det åbne internet. Intet sendes til en ekstern server. Appen er
-100% open source (GPLv3) og bruger kun AOSP-framework-API'er (ingen trackere, ingen reklamer).
+Privatliv og netværk: netværks-tjenesterne lytter på alle interfaces, men er beskyttet af en
+kilde-IP-tilladelsesliste, så kun loopback, dit lokale netværk og dit Tailscale-net kan nå dem
+(en valgfri token er et ekstra lag). Intet sendes til en ekstern server ud over den bevægelses-
+push du selv vælger (dit eget ntfy-emne). Appen er 100% open source (GPLv3) og bruger kun
+AOSP-framework-API'er (ingen trackere, ingen reklamer).
 
 Bemærk: Husk bruger AccessibilityService-API'et til at automatisere skærm-handlinger og
 eksponerer en adb-bro over dit Tailscale-netværk til fjernstyring. Begræns adgang med en

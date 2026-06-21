@@ -59,6 +59,7 @@ public class CameraService extends Service {
     private ImageReader imageReader;
     private PowerManager.WakeLock wakeLock;
     private volatile boolean started = false;
+    private volatile boolean destroyed = false;
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
@@ -66,10 +67,11 @@ public class CameraService extends Service {
     public void onCreate() {
         super.onCreate();
         Rig.appContext = getApplicationContext();
+        Rig.loadMotionPrefs(getApplicationContext());   // bevaegelses-alarm-config (motion + ntfy) fra prefs
         createChannel();
         Notification n = new Notification.Builder(this, CHANNEL)
                 .setContentTitle("Husk")
-                .setContentText("Streamer + recovery aktiv")
+                .setContentText(getString(R.string.notif_text))
                 .setSmallIcon(android.R.drawable.presence_video_online)
                 .setOngoing(true)
                 .build();
@@ -164,12 +166,24 @@ public class CameraService extends Service {
 
     // ---------------- Camera2 ----------------
 
+    // Watchdog: hvis OS'et river kameraet fra os (onDisconnected/onError), genaabn med backoff i stedet for
+    // at lade feed'et fryse tavst (enheden saa "oppe" men /snapshot frosset). Stopper naar servicen destrueres.
+    private void scheduleReopen() {
+        if (destroyed || camHandler == null) return;
+        camHandler.postDelayed(new Runnable() { public void run() {
+            if (destroyed || Rig.cameraRunning || cameraDevice != null) return;
+            Log.i(TAG, "kamera reopen-forsoeg");
+            try { openCamera(); } catch (Throwable t) { Log.e(TAG, "reopen", t); scheduleReopen(); }
+        } }, 5000);
+    }
+
     private void openCamera() {
         if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             Log.e(TAG, "CAMERA-permission ikke givet - kan ikke aabne kamera (kor 'pm grant')");
             return;
         }
         try {
+            try { if (imageReader != null) { imageReader.close(); imageReader = null; } } catch (Throwable ignored) {}   // undgaa ImageReader-laek ved reopen
             cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
             String camId = pickCamera(cameraManager, Rig.useFront);
             if (camId == null) { Log.e(TAG, "intet kamera fundet"); return; }
@@ -185,8 +199,8 @@ public class CameraService extends Service {
 
             cameraManager.openCamera(camId, new CameraDevice.StateCallback() {
                 public void onOpened(CameraDevice device) { cameraDevice = device; createSession(); }
-                public void onDisconnected(CameraDevice device) { Log.w(TAG, "kamera disconnected"); Rig.cameraRunning = false; device.close(); cameraDevice = null; }
-                public void onError(CameraDevice device, int error) { Log.e(TAG, "kamera-fejl " + error); Rig.cameraRunning = false; device.close(); cameraDevice = null; }
+                public void onDisconnected(CameraDevice device) { Log.w(TAG, "kamera disconnected"); Rig.cameraRunning = false; device.close(); cameraDevice = null; scheduleReopen(); }
+                public void onError(CameraDevice device, int error) { Log.e(TAG, "kamera-fejl " + error); Rig.cameraRunning = false; device.close(); cameraDevice = null; scheduleReopen(); }
             }, camHandler);
         } catch (CameraAccessException e) {
             Log.e(TAG, "openCamera", e);
@@ -239,6 +253,12 @@ public class CameraService extends Service {
             if (Rig.flip) data = flipJpeg(data);
             Rig.latestJpeg = data;
             Rig.latestSeq++;
+            if (Motion.shouldSample()) {                  // bevaegelses-alarm paa kamera-feed
+                BitmapFactory.Options o = new BitmapFactory.Options();
+                o.inSampleSize = 8;                       // afkod lille kun til analyse (billigt)
+                Bitmap small = BitmapFactory.decodeByteArray(data, 0, data.length, o);
+                if (small != null) { Motion.feed(small, "camera"); small.recycle(); }
+            }
         } catch (Throwable t) {
             Log.e(TAG, "onFrame", t);
         } finally {
@@ -289,6 +309,7 @@ public class CameraService extends Service {
 
     @Override
     public void onDestroy() {
+        destroyed = true;            // stop reopen-watchdog
         Rig.cameraRunning = false;   // kamera stoppes -> status/flags maa vise "off" (ControlServer lever videre)
         try { if (captureSession != null) captureSession.close(); } catch (Throwable ignored) {}
         try { if (cameraDevice != null) cameraDevice.close(); } catch (Throwable ignored) {}

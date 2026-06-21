@@ -15,8 +15,10 @@ Android app (no AndroidX, no trackers, no ads) published as FOSS.
 - **DeX auto-reconnect** toggle (shown only on DeX-capable phones).
 - **Starts after reboot** (boot persistence).
 
-All network services bind ONLY to localhost + your Tailscale address (never `0.0.0.0`). Nothing
-leaves your device. Restrict remote access with a Tailscale ACL.
+Network services listen on all interfaces but are gated by a source-IP allowlist (only
+loopback, RFC1918/LAN and Tailscale `100.64.0.0/10` peers; an optional token adds a second
+layer). Nothing leaves your device except the motion push you configure (your own ntfy topic).
+Restrict remote access further with a Tailscale ACL.
 
 ## Simple UI
 One screen: status, a few toggles (camera, DeX auto-reconnect, ...), one-tap deep-links to every

@@ -59,11 +59,12 @@ public class ScreenService extends Service {
     public void onCreate() {
         super.onCreate();
         Rig.appContext = getApplicationContext();
+        Rig.loadMotionPrefs(getApplicationContext());   // bevaegelses-alarm-config (motion + ntfy) fra prefs
         Rig.ensureControlServer();   // 8090 op uafhaengigt af kameraet -> /screen + /control virker uden kamera
         createChannel();
         Notification n = new Notification.Builder(this, CHANNEL)
                 .setContentTitle("Husk")
-                .setContentText("Skaermdeling aktiv")
+                .setContentText(getString(R.string.notif_text))
                 .setSmallIcon(android.R.drawable.ic_menu_view)
                 .setOngoing(true)
                 .build();
@@ -94,6 +95,10 @@ public class ScreenService extends Service {
             MediaProjectionManager mpm = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
             projection = mpm.getMediaProjection(code, data);
             if (projection == null) { Log.e(TAG, "screen: ingen MediaProjection (samtykke afvist?)"); return; }
+            // Android 14 (target 34) kraever en registreret callback FOER createVirtualDisplay.
+            projection.registerCallback(new MediaProjection.Callback() {
+                @Override public void onStop() { Rig.screenRunning = false; }
+            }, handler);
             // VIGTIGT: brug den FULDE fysiske skaerm (getRealMetrics), ikke getDisplayMetrics() (= app-omraadet
             // uden nav-baren). a11y-dispatchGesture arbejder i det fulde skaerm-rum; bruger vi app-omraadet bliver
             // /screen-billedet lodret presset ift. gesture-rummet -> /control- og tap-koordinater rammer for hoejt.
@@ -141,6 +146,7 @@ public class ScreenService extends Service {
             out.compress(Bitmap.CompressFormat.JPEG, 55, bos);
             Rig.latestScreenJpeg = bos.toByteArray();
             Rig.latestScreenSeq++;
+            if (Motion.shouldSample()) Motion.feed(out, "screen");   // bevaegelses-alarm paa skaerm-feed
             if (out != bmp) out.recycle();
             bmp.recycle();
         } catch (Throwable t) {

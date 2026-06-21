@@ -7,13 +7,16 @@ Features:
 * In-app recovery of Wireless Debugging after a reboot.
 * An app-native adb bridge so you can mirror and control the phone from a PC with scrcpy
   (a small PC companion is available at xplat.co/husk).
+* Motion alerts: a free, private security-camera mode that pushes a notification (via ntfy)
+  with a live snapshot when the camera or screen sees movement.
 * Optional "keep Samsung DeX connected" toggle (shown only on DeX-capable phones).
 * Starts automatically after a reboot.
 
-Privacy and network: all network services bind ONLY to localhost and your Tailscale VPN
-address, never to 0.0.0.0 / the open internet. Nothing is sent to any external server.
-The app is 100% open source (GPLv3) and uses only AOSP framework APIs (no trackers, no ads,
-no proprietary dependencies).
+Privacy and network: the network services listen on all interfaces but are protected by a
+source-IP allowlist, so only loopback, your local network and your Tailscale network can
+reach them (an optional token adds a second layer). Nothing is sent to any external server
+except the motion push you configure (your own ntfy topic). The app is 100% open source
+(GPLv3) and uses only AOSP framework APIs (no trackers, no ads, no proprietary dependencies).
 
 Note: Husk uses the AccessibilityService API to automate on-screen actions, and exposes an
 adb bridge over your Tailscale network for remote control. Restrict access with a Tailscale

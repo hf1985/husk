@@ -2,8 +2,9 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- INTERNET: kun den lokale HTTP-server (ControlServer) + adb-broen (AdbForward), som BINDER
-         til loopback + Tailscale-IP, aldrig 0.0.0.0. CAMERA: capture. FOREGROUND_SERVICE(_CAMERA):
+    <!-- INTERNET: den lokale HTTP-server (ControlServer) + adb-broen (AdbForward) lytter paa alle
+         interfaces (0.0.0.0) men er beskyttet af en kilde-IP-ACL (kun loopback/RFC1918/Tailscale), saa
+         kun det private net/Tailscale kan naa dem. CAMERA: capture. FOREGROUND_SERVICE(_CAMERA):
          screen-off-capture. BOOT_COMPLETED + WAKE_LOCK: recovery efter reboot. POST_NOTIFICATIONS:
          fg-notifikation. REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: deep-link til batteri-undtagelse. -->
     <uses-permission android:name="android.permission.INTERNET" />

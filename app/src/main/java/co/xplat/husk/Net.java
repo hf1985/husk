@@ -54,6 +54,18 @@ public final class Net {
         return o != null && o[0] == 100 && o[1] >= 64 && o[1] <= 127;
     }
 
+    // Kilde-IP-ACL, DELT af ControlServer (8090) + AdbForward (5557): kun loopback + privat (RFC1918) +
+    // Tailscale (CGNAT 100.64/10, IPv6-ULA fc00::/7) peers maa naa serverne. Link-local tillades IKKE
+    // (en nabo paa samme L2-segment maatte ellers naa ind). Sikkert sammen med 0.0.0.0-bind, fordi det
+    // tjekker PEER-adressen - en offentlig kilde (fx mobildata) afvises uanset bind.
+    public static boolean peerAllowed(InetAddress a) {
+        if (a == null) return false;
+        if (a.isLoopbackAddress()) return true;
+        byte[] raw = a.getAddress();
+        if (raw.length == 4) return isPrivate(a.getHostAddress());   // IPv4: 10/172.16-31/192.168/100.64-127
+        return (raw[0] & 0xfe) == 0xfc;                              // IPv6 ULA fc00::/7 (Tailscale fd7a:)
+    }
+
     static boolean isPrivate(String ip) {
         int[] o = octets(ip);
         if (o == null) return false;

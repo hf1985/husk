@@ -46,6 +46,7 @@ public class MainActivity extends Activity {
 
         SharedPreferences prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         Rig.dexReconnect = prefs.getBoolean(KEY_DEX, false);
+        Rig.loadMotionPrefs(this);   // bevaegelses-alarm-config til UI'en
         hasCamera = getPackageManager().hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY);
 
         if (hasCamera && Build.VERSION.SDK_INT >= 23 &&
@@ -149,6 +150,31 @@ public class MainActivity extends Activity {
         });
         root.addView(scr);
         root.addView(body(getString(R.string.screen_hint)));
+        space(root, dp, 16);
+
+        // Toggle: bevaegelses-alarm (motion-detection) - killer-feature: gratis, privat sikkerhedskamera der
+        // selv alarmerer via ntfy-push ved bevaegelse. Brugeren angiver et ntfy-emne (topic); push leveres dertil.
+        root.addView(title(getString(R.string.motion_heading), 16, false));
+        final android.widget.EditText topic = new android.widget.EditText(this);
+        topic.setHint(getString(R.string.motion_topic_hint));
+        topic.setTextColor(Color.WHITE);
+        topic.setHintTextColor(Color.parseColor("#6B7480"));
+        topic.setText(Rig.ntfyTopic);
+        root.addView(topic);
+        Switch mo = new Switch(this);
+        mo.setText(getString(R.string.toggle_motion));
+        mo.setTextColor(Color.WHITE);
+        mo.setChecked(Rig.motionEnabled);
+        mo.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton v, boolean on) {
+                Rig.motionEnabled = on;
+                Rig.ntfyTopic = topic.getText().toString().trim();
+                Rig.saveMotionPrefs(MainActivity.this);
+                Toast.makeText(MainActivity.this, getString(on ? R.string.motion_on : R.string.motion_off), Toast.LENGTH_SHORT).show();
+            }
+        });
+        root.addView(mo);
+        root.addView(body(getString(R.string.motion_hint)));
         space(root, dp, 16);
 
         // Deep-links til noedvendige indstillinger

@@ -67,4 +67,45 @@ public final class Rig {
     // appen at DeX er oppe efter boot/recovery. Saettes fra SharedPreferences ved start; laeses af
     // /flags saa en evt. overbygning kan se den.
     public static volatile boolean dexReconnect = false;
+
+    // --- Bevaegelses-alarm (motion-detection) -------------------------------------------------------
+    // Killer-feature: goer enhver gammel telefon til et gratis, privat sikkerhedskamera der SELV holder
+    // oeje og alarmerer (ntfy-push) ved bevaegelse. Sat fra SharedPreferences ved start + /motion-endpoint.
+    public static volatile boolean motionEnabled = false;
+    public static volatile String  ntfyServer = "https://ntfy.sh";   // konfigurerbar ntfy-server
+    public static volatile String  ntfyTopic = "";                   // tom = ingen push (kun /events-log)
+    public static volatile int     motionSensitivity = 5;            // 1..10 (10 = mest foelsom)
+    public static volatile long    motionCooldownMs = 30000;         // min ms mellem alarmer pr. kilde
+    public static volatile String  lastNtfy = "";                    // sidste push-resultat (til /flags)
+
+    // Ring-buffer over seneste bevaegelses-haendelser (nyeste foerst), eksponeret som JSON via /events.
+    public static final java.util.List<String> motionEvents =
+            java.util.Collections.synchronizedList(new java.util.ArrayList<String>());
+
+    public static void addMotionEvent(long t, String src, int pct) {
+        synchronized (motionEvents) {
+            motionEvents.add(0, "{\"t\":" + t + ",\"source\":\"" + src + "\",\"change\":" + pct + "}");
+            while (motionEvents.size() > 50) motionEvents.remove(motionEvents.size() - 1);
+        }
+    }
+
+    public static void loadMotionPrefs(android.content.Context c) {
+        try {
+            android.content.SharedPreferences p = c.getSharedPreferences("husk", android.content.Context.MODE_PRIVATE);
+            motionEnabled = p.getBoolean("motion_enabled", false);
+            ntfyServer = p.getString("ntfy_server", "https://ntfy.sh");
+            ntfyTopic = p.getString("ntfy_topic", "");
+            motionSensitivity = p.getInt("motion_sensitivity", 5);
+        } catch (Throwable ignored) {}
+    }
+
+    public static void saveMotionPrefs(android.content.Context c) {
+        try {
+            c.getSharedPreferences("husk", android.content.Context.MODE_PRIVATE).edit()
+             .putBoolean("motion_enabled", motionEnabled)
+             .putString("ntfy_server", ntfyServer)
+             .putString("ntfy_topic", ntfyTopic)
+             .putInt("motion_sensitivity", motionSensitivity).apply();
+        } catch (Throwable ignored) {}
+    }
 }

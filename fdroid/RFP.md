@@ -33,6 +33,7 @@ network (Tailscale), without root:
   (compileSdk 33, minSdk 30, targetSdk 33). The build has been verified.
 - A ready-to-use fdroiddata metadata file is included in the repo at `fdroid/co.xplat.husk.yml`.
 - **Sensitive capabilities (intentional, documented):** an AccessibilityService (for on-screen
-  automation) and an adb bridge. All network services bind ONLY to localhost and the user's
-  Tailscale address (never 0.0.0.0); nothing is sent to any external server. Restrict remote
-  access with a Tailscale ACL.
+  automation) and an adb bridge. Network services listen on all interfaces but are gated by a
+  source-IP allowlist (only loopback, RFC1918/LAN and Tailscale peers; an optional token adds a
+  second layer); nothing is sent to any external server except the user-configured motion push
+  (their own ntfy topic). Restrict remote access further with a Tailscale ACL.
