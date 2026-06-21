@@ -94,7 +94,14 @@ public class ScreenService extends Service {
             MediaProjectionManager mpm = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
             projection = mpm.getMediaProjection(code, data);
             if (projection == null) { Log.e(TAG, "screen: ingen MediaProjection (samtykke afvist?)"); return; }
-            DisplayMetrics m = getResources().getDisplayMetrics();
+            // VIGTIGT: brug den FULDE fysiske skaerm (getRealMetrics), ikke getDisplayMetrics() (= app-omraadet
+            // uden nav-baren). a11y-dispatchGesture arbejder i det fulde skaerm-rum; bruger vi app-omraadet bliver
+            // /screen-billedet lodret presset ift. gesture-rummet -> /control- og tap-koordinater rammer for hoejt.
+            DisplayMetrics m = new DisplayMetrics();
+            try {
+                android.view.WindowManager wm = (android.view.WindowManager) getSystemService(Context.WINDOW_SERVICE);
+                wm.getDefaultDisplay().getRealMetrics(m);
+            } catch (Throwable t) { m = getResources().getDisplayMetrics(); }
             int w = m.widthPixels, h = m.heightPixels, dpi = m.densityDpi;
             int sw = w, sh = h;
             if (w > MAX_W) { sw = MAX_W; sh = (int) ((long) h * MAX_W / w); }
