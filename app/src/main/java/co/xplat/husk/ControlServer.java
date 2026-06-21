@@ -138,6 +138,7 @@ public class ControlServer {
         if (path.equals("/tap"))        { writeText(out, 200, rpc("tap " + intp(query,"x",0) + " " + intp(query,"y",0) + " 0")); return; }
         if (path.equals("/swipe"))      { writeText(out, 200, rpc("swipe " + intp(query,"x1",0) + " " + intp(query,"y1",0) + " " + intp(query,"x2",0) + " " + intp(query,"y2",0) + " 0 " + intp(query,"ms",200))); return; }
         if (path.equals("/key"))        { writeText(out, 200, rpc("global " + keyName(param(query,"k")))); return; }
+        if (path.equals("/update"))     { writeText(out, 200, triggerUpdate()); return; }
 
         writeText(out, 404, "not found");
     }
@@ -218,8 +219,30 @@ public class ControlServer {
         String json = "{\"dexReconnect\":" + Rig.dexReconnect
                     + ",\"a11y\":" + (Rig.a11y != null)
                     + ",\"camera\":" + Rig.cameraRunning
-                    + ",\"screen\":" + Rig.screenRunning + "}";
+                    + ",\"screen\":" + Rig.screenRunning
+                    + ",\"lastUpdate\":\"" + jsonEsc(Rig.lastUpdate) + "\"}";
         writeText(out, 200, json, "application/json");
+    }
+
+    // Trigger den indbyggede opdatering remote (over Tailscale) - resultatet/fejlen laeses i /flags
+    // (lastUpdate). Bruger a11y-servicen som Context (den er en Service = Context). Token-gated som alt.
+    private String triggerUpdate() {
+        android.content.Context c = Rig.a11y;
+        if (c == null) return "ERR a11y (context) ikke oppe";
+        Updater.checkAndUpdate(c);
+        return "update startet - laes /flags (lastUpdate)";
+    }
+
+    private static String jsonEsc(String s) {
+        if (s == null) return "";
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch == '"' || ch == '\\') b.append('\\').append(ch);
+            else if (ch == '\n' || ch == '\r' || ch == '\t') b.append(' ');
+            else b.append(ch);
+        }
+        return b.toString();
     }
 
     private void applySet(String query) {

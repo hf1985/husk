@@ -35,6 +35,11 @@ public final class Rig {
     public static volatile boolean cameraRunning = false;
     public static volatile boolean screenRunning = false;
 
+    // Sidste resultat/fejl fra den indbyggede opdatering (Updater). Eksponeres via /flags saa man kan
+    // laese den PRAECISE aarsag remote over Tailscale (fx SSLHandshakeException = MITM) i stedet for
+    // bare en vag "check connection"-toast. Sat af Updater ved hvert udfald.
+    public static volatile String lastUpdate = "";
+
     // Proces-singleton HTTP-server (8090), AFKOBLET fra CameraService saa skaermdeling + /control
     // virker UDEN kameraet. Een instans pr. proces; startes idempotent af hvilken-som-helst service.
     public static volatile ControlServer controlServer = null;

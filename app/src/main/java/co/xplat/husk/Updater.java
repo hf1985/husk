@@ -35,19 +35,30 @@ public final class Updater {
 
     public static void checkAndUpdate(final Context ctx) {
         final Handler main = new Handler(Looper.getMainLooper());
+        Rig.lastUpdate = "checking";
         toast(main, ctx, ctx.getString(R.string.update_checking));
         new Thread(new Runnable() { public void run() {
             try {
+                int cur = currentVersionCode(ctx);
                 JSONObject j = new JSONObject(httpGet(LATEST));
                 int latest = j.getInt("versionCode");
                 String apk = j.getString("apk");
                 String ver = j.optString("versionName", "");
-                if (latest <= currentVersionCode(ctx)) { toast(main, ctx, ctx.getString(R.string.update_latest)); return; }
+                if (latest <= cur) {
+                    Rig.lastUpdate = "latest (have " + cur + ", remote " + latest + ")";
+                    toast(main, ctx, ctx.getString(R.string.update_latest));
+                    return;
+                }
+                Rig.lastUpdate = "downloading " + ver;
                 toast(main, ctx, ctx.getString(R.string.update_downloading) + " " + ver);
                 installApk(ctx, httpGetBytes(apk));
+                Rig.lastUpdate = "install requested " + ver;
             } catch (Throwable t) {
+                // Eksponer den PRAECISE aarsag (klasse + besked) via Rig.lastUpdate -> /flags, saa den
+                // kan laeses remote over Tailscale. SSLHandshakeException = MITM; UnknownHost = DNS; osv.
+                Rig.lastUpdate = "ERR " + t.getClass().getSimpleName() + ": " + t.getMessage();
                 Log.e(TAG, "update", t);
-                toast(main, ctx, ctx.getString(R.string.update_failed));
+                toast(main, ctx, ctx.getString(R.string.update_failed) + " (" + t.getClass().getSimpleName() + ")");
             }
         } }, "husk-update").start();
     }
@@ -85,7 +96,7 @@ public final class Updater {
         c.setInstanceFollowRedirects(true);
         c.setConnectTimeout(15000);
         c.setReadTimeout(60000);
-        c.setRequestProperty("User-Agent", "Husk-updater");
+        c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36 Husk");
         try {
             int code = c.getResponseCode();
             if (code >= 300 && code < 400) {           // foelg cross-host redirect manuelt (GitHub-assets)
