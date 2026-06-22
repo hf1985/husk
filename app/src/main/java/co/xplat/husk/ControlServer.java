@@ -447,12 +447,16 @@ public class ControlServer {
                 "Content-Type: multipart/x-mixed-replace; boundary=" + boundary + "\r\n\r\n";
         out.write(head.getBytes("UTF-8"));
         out.flush();
-        long sent = -1;
+        long sent = -1, lastSent = 0;
         while (running) {
             byte[] jpeg = Rig.latestScreenJpeg;
             long seq = Rig.latestScreenSeq;
-            if (jpeg != null && seq != sent) {
-                sent = seq;
+            long now = System.currentTimeMillis();
+            // Send nye frames straks; GEN-send seneste frame hvert ~1s (keepalive) selv ved stilstand. Ellers
+            // gengiver browserens <img> ikke multipart-stroemmen foer en skaerm-aendring -> /control stod tom
+            // indtil man trykkede en knap. Keepalive viser ALTID den nuvaerende skaerm med det samme.
+            if (jpeg != null && (seq != sent || now - lastSent > 1000)) {
+                sent = seq; lastSent = now;
                 StringBuilder p = new StringBuilder();
                 p.append("--").append(boundary).append("\r\n")
                  .append("Content-Type: image/jpeg\r\n")
@@ -462,8 +466,6 @@ public class ControlServer {
                 out.write("\r\n".getBytes("UTF-8"));
                 out.flush();
             }
-            // Poll hurtigt (20ms) saa en ny frame videresendes naesten med det samme (foer: 120ms = stor lag).
-            // Kun NYE frames (seq) sendes, saa stilstand koster ingen baandbredde.
             try { Thread.sleep(20); } catch (InterruptedException e) { break; }
         }
     }

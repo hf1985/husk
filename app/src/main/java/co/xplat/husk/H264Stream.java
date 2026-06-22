@@ -51,6 +51,7 @@ class H264Stream {
         fmt.setInteger(MediaFormat.KEY_BIT_RATE, Math.max(800000, w * h * 4));
         fmt.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
         fmt.setFloat(MediaFormat.KEY_I_FRAME_INTERVAL, 1.0f);   // keyframe ~hvert sekund (klient-sync + recovery)
+        fmt.setLong(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 1000000L);   // gentag sidste frame v. stilstand (1s) -> /controlhw staar ikke tom
         // Lav-lag-encoding: realtid-prioritet + (API30+) eksplicit lav-latens. CBR/bitrate-mode er BEVIDST udeladt:
         // det fik den emulerede software-encoder til at stoppe frame-leveringen efter ~5s -> buffer-underrun/stall.
         try { fmt.setInteger("priority", 0); } catch (Throwable ignored) {}   // 0 = realtime
