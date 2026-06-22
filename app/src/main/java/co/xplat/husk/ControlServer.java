@@ -474,13 +474,17 @@ public class ControlServer {
         int w = Rig.screenW, h = Rig.screenH;
         return "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
              + "<title>Husk control</title>"
-             + "<body style='margin:0;background:#111;color:#ccc;font-family:sans-serif;text-align:center;touch-action:manipulation'>"
-             + "<div style='padding:6px'>"
+             // Flex-kolonne i fuld vindueshoejde: knapper foroven, billedet fylder resten og SKALERES SAA HELE
+             // den streamede skaerm passer i vinduet (max-height:100%) - ellers (touch-action:none) kunne man
+             // ikke scrolle siden paa en telefon og saa kun nederste/oeverste del af skaermen var synlig.
+             + "<body style='margin:0;height:100vh;height:100dvh;display:flex;flex-direction:column;background:#111;color:#ccc;font-family:sans-serif;text-align:center;overflow:hidden;touch-action:manipulation'>"
+             + "<div style='flex:none;padding:6px'>"
              + "<button onclick=\"k('back')\">Tilbage</button> "
              + "<button onclick=\"k('home')\">Hjem</button> "
-             + "<button onclick=\"k('recents')\">Recents</button></div>"
-             + "<div style='font-size:12px;color:#888;padding:2px'>klik = tap &middot; træk = swipe/scroll</div>"
-             + "<img id=v style='max-width:100%;height:auto;display:inline-block;touch-action:none' src='/screen" + tq + "'>"
+             + "<button onclick=\"k('recents')\">Recents</button>"
+             + " <span style='font-size:12px;color:#888'>klik=tap &middot; træk=swipe/scroll</span></div>"
+             + "<div style='flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden'>"
+             + "<img id=v style='max-width:100%;max-height:100%;touch-action:none' src='/screen" + tq + "'></div>"
              + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "';"
              + "var img=document.getElementById('v'),sx=0,sy=0,st=0,dn=false;"
              + "function k(n){fetch('/key?k='+n+A);}"
