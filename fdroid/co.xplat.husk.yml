@@ -13,14 +13,14 @@ RepoType: git
 Repo: https://github.com/hf1985/husk.git
 
 Builds:
-  - versionName: 0.9.7
-    versionCode: 26
-    commit: v0.9.7
+  - versionName: 0.9.8
+    versionCode: 27
+    commit: v0.9.8
     subdir: app
     gradle:
       - yes
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 0.9.7
-CurrentVersionCode: 26
+CurrentVersion: 0.9.8
+CurrentVersionCode: 27

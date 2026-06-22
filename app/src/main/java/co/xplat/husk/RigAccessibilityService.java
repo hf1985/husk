@@ -292,7 +292,9 @@ public class RigAccessibilityService extends AccessibilityService {
     // Loeber ~24s, da dialogen kan komme forsinket (download) + i flere trin. clickD rammer kun KLIKBARE noder,
     // saa knappen (ikke broedtekst) tappes. Naar installen commit'er, draebes appen (inkl. denne traad) + relaunches.
     String acceptInstallConsent() {
-        for (int i = 0; i < 24; i++) {
+        // Loeber laenge nok til at DAEKKE download + commit (kan tage 20-30s) + dialogen i flere trin. Naar
+        // installen commit'er, draebes appen (denne traad med) -> loopen ender naturligt. Misser intet pga. for kort tid.
+        for (int i = 0; i < 80; i++) {
             clickD(0, "(?i)install anyway|installer alligevel|send anyway");   // Play Protect (hvis den kommer)
             clickD(0, "(?i)^\\s*(update|install|opdater|installer|geninstaller|ok)\\s*$");  // hoved-knap
             clickD(0, "(?i)^\\s*(open|åbn|aabn|done|f(ae|æ)rdig|udf(oe|ø)rt)\\s*$");        // afslut
