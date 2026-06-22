@@ -13,6 +13,7 @@ import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -190,6 +191,13 @@ public class RigAccessibilityService extends AccessibilityService {
                 final String data = tok.length > 3 ? tok[3] : null;
                 final String pkg = tok.length > 4 ? tok[4] : null;
                 return onMain(new Job() { public String run() { return doLaunch(d, action, data, pkg); } }, 4000);
+            }
+            if (cmd.equals("text")) {   // skriv tekst i det fokuserede felt (browser-tastatur -> /control //controlhw)
+                final String s = line.length() > 5 ? line.substring(5) : "";   // alt efter "text "
+                return onMain(new Job() { public String run() { return doSetText(s); } }, 4000);
+            }
+            if (cmd.equals("enter")) {  // IME-handling (send/soeg/newline) paa det fokuserede felt
+                return onMain(new Job() { public String run() { return doImeEnter(); } }, 4000);
             }
             if (cmd.equals("scroll")) {
                 final int d = Integer.parseInt(tok[1]);
@@ -570,6 +578,37 @@ public class RigAccessibilityService extends AccessibilityService {
         else return "ERR unknown-action";
         boolean ok = performGlobalAction(a);
         return ok ? "OK" : "ERR false";
+    }
+
+    // Tastatur-input: skriv tekst i det INPUT-fokuserede felt via ACTION_SET_TEXT (a11y kan ikke injicere raa
+    // key-events; set_text er den robuste vej). Browser-siden sender hele feltets oenskede indhold ved hver
+    // taste-aendring, saa feltet spejler det man skriver. Newlines fjernes (linje-protokollen 8127 er linjebaseret).
+    private String doSetText(String s) {
+        AccessibilityNodeInfo n = inputFocus();
+        if (n == null) return "NONE no-focus";
+        s = s.replace("\n", " ").replace("\r", " ");
+        Bundle b = new Bundle();
+        b.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, s);
+        boolean ok = n.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, b);
+        return ok ? "OK" : "ERR set-text-false";
+    }
+
+    // Enter/IME-handling (send/soeg/go) paa det fokuserede felt. ACTION_IME_ENTER kraever API 30+.
+    private String doImeEnter() {
+        AccessibilityNodeInfo n = inputFocus();
+        if (n == null) return "NONE no-focus";
+        if (Build.VERSION.SDK_INT >= 30) {
+            boolean ok = n.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId());
+            return ok ? "OK" : "ERR ime-false";
+        }
+        return "ERR ime-needs-api30";
+    }
+
+    private AccessibilityNodeInfo inputFocus() {
+        try {
+            AccessibilityNodeInfo root = getRootInActiveWindow();
+            return root != null ? root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) : null;
+        } catch (Throwable t) { return null; }
     }
 
     private String doLaunch(int d, String action, String data, String pkg) {

@@ -142,7 +142,8 @@ public class ControlServer {
         // --- input (a11y-motor, proxy til 8127); d = display (default 0) ---
         if (path.equals("/tap"))        { writeText(out, 200, rpc("tap " + intp(query,"x",0) + " " + intp(query,"y",0) + " " + intp(query,"d",0) + " " + intp(query,"ms",60))); return; }
         if (path.equals("/swipe"))      { writeText(out, 200, rpc("swipe " + intp(query,"x1",0) + " " + intp(query,"y1",0) + " " + intp(query,"x2",0) + " " + intp(query,"y2",0) + " " + intp(query,"d",0) + " " + intp(query,"ms",200))); return; }
-        if (path.equals("/key"))        { writeText(out, 200, rpc("global " + keyName(param(query,"k")))); return; }
+        if (path.equals("/key"))        { String k = param(query,"k"); writeText(out, 200, "enter".equals(k) ? rpc("enter") : rpc("global " + keyName(k))); return; }
+        if (path.equals("/text"))       { writeText(out, 200, rpc("text " + dparam(query,"t"))); return; }   // tastatur-input -> fokuseret felt
         if (path.equals("/click"))      { writeText(out, 200, rpc("click " + intp(query,"d",0) + " " + dparam(query,"match"))); return; }
         // --- UI-inspektion (a11y) ---
         if (path.equals("/find"))       { writeText(out, 200, rpc("find " + intp(query,"d",0) + " " + dparam(query,"match"))); return; }
@@ -511,7 +512,8 @@ public class ControlServer {
              + "<button onclick=\"k('home')\">Hjem</button> "
              + "<button onclick=\"k('recents')\">Recents</button>"
              + " <span id=stx style='font-size:12px;color:#888'>H.264 starter &middot; klik=tap &middot; træk=swipe</span>"
-             + " <a href='/control" + tq + "' style='color:#6cf;font-size:12px'>MJPEG-fallback</a></div>"
+             + " <a href='/control" + tq + "' style='color:#6cf;font-size:12px'>MJPEG-fallback</a>"
+             + " <input id=kb placeholder='tastatur (skriv i fokuseret felt)' autocomplete=off autocapitalize=none autocorrect=off spellcheck=false style='font-size:14px;min-width:140px'></div>"
              + "<div style='flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden'>"
              + "<video id=v muted autoplay playsinline style='max-width:100%;max-height:100%;touch-action:none;background:#000'></video></div>"
              + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "',Q='" + tq + "';"
@@ -525,6 +527,9 @@ public class ControlServer {
              + "var X1=Math.round(sx/p.rw*W),Y1=Math.round(sy/p.rh*H),X2=Math.round(p.cx/p.rw*W),Y2=Math.round(p.cy/p.rh*H);"
              + "if(Math.abs(p.cx-sx)+Math.abs(p.cy-sy)<10){fetch('/tap?x='+X1+'&y='+Y1+A);}"
              + "else{fetch('/swipe?x1='+X1+'&y1='+Y1+'&x2='+X2+'&y2='+Y2+'&ms='+Math.min(800,Math.max(60,Date.now()-t0))+A);}});"
+             + "var kb=document.getElementById('kb');"
+             + "kb.addEventListener('input',function(){fetch('/text?t='+encodeURIComponent(kb.value)+A);});"
+             + "kb.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();fetch('/key?k=enter'+A);}});"
              + "function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}"
              + "async function go(){"
              + "var codec='';for(var i=0;i<25&&!codec;i++){try{var t=(await (await fetch('/screen.codec'+Q)).text()).trim();if(t.indexOf('avc1')==0)codec=t;}catch(e){}if(!codec)await sleep(200);}"
@@ -598,7 +603,8 @@ public class ControlServer {
              + "<button onclick=\"k('home')\">Hjem</button> "
              + "<button onclick=\"k('recents')\">Recents</button>"
              + " <span style='font-size:12px;color:#888'>klik=tap &middot; træk=swipe/scroll</span>"
-             + " <a href='/controlhw" + tq + "' style='color:#6cf;font-size:12px'>HW (H.264, mindre lag)</a></div>"
+             + " <a href='/controlhw" + tq + "' style='color:#6cf;font-size:12px'>HW (H.264, mindre lag)</a>"
+             + " <input id=kb placeholder='tastatur (skriv i fokuseret felt)' autocomplete=off autocapitalize=none autocorrect=off spellcheck=false style='font-size:14px;min-width:140px'></div>"
              + "<div style='flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden'>"
              + "<img id=v style='max-width:100%;max-height:100%;touch-action:none' src='/screen" + tq + "'></div>"
              + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "';"
@@ -611,6 +617,10 @@ public class ControlServer {
              + "var X1=Math.round(sx/p.rw*W),Y1=Math.round(sy/p.rh*H),X2=Math.round(p.cx/p.rw*W),Y2=Math.round(p.cy/p.rh*H);"
              + "if(Math.abs(p.cx-sx)+Math.abs(p.cy-sy)<10){fetch('/tap?x='+X1+'&y='+Y1+A);}"
              + "else{fetch('/swipe?x1='+X1+'&y1='+Y1+'&x2='+X2+'&y2='+Y2+'&ms='+Math.min(800,Math.max(60,Date.now()-st))+A);}});"
+             // tastatur: send hele feltets indhold ved hver taste-aendring (spejler det fokuserede felt) + Enter
+             + "var kb=document.getElementById('kb');"
+             + "kb.addEventListener('input',function(){fetch('/text?t='+encodeURIComponent(kb.value)+A);});"
+             + "kb.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();fetch('/key?k=enter'+A);}});"
              + "</script>";
     }
 
