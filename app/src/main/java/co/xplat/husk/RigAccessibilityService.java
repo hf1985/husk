@@ -273,6 +273,34 @@ public class RigAccessibilityService extends AccessibilityService {
         return "NONE";
     }
 
+    // Bring appens EGEN MainActivity i forgrunden. Noedvendigt foer en fjern-udloest opdatering: Android blokerer
+    // baggrunds-apps fra at vise install-dialogen (background-activity-start), saa /update virker kun naar appen
+    // er i forgrunden. En a11y-service MAA starte aktiviteter (samme vej som WD-recovery launcher Settings).
+    // getLaunchIntentForPackage giver den rigtige MAIN+LAUNCHER-intent (kan IKKE laves via den generiske launch-RPC).
+    String foregroundSelf() {
+        try {
+            Intent i = getPackageManager().getLaunchIntentForPackage(getPackageName());
+            if (i == null) return "ERR no-launch-intent";
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(i);
+            return "OK";
+        } catch (Throwable t) { return "ERR " + t; }
+    }
+
+    // Auto-accepter systemets install-bekraeftelse (PackageInstaller) ved fjern-opdatering: tap hoved-knappen
+    // (Update/Install/Opdater/Installer), evt. Play Protect ("install anyway"), og den afsluttende Open/Done.
+    // Loeber ~24s, da dialogen kan komme forsinket (download) + i flere trin. clickD rammer kun KLIKBARE noder,
+    // saa knappen (ikke broedtekst) tappes. Naar installen commit'er, draebes appen (inkl. denne traad) + relaunches.
+    String acceptInstallConsent() {
+        for (int i = 0; i < 24; i++) {
+            clickD(0, "(?i)install anyway|installer alligevel|send anyway");   // Play Protect (hvis den kommer)
+            clickD(0, "(?i)^\\s*(update|install|opdater|installer|geninstaller|ok)\\s*$");  // hoved-knap
+            clickD(0, "(?i)^\\s*(open|åbn|aabn|done|f(ae|æ)rdig|udf(oe|ø)rt)\\s*$");        // afslut
+            sleep(1000);
+        }
+        return "OK";
+    }
+
     String gettextD(final int d, final String regex) {  // returnerer foerste match-tekst eller "NONE"
         final Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
         return onMain(new Job() { public String run() {

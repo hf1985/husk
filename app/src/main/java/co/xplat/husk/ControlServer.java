@@ -157,7 +157,7 @@ public class ControlServer {
         if (path.equals("/wd"))         { writeWd(out); return; }
         if (path.equals("/pair"))       { writePair(out); return; }
         if (path.equals("/devoptions")) { writeText(out, 200, rpc("devoptions" + ("1".equals(param(query,"probe")) ? " probe" : ""))); return; }
-        if (path.equals("/update"))     { writeText(out, 200, triggerUpdate()); return; }
+        if (path.equals("/update"))     { writeText(out, 200, triggerUpdate(query)); return; }
         // --- generisk a11y-passthrough (alle 8127-kommandoer; cmd URL-encodet) ---
         if (path.equals("/rpc"))        { writeText(out, 200, rpc(dparam(query,"cmd"))); return; }
         // --- hardware (sensorer + fysisk styring; Android 8+) ---
@@ -307,11 +307,20 @@ public class ControlServer {
 
     // Trigger den indbyggede opdatering remote (over Tailscale) - resultatet/fejlen laeses i /flags
     // (lastUpdate). Bruger a11y-servicen som Context (den er en Service = Context). Token-gated som alt.
-    private String triggerUpdate() {
-        android.content.Context c = Rig.a11y;
-        if (c == null) return "ERR a11y (context) ikke oppe";
-        Updater.checkAndUpdate(c);
-        return "update startet - laes /flags (lastUpdate)";
+    // Fjern-self-update: bring appen i FORGRUNDEN (ellers blokerer Android install-dialogen = background-activity-
+    // start), start opdateringen, og lad a11y auto-tappe samtykket. ?force=1 geninstallerer samme version (test).
+    // Fejler sikkert: misser a11y-tappet, sker der INGEN install (PackageInstaller er atomisk -> nuvaerende bevares).
+    private String triggerUpdate(String query) {
+        final RigAccessibilityService svc = Rig.a11y;
+        if (svc == null) return "ERR a11y ikke oppe (kan ikke forgrunde + samtykke)";
+        final boolean force = boolp(query, "force");
+        svc.foregroundSelf();
+        new Thread(new Runnable() { public void run() { svc.acceptInstallConsent(); } }, "husk-accept").start();
+        new Thread(new Runnable() { public void run() {
+            try { Thread.sleep(1500); } catch (InterruptedException e) {}   // lad forgrunden lande foer dialogen
+            Updater.checkAndUpdate(svc, force);
+        } }, "husk-upd").start();
+        return "remote self-update startet (foreground + auto-accept" + (force ? ", force" : "") + ") - laes /flags";
     }
 
     private static String jsonEsc(String s) {

@@ -41,7 +41,10 @@ public final class Updater {
 
     private Updater() {}
 
-    public static void checkAndUpdate(final Context ctx) {
+    public static void checkAndUpdate(final Context ctx) { checkAndUpdate(ctx, false); }
+
+    // force=true: geninstaller (samme version) selvom remote ikke er nyere - til fjern-test af self-update-flowet.
+    public static void checkAndUpdate(final Context ctx, final boolean force) {
         final Handler main = new Handler(Looper.getMainLooper());
         Rig.lastUpdate = "checking";
         toast(main, ctx, ctx.getString(R.string.update_checking));
@@ -62,7 +65,7 @@ public final class Updater {
                 int latest = j.getInt("versionCode");
                 String apk = j.getString("apk");
                 String ver = j.optString("versionName", "");
-                if (latest <= cur) {
+                if (!force && latest <= cur) {
                     Rig.lastUpdate = "latest via " + src + " (have " + cur + ", remote " + latest + ")" + (errs.length() > 0 ? " [" + errs + "]" : "");
                     toast(main, ctx, ctx.getString(R.string.update_latest));
                     return;
