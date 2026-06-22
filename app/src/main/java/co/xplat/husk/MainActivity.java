@@ -40,6 +40,11 @@ public class MainActivity extends Activity {
     // Paa aeldre enheder (fx Android 9) skjules WD/dev-options/companion - kun browser-skaermdeling virker der.
     private static boolean wdCapable() { return Build.VERSION.SDK_INT >= 30; }
 
+    private String appVersion() {
+        try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+        catch (Throwable t) { return "?"; }
+    }
+
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -87,6 +92,9 @@ public class MainActivity extends Activity {
 
         root.addView(title(getString(R.string.app_name), 26, true));
         root.addView(body(getString(R.string.tagline)));
+        TextView ver = body("v" + appVersion());
+        ver.setTextColor(Color.parseColor("#8a93a0"));
+        root.addView(ver);
         space(root, dp, 16);
 
         root.addView(title(getString(R.string.status_heading), 16, false));

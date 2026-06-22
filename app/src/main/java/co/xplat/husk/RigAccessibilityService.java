@@ -265,6 +265,21 @@ public class RigAccessibilityService extends AccessibilityService {
         } }, 6000);
     }
 
+    // Checkbox-tilstand for foerste node der matcher regex: "1"=TIL, "0"=FRA, "?"=ingen checkable node, "NONE"=ikke fundet.
+    // Bruges til at saette en checkbox IDEMPOTENT (klik kun hvis bekraeftet FRA), saa et blindt/dobbelt klik
+    // ikke slukker en allerede-TIL box.
+    String isCheckedD(final int d, final String regex) {
+        final Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+        return onMain(new Job() { public String run() {
+            AccessibilityNodeInfo n = findNode(d, p);
+            if (n == null) return "NONE";
+            AccessibilityNodeInfo c = n; int g = 0;
+            while (c != null && !c.isCheckable() && g < 25) { c = c.getParent(); g++; }
+            if (c != null && c.isCheckable()) return c.isChecked() ? "1" : "0";
+            return "?";
+        } }, 6000);
+    }
+
     // Tap "Start nu"/"Start now" i MediaProjection-samtykke-dialogen, saa skaermdeling kan etableres
     // hands-free (permanent efter boot). Tikker "Vis ikke igen" een gang foerst hvis den findes (Android
     // 9 husker da samtykket). Retry mens dialogen dukker op. Koeres paa arbejder-traad (klik broer til main).
@@ -434,7 +449,9 @@ public class RigAccessibilityService extends AccessibilityService {
         return ok;
     }
 
-    String recoverWirelessDebugging() {
+    // synchronized: /wd (ControlServer) OG AdbForward kan begge kalde -> uden laas koerte to recovery-floer
+    // samtidig og klikkede checkboxen to gange (TIL->FRA). Serialiseret saa kun ÉN driver Settings ad gangen.
+    synchronized String recoverWirelessDebugging() {
         ensureDeveloperOptions(false);   // automatisk 7-tap hvis Dev Options ikke er paa (ellers no-op)
         final int d = 0;
         final Pattern ipPort = Pattern.compile("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+");
@@ -465,8 +482,13 @@ public class RigAccessibilityService extends AccessibilityService {
         // Bekraeft "Allow ...?"-dialogen. Match knappen PRAECIST (^allow$/^tillad$) - et bredt
         // 'allow' rammer ellers dialog-TITLEN. Husk valget via checkboxen.
         if ("1".equals(stateD(d, "allow wireless debugging|tillad tr.dl.s fejlfinding"))) {
-            clickD(d, "always allow on this network|altid.*netv.rk");   // da: "...på dette netværk" (rigtige å/æ)
-            sleep(1000);
+            // "Always allow on this network" (da: "...på dette netværk") IDEMPOTENT: klik KUN hvis bekraeftet FRA.
+            // Foer: et blindt klik slukkede en default-TIL box (og to samtidige recovery-kald klikkede to gange =
+            // TIL->FRA) -> WD-valget blev IKKE husket efter reboot. "1"/"?"/"NONE" -> roer den ikke.
+            if ("0".equals(isCheckedD(d, "always allow on this network|altid.*netv.rk"))) {
+                clickD(d, "always allow on this network|altid.*netv.rk");
+                sleep(1000);
+            }
             clickD(d, "^allow$|^tillad$");
             sleep(3000);
         }
@@ -484,7 +506,7 @@ public class RigAccessibilityService extends AccessibilityService {
     // og laes parrings-adresse (ip:port) + 6-cifret kode fra skaermen. Returnerer "ip:port kode" eller
     // null. Bruges af companion-install (engangs pr. PC) saa scrcpy-broen kan tilgaaes Termux-uafhaengigt.
     // Android 12's Wireless Debugging er TLS -> en ny host SKAL parres foer 'adb connect' virker.
-    String startWdPairing() {
+    synchronized String startWdPairing() {   // serialiseret med recoverWirelessDebugging (samme Settings-UI)
         final int d = 0;
         launchD(d, "android.settings.APPLICATION_DEVELOPMENT_SETTINGS");
         sleep(2000);
