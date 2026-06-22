@@ -290,7 +290,9 @@ public class RigAccessibilityService extends AccessibilityService {
             Intent i = getPackageManager().getLaunchIntentForPackage(getPackageName());
             if (i == null) return "ERR no-launch-intent";
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(i);
+            ActivityOptions opts = ActivityOptions.makeBasic();
+            opts.setLaunchDisplayId(0);   // ALTID display 0 (telefonskaermen), ALDRIG DeX-skaermen
+            startActivity(i, opts.toBundle());
             return "OK";
         } catch (Throwable t) { return "ERR " + t; }
     }

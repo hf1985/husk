@@ -20,7 +20,15 @@ public class InstallReceiver extends BroadcastReceiver {
             Intent confirm = (Intent) intent.getParcelableExtra(Intent.EXTRA_INTENT);
             if (confirm != null) {
                 confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                try { ctx.startActivity(confirm); } catch (Throwable ignored) {}
+                // ALTID display 0 (telefonskaermen), ALDRIG DeX-skaermen - ellers lander install-dialogen paa DeX
+                // ("This app is already running") + a11y-auto-accept (som kigger paa display 0) misser den.
+                try {
+                    android.app.ActivityOptions opts = android.app.ActivityOptions.makeBasic();
+                    opts.setLaunchDisplayId(0);
+                    ctx.startActivity(confirm, opts.toBundle());
+                } catch (Throwable t1) {
+                    try { ctx.startActivity(confirm); } catch (Throwable ignored) {}
+                }
             }
         } else if (status == PackageInstaller.STATUS_SUCCESS) {
             Toast.makeText(ctx, ctx.getString(R.string.update_done), Toast.LENGTH_LONG).show();
