@@ -144,6 +144,7 @@ public class ControlServer {
         if (path.equals("/swipe"))      { writeText(out, 200, rpc("swipe " + intp(query,"x1",0) + " " + intp(query,"y1",0) + " " + intp(query,"x2",0) + " " + intp(query,"y2",0) + " " + intp(query,"d",0) + " " + intp(query,"ms",200))); return; }
         if (path.equals("/key"))        { String k = param(query,"k"); writeText(out, 200, "enter".equals(k) ? rpc("enter") : rpc("global " + keyName(k))); return; }
         if (path.equals("/text"))       { writeText(out, 200, rpc("text " + dparam(query,"t"))); return; }   // tastatur-input -> fokuseret felt
+        if (path.equals("/wake"))       { writeText(out, 200, rpc("wake")); return; }   // vaek display 0 (telefonskaermen)
         if (path.equals("/click"))      { writeText(out, 200, rpc("click " + intp(query,"d",0) + " " + dparam(query,"match"))); return; }
         // --- UI-inspektion (a11y) ---
         if (path.equals("/find"))       { writeText(out, 200, rpc("find " + intp(query,"d",0) + " " + dparam(query,"match"))); return; }

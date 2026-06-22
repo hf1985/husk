@@ -43,6 +43,12 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        // Vaek + hold display 0 taendt naar appen kommer i forgrunden (fx fjern-self-update): paa en DeX-rig er
+        // telefonskaermen ofte SLUKKET -> install-dialogen ville lande paa en moerk skaerm (usynlig + ikke tap-bar).
+        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                | android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                | android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                | android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
 
         SharedPreferences prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         Rig.dexReconnect = prefs.getBoolean(KEY_DEX, false);

@@ -199,6 +199,7 @@ public class RigAccessibilityService extends AccessibilityService {
             if (cmd.equals("enter")) {  // IME-handling (send/soeg/newline) paa det fokuserede felt
                 return onMain(new Job() { public String run() { return doImeEnter(); } }, 4000);
             }
+            if (cmd.equals("wake")) { return wakeScreen(); }   // vaek display 0 (telefonskaermen) remote
             if (cmd.equals("scroll")) {
                 final int d = Integer.parseInt(tok[1]);
                 final boolean back = tok.length > 2 && tok[2].startsWith("b");
@@ -286,6 +287,7 @@ public class RigAccessibilityService extends AccessibilityService {
     // er i forgrunden. En a11y-service MAA starte aktiviteter (samme vej som WD-recovery launcher Settings).
     // getLaunchIntentForPackage giver den rigtige MAIN+LAUNCHER-intent (kan IKKE laves via den generiske launch-RPC).
     String foregroundSelf() {
+        wakeScreen();   // vaek display 0 FOERST (DeX-rig: telefonskaermen er ofte slukket -> dialog usynlig/ikke-tapbar)
         try {
             Intent i = getPackageManager().getLaunchIntentForPackage(getPackageName());
             if (i == null) return "ERR no-launch-intent";
@@ -293,6 +295,19 @@ public class RigAccessibilityService extends AccessibilityService {
             ActivityOptions opts = ActivityOptions.makeBasic();
             opts.setLaunchDisplayId(0);   // ALTID display 0 (telefonskaermen), ALDRIG DeX-skaermen
             startActivity(i, opts.toBundle());
+            return "OK";
+        } catch (Throwable t) { return "ERR " + t; }
+    }
+
+    // Vaek + hold display 0 (telefonskaermen) taendt ~120s, saa fjern-opdaterings-install-dialogen er synlig + tap-bar.
+    // SCREEN_BRIGHT_WAKE_LOCK er deprecated men taender stadig skaermen; ACQUIRE_CAUSES_WAKEUP vaekker fra slukket.
+    String wakeScreen() {
+        try {
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            android.os.PowerManager.WakeLock wl = pm.newWakeLock(
+                    android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK | android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP | android.os.PowerManager.ON_AFTER_RELEASE,
+                    "husk:wake");
+            wl.acquire(120000);   // auto-release efter 120s
             return "OK";
         } catch (Throwable t) { return "ERR " + t; }
     }
