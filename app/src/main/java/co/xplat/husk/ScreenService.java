@@ -42,8 +42,7 @@ public class ScreenService extends Service {
     static final String TAG = "Husk";
     static final String CHANNEL = "rig-screen";
     static final int NOTIF_ID = 43;
-    static final int MAX_W = 720;          // skaler ned for baandbredde
-    static final long MIN_FRAME_MS = 140;  // throttle ~7 fps (MediaProjection kan spamme ved animation)
+    static final int MAX_W = 720;          // skaler ned for baandbredde (capture-bredde; fast pr. session)
 
     private MediaProjection projection;
     private VirtualDisplay vdisplay;
@@ -131,7 +130,7 @@ public class ScreenService extends Service {
             img = r.acquireLatestImage();
             if (img == null) return;
             long now = SystemClock.uptimeMillis();
-            if (now - lastFrameMs < MIN_FRAME_MS) return;   // throttle
+            if (now - lastFrameMs < Rig.screenMinFrameMs) return;   // throttle (live-justerbar via /set?sfps=)
             lastFrameMs = now;
             Image.Plane p = img.getPlanes()[0];
             ByteBuffer buf = p.getBuffer();
@@ -142,8 +141,8 @@ public class ScreenService extends Service {
             Bitmap bmp = Bitmap.createBitmap(bmpW, sh, Bitmap.Config.ARGB_8888);
             bmp.copyPixelsFromBuffer(buf);
             Bitmap out = (bmpW == sw) ? bmp : Bitmap.createBitmap(bmp, 0, 0, sw, sh);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            out.compress(Bitmap.CompressFormat.JPEG, 55, bos);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(48 * 1024);
+            out.compress(Bitmap.CompressFormat.JPEG, Math.max(1, Math.min(100, Rig.screenQuality)), bos);
             Rig.latestScreenJpeg = bos.toByteArray();
             Rig.latestScreenSeq++;
             if (Motion.shouldSample()) Motion.feed(out, "screen");   // bevaegelses-alarm paa skaerm-feed

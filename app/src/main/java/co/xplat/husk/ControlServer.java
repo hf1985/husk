@@ -94,22 +94,34 @@ public class ControlServer {
         } catch (Throwable t) { return false; }
     }
 
+    // Een TCP-forbindelse, HTTP/1.1 keep-alive: vi laeser FLERE requests paa samme forbindelse i en loop, saa
+    // hurtige /tap //swipe ikke betaler en TCP-handshake-RTT hver gang (stor forskel over Tailscale). Inaktive
+    // forbindelser lukkes af SoTimeout. TCP_NODELAY (ingen Nagle) -> smaa tap-kvitteringer sendes straks.
+    // Streaming (/stream //screen) koerer uendeligt og beslaglaegger forbindelsen -> de lukker den naar klienten gaar.
     private void handle(Socket c) throws IOException {
+        c.setSoTimeout(20000);
+        try { c.setTcpNoDelay(true); } catch (Throwable ignored) {}
         BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream(), "UTF-8"));
-        String reqLine = r.readLine();
-        if (reqLine == null) return;
-        // drain headers
-        String h; while ((h = r.readLine()) != null && h.length() > 0) { /* ignore */ }
-
-        String[] parts = reqLine.split(" ");
-        if (parts.length < 2) { writeText(c.getOutputStream(), 400, "bad request"); return; }
-        String path = parts[1];
-        String query = "";
-        int q = path.indexOf('?');
-        if (q >= 0) { query = path.substring(q + 1); path = path.substring(0, q); }
-
         OutputStream out = c.getOutputStream();
+        while (running) {
+            String reqLine;
+            try { reqLine = r.readLine(); }
+            catch (java.net.SocketTimeoutException e) { return; }   // inaktiv keep-alive -> luk
+            if (reqLine == null) return;                            // klient lukkede forbindelsen
+            String h; while ((h = r.readLine()) != null && h.length() > 0) { /* drain headers */ }
+            String[] parts = reqLine.split(" ");
+            if (parts.length < 2) { writeText(out, 400, "bad request"); return; }
+            String path = parts[1], query = "";
+            int q = path.indexOf('?');
+            if (q >= 0) { query = path.substring(q + 1); path = path.substring(0, q); }
+            // Streaming beslaglaegger forbindelsen (uendelig multipart) -> luk efter (return).
+            if (path.equals("/stream")) { writeStream(c, out); return; }
+            if (path.equals("/screen")) { writeScreenStream(c, out); return; }
+            dispatch(out, path, query);   // alt andet svares keep-alive; loopen laeser naeste request
+        }
+    }
 
+    private void dispatch(OutputStream out, String path, String query) throws IOException {
         if (path.equals("/healthz")) { writeText(out, 200, "ok"); return; }
         if (path.equals("/")) { writeText(out, 200, viewerHtml(), "text/html; charset=utf-8"); return; }
 
@@ -120,10 +132,8 @@ public class ControlServer {
         if (path.equals("/flags"))      { writeFlags(out); return; }
         // --- kamera ---
         if (path.equals("/snapshot"))   { writeSnapshot(out); return; }
-        if (path.equals("/stream"))     { writeStream(c, out); return; }
         if (path.equals("/set"))        { applySet(query); writeText(out, 200, "ok"); return; }
         // --- skaerm (MediaProjection) ---
-        if (path.equals("/screen"))     { writeScreenStream(c, out); return; }
         if (path.equals("/screen.jpg")) { writeScreenSnapshot(out); return; }
         if (path.equals("/control"))    { writeText(out, 200, controlHtml(query), "text/html; charset=utf-8"); return; }
         // --- input (a11y-motor, proxy til 8127); d = display (default 0) ---
@@ -208,10 +218,11 @@ public class ControlServer {
         byte[] jpeg = Rig.latestJpeg;
         if (jpeg == null) { writeText(out, 503, "no frame yet"); return; }
         StringBuilder hdr = new StringBuilder();
-        hdr.append("HTTP/1.0 200 OK\r\n")
+        hdr.append("HTTP/1.1 200 OK\r\n")
            .append("Content-Type: image/jpeg\r\n")
            .append("Content-Length: ").append(jpeg.length).append("\r\n")
-           .append("Cache-Control: no-store\r\n\r\n");
+           .append("Cache-Control: no-store\r\n")
+           .append("Connection: keep-alive\r\n\r\n");
         out.write(hdr.toString().getBytes("UTF-8"));
         out.write(jpeg);
         out.flush();
@@ -382,6 +393,9 @@ public class ControlServer {
         try { if (rot != null) Rig.rotation = Integer.parseInt(rot); } catch (Throwable ignored) {}
         if (flip != null) Rig.flip = flip.equals("1") || flip.equalsIgnoreCase("true");
         try { if (fps != null) Rig.targetFps = Math.max(1, Integer.parseInt(fps)); } catch (Throwable ignored) {}
+        // Skaerm-stream tuning i farten (mod lag/baandbredde): sq = JPEG-kvalitet 1..100, sfps = skaerm-fps 1..30.
+        try { String sq = param(query, "sq"); if (sq != null) Rig.screenQuality = Math.max(1, Math.min(100, Integer.parseInt(sq))); } catch (Throwable ignored) {}
+        try { String sfps = param(query, "sfps"); if (sfps != null) { int f = Math.max(1, Math.min(30, Integer.parseInt(sfps))); Rig.screenMinFrameMs = Math.max(20, 1000 / f); } } catch (Throwable ignored) {}
         // Bemaerk: rotation slaar igennem ved naeste session-rebuild; her sat for snapshot/flip-vej.
     }
 
@@ -400,10 +414,11 @@ public class ControlServer {
         byte[] jpeg = Rig.latestScreenJpeg;
         if (jpeg == null) { writeText(out, 503, "ingen skærm-frame (slå skærmdeling til i appen)"); return; }
         StringBuilder hdr = new StringBuilder();
-        hdr.append("HTTP/1.0 200 OK\r\n")
+        hdr.append("HTTP/1.1 200 OK\r\n")
            .append("Content-Type: image/jpeg\r\n")
            .append("Content-Length: ").append(jpeg.length).append("\r\n")
-           .append("Cache-Control: no-store\r\n\r\n");
+           .append("Cache-Control: no-store\r\n")
+           .append("Connection: keep-alive\r\n\r\n");
         out.write(hdr.toString().getBytes("UTF-8"));
         out.write(jpeg);
         out.flush();
@@ -411,6 +426,7 @@ public class ControlServer {
 
     private void writeScreenStream(Socket c, OutputStream out) throws IOException {
         c.setSoTimeout(0);
+        try { c.setTcpNoDelay(true); } catch (Throwable ignored) {}   // hver frame flushes straks (ingen Nagle)
         String boundary = "rigscreen";
         String head = "HTTP/1.0 200 OK\r\n" +
                 "Cache-Control: no-store\r\nConnection: close\r\n" +
@@ -432,7 +448,9 @@ public class ControlServer {
                 out.write("\r\n".getBytes("UTF-8"));
                 out.flush();
             }
-            try { Thread.sleep(120); } catch (InterruptedException e) { break; }
+            // Poll hurtigt (20ms) saa en ny frame videresendes naesten med det samme (foer: 120ms = stor lag).
+            // Kun NYE frames (seq) sendes, saa stilstand koster ingen baandbredde.
+            try { Thread.sleep(20); } catch (InterruptedException e) { break; }
         }
     }
 
@@ -517,11 +535,11 @@ public class ControlServer {
     private void writeText(OutputStream out, int code, String body, String ctype) throws IOException {
         byte[] b = body.getBytes("UTF-8");
         StringBuilder hdr = new StringBuilder();
-        hdr.append("HTTP/1.0 ").append(code).append(code == 200 ? " OK" : " ERR").append("\r\n")
+        hdr.append("HTTP/1.1 ").append(code).append(code == 200 ? " OK" : " ERR").append("\r\n")
            .append("Content-Type: ").append(ctype).append("\r\n")
            .append("Content-Length: ").append(b.length).append("\r\n")
            .append("Cache-Control: no-store\r\n")
-           .append("Connection: close\r\n\r\n");
+           .append("Connection: keep-alive\r\n\r\n");   // genbrug forbindelsen -> ingen handshake-RTT pr. tap
         out.write(hdr.toString().getBytes("UTF-8"));
         out.write(b);
         out.flush();

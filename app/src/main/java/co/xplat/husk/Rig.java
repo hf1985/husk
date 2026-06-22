@@ -20,6 +20,10 @@ public final class Rig {
     public static volatile byte[] latestScreenJpeg = null;
     public static volatile long   latestScreenSeq  = 0;
     public static volatile int    screenW = 0, screenH = 0;
+    // Skaerm-stream tuning (live-justerbar via /set?sq=..&sfps=..). Lavere kvalitet + hoejere fps = mindre
+    // lag; dial ned ved smal baandbredde. Default = glat balance (~16 fps, JPEG q50).
+    public static volatile int    screenQuality    = 50;   // JPEG-kvalitet 1..100
+    public static volatile int    screenMinFrameMs = 60;   // capture-throttle (60ms ~= 16 fps)
 
     // Kamera-config (kan saettes via control-endpoint /set). Rotation = JPEG_ORIENTATION i grader.
     public static volatile int     rotation = 0;       // 0|90|180|270
