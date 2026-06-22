@@ -431,12 +431,12 @@ public class RigAccessibilityService extends AccessibilityService {
         // Scroll til "Wireless debugging"-raekken. ^-anker undgaar statusbar-notifikationen.
         boolean found = false;
         for (int i = 0; i < 12; i++) {
-            if ("1".equals(stateD(d, "^wireless debugging|^traadloes fejlfinding"))) { found = true; break; }
+            if ("1".equals(stateD(d, "^wireless debugging|^tr.dl.s fejlfinding"))) { found = true; break; }
             scrollD(d);
             sleep(1000);
         }
         if (!found) { Log.w(TAG, "wd-recovery: fandt ikke WD-raekken"); return cachedOrNull(); }
-        clickD(d, "^wireless debugging|^traadloes fejlfinding");
+        clickD(d, "^wireless debugging|^tr.dl.s fejlfinding");
         sleep(2000);
 
         // Kan vi allerede laese en ip:port -> WD er TIL. Vi slaar ALDRIG fra.
@@ -444,13 +444,13 @@ public class RigAccessibilityService extends AccessibilityService {
         if (ipp != null) { Log.i(TAG, "wd-recovery: allerede TIL " + ipp); return remember(ipp); }
 
         Log.i(TAG, "wd-recovery: ingen ip:port -> taender toggle");
-        clickD(d, "use wireless debugging|brug traadloes fejlfinding");
+        clickD(d, "use wireless debugging|brug tr.dl.s fejlfinding");
         sleep(3000);
 
         // Bekraeft "Allow ...?"-dialogen. Match knappen PRAECIST (^allow$/^tillad$) - et bredt
         // 'allow' rammer ellers dialog-TITLEN. Husk valget via checkboxen.
-        if ("1".equals(stateD(d, "allow wireless debugging|tillad traadloes fejlfinding"))) {
-            clickD(d, "always allow on this network|altid tillad paa dette netvaerk");
+        if ("1".equals(stateD(d, "allow wireless debugging|tillad tr.dl.s fejlfinding"))) {
+            clickD(d, "always allow on this network|altid.*netv.rk");   // da: "...på dette netværk" (rigtige å/æ)
             sleep(1000);
             clickD(d, "^allow$|^tillad$");
             sleep(3000);
@@ -475,12 +475,12 @@ public class RigAccessibilityService extends AccessibilityService {
         sleep(2000);
         boolean found = false;
         for (int i = 0; i < 12; i++) {
-            if ("1".equals(stateD(d, "^wireless debugging|^traadloes fejlfinding"))) { found = true; break; }
+            if ("1".equals(stateD(d, "^wireless debugging|^tr.dl.s fejlfinding"))) { found = true; break; }
             scrollD(d);
             sleep(1000);
         }
         if (!found) { Log.w(TAG, "wd-pair: fandt ikke WD-raekken"); return null; }
-        clickD(d, "^wireless debugging|^traadloes fejlfinding");
+        clickD(d, "^wireless debugging|^tr.dl.s fejlfinding");
         sleep(2000);
 
         // Aabn parrings-dialogen (scroll lidt hvis raekken ikke ses).
