@@ -292,15 +292,33 @@ public class RigAccessibilityService extends AccessibilityService {
     // Loeber ~24s, da dialogen kan komme forsinket (download) + i flere trin. clickD rammer kun KLIKBARE noder,
     // saa knappen (ikke broedtekst) tappes. Naar installen commit'er, draebes appen (inkl. denne traad) + relaunches.
     String acceptInstallConsent() {
-        // Loeber laenge nok til at DAEKKE download + commit (kan tage 20-30s) + dialogen i flere trin. Naar
-        // installen commit'er, draebes appen (denne traad med) -> loopen ender naturligt. Misser intet pga. for kort tid.
+        // VIGTIGT: system-installerens knapper accepterer IKKE a11y-ACTION_CLICK (clickD -> "click-false", bevist) ->
+        // find knappens koordinater + GESTURE-tap dem i stedet. Eksakt tekst-match (^...$) saa broedteksten
+        // ("Do you want to install an update...") IKKE rammes (en bred "install" ramte den foer). Loeber laenge nok
+        // til at daekke download + commit; naar installen commit'er, draebes appen (denne traad med) -> loop ender.
         for (int i = 0; i < 80; i++) {
-            clickD(0, "(?i)install anyway|installer alligevel|send anyway");   // Play Protect (hvis den kommer)
-            clickD(0, "(?i)^\\s*(update|install|opdater|installer|geninstaller|ok)\\s*$");  // hoved-knap
-            clickD(0, "(?i)^\\s*(open|åbn|aabn|done|f(ae|æ)rdig|udf(oe|ø)rt)\\s*$");        // afslut
+            tapMatch("(?i)install anyway|installer alligevel|send anyway");   // Play Protect (hvis den kommer)
+            tapMatch("(?i)^\\s*(install|update|opdater|installer|geninstaller|ok)\\s*$");  // hoved-knap (INSTALL/Opdater)
+            tapMatch("(?i)^\\s*(open|åbn|aabn|done|f(ae|æ)rdig|udf(oe|ø)rt)\\s*$");        // afslut
             sleep(1000);
         }
         return "OK";
+    }
+
+    // Find foerste node der matcher regex + GESTURE-tap dens center. Bruges hvor a11y-ACTION_CLICK fejler
+    // (system-dialoger som PackageInstaller). doGesture er en raa beroering -> virker paa system-knapper.
+    private void tapMatch(final String regex) {
+        final Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+        String pos = onMain(new Job() { public String run() {
+            AccessibilityNodeInfo n = findNode(0, p);
+            if (n == null) return "NONE";
+            Rect r = new Rect(); n.getBoundsInScreen(r);
+            return ((r.left + r.right) / 2) + " " + ((r.top + r.bottom) / 2);
+        } }, 5000);
+        if (pos != null && pos.matches("\\d+ \\d+")) {
+            String[] xy = pos.split(" ");
+            try { doGesture(Integer.parseInt(xy[0]), Integer.parseInt(xy[1]), -1, -1, 0, 60); } catch (Throwable ignored) {}
+        }
     }
 
     String gettextD(final int d, final String regex) {  // returnerer foerste match-tekst eller "NONE"
