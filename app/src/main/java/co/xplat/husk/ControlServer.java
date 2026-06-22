@@ -479,13 +479,13 @@ public class ControlServer {
              + "<button onclick=\"k('back')\">Tilbage</button> "
              + "<button onclick=\"k('home')\">Hjem</button> "
              + "<button onclick=\"k('recents')\">Recents</button></div>"
-             + "<div style='font-size:12px;color:#888;padding:2px'>klik = tap &middot; traek = swipe/scroll</div>"
+             + "<div style='font-size:12px;color:#888;padding:2px'>klik = tap &middot; træk = swipe/scroll</div>"
              + "<img id=v style='max-width:100%;height:auto;display:inline-block;touch-action:none' src='/screen" + tq + "'>"
              + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "';"
              + "var img=document.getElementById('v'),sx=0,sy=0,st=0,dn=false;"
              + "function k(n){fetch('/key?k='+n+A);}"
              + "function rp(e){var r=img.getBoundingClientRect();return{cx:e.clientX-r.left,cy:e.clientY-r.top,rw:r.width,rh:r.height};}"
-             // traek = swipe (scroll/skift skaerm), kort klik = tap. Pointer-events daekker baade mus + touch.
+             // træk = swipe (scroll/skift skærm), kort klik = tap. Pointer-events dækker både mus + touch.
              + "img.addEventListener('pointerdown',function(e){if(!W||!H)return;var p=rp(e);sx=p.cx;sy=p.cy;st=Date.now();dn=true;e.preventDefault();});"
              + "img.addEventListener('pointerup',function(e){if(!dn||!W||!H)return;dn=false;var p=rp(e);"
              + "var X1=Math.round(sx/p.rw*W),Y1=Math.round(sy/p.rh*H),X2=Math.round(p.cx/p.rw*W),Y2=Math.round(p.cy/p.rh*H);"
