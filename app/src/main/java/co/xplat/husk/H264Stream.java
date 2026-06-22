@@ -9,6 +9,7 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.projection.MediaProjection;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Surface;
@@ -50,6 +51,10 @@ class H264Stream {
         fmt.setInteger(MediaFormat.KEY_BIT_RATE, Math.max(800000, w * h * 4));
         fmt.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
         fmt.setFloat(MediaFormat.KEY_I_FRAME_INTERVAL, 1.0f);   // keyframe ~hvert sekund (klient-sync + recovery)
+        // Lav-lag-encoding: realtid-prioritet + (API30+) eksplicit lav-latens. CBR/bitrate-mode er BEVIDST udeladt:
+        // det fik den emulerede software-encoder til at stoppe frame-leveringen efter ~5s -> buffer-underrun/stall.
+        try { fmt.setInteger("priority", 0); } catch (Throwable ignored) {}   // 0 = realtime
+        if (Build.VERSION.SDK_INT >= 30) { try { fmt.setInteger(MediaFormat.KEY_LATENCY, 1); } catch (Throwable ignored) {} }
         codec = MediaCodec.createEncoderByType("video/avc");
         codec.configure(fmt, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         inputSurface = codec.createInputSurface();

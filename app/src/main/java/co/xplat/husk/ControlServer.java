@@ -529,7 +529,12 @@ public class ControlServer {
              + "var sb;try{sb=ms.addSourceBuffer(mime);}catch(e){say('addSourceBuffer: '+e);return;}"
              + "try{sb.mode='sequence';}catch(e){}"
              + "var q=[];function flush(){if(sb.updating||!q.length)return;try{sb.appendBuffer(q.shift());}catch(e){}}"
-             + "sb.addEventListener('updateend',function(){flush();try{if(v.buffered.length){var end=v.buffered.end(v.buffered.length-1);if(end-v.currentTime>1.2)v.currentTime=end-0.1;}}catch(e){}});"
+             + "sb.addEventListener('updateend',function(){flush();});"
+             // LIVE-EDGE-TRACKER (lav lag UDEN at toemme bufferen): <video> driver bagud fra live-kanten. Spol GLAT op
+             // via en lille playbackRate naar driften er stor; aldrig saa aggressivt at bufferen toemmes (= stall/frys).
+             // For-aggressivt (1.5x ned til 0.25s) gav underrun; her holdes ~0.4s sikkert. MSE har et reelt buffer-gulv
+             // (modsat MJPEG, der bytter raa frames straks) - derfor er MJPEG stadig lavere lag paa en hurtig forbindelse.
+             + "setInterval(function(){try{if(!v.buffered.length||v.paused)return;var end=v.buffered.end(v.buffered.length-1),gap=end-v.currentTime;if(gap>2.5){v.currentTime=end-0.4;v.playbackRate=1.0;}else if(gap>0.5){v.playbackRate=1.3;}else{v.playbackRate=1.0;}}catch(e){}},200);"
              + "fetch('/screen.mp4'+Q).then(function(resp){var rd=resp.body.getReader();say('H.264 (HW) live');(function pump(){rd.read().then(function(r){if(r.done){return;}q.push(r.value);flush();pump();}).catch(function(){});})();}).catch(function(e){say('stream-fejl: '+e);});"
              + "});"
              + "v.play().catch(function(){});"
