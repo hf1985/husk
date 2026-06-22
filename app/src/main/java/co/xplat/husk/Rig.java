@@ -55,6 +55,23 @@ public final class Rig {
         }
     }
 
+    // ---- Hardware-accelereret skaerm-stream (H.264 -> fMP4 -> MSE) ----
+    // ScreenService eksponerer sin MediaProjection + downscalede capture-dims her, saa H264Stream kan lave sit
+    // EGET VirtualDisplay paa samme projection. H.264 startes LAZILY (foerste /screen.mp4-klient) + stoppes naar
+    // ingen klienter er tilbage. Opt-in -> MJPEG-/control roeres ikke. Kraever at skaermdeling (ScreenService) er paa.
+    public static volatile android.media.projection.MediaProjection mediaProjection = null;
+    public static volatile int capW = 0, capH = 0, capDpi = 0;   // downscalede capture-dims (= H.264-stoerrelse)
+    public static volatile H264Stream h264 = null;
+    public static synchronized H264Stream ensureH264() {
+        if (h264 != null) return h264;
+        if (mediaProjection == null || capW <= 0 || capH <= 0) return null;   // skaermdeling ikke aktiv
+        try { H264Stream s = new H264Stream(mediaProjection, capW, capH, capDpi); s.start(); h264 = s; return s; }
+        catch (Throwable t) { return null; }
+    }
+    public static synchronized void stopH264() {
+        if (h264 != null) { try { h264.stop(); } catch (Throwable ignored) {} h264 = null; }
+    }
+
     // App-Context (sat af services i onCreate) saa hardware/info-endpoints virker UDEN at a11y er oppe.
     public static volatile android.content.Context appContext = null;
 

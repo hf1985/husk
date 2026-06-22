@@ -114,9 +114,10 @@ public class ControlServer {
             String path = parts[1], query = "";
             int q = path.indexOf('?');
             if (q >= 0) { query = path.substring(q + 1); path = path.substring(0, q); }
-            // Streaming beslaglaegger forbindelsen (uendelig multipart) -> luk efter (return).
+            // Streaming beslaglaegger forbindelsen (uendelig multipart / fMP4) -> luk efter (return).
             if (path.equals("/stream")) { writeStream(c, out); return; }
             if (path.equals("/screen")) { writeScreenStream(c, out); return; }
+            if (path.equals("/screen.mp4")) { writeH264Stream(c, out); return; }   // hardware-H.264 -> MSE
             dispatch(out, path, query);   // alt andet svares keep-alive; loopen laeser naeste request
         }
     }
@@ -135,7 +136,9 @@ public class ControlServer {
         if (path.equals("/set"))        { applySet(query); writeText(out, 200, "ok"); return; }
         // --- skaerm (MediaProjection) ---
         if (path.equals("/screen.jpg")) { writeScreenSnapshot(out); return; }
+        if (path.equals("/screen.codec")) { writeText(out, 200, h264Codec()); return; }   // MSE-codec-streng
         if (path.equals("/control"))    { writeText(out, 200, controlHtml(query), "text/html; charset=utf-8"); return; }
+        if (path.equals("/controlhw"))  { writeText(out, 200, controlHwHtml(query), "text/html; charset=utf-8"); return; }   // H.264/MSE-viewer
         // --- input (a11y-motor, proxy til 8127); d = display (default 0) ---
         if (path.equals("/tap"))        { writeText(out, 200, rpc("tap " + intp(query,"x",0) + " " + intp(query,"y",0) + " " + intp(query,"d",0) + " " + intp(query,"ms",60))); return; }
         if (path.equals("/swipe"))      { writeText(out, 200, rpc("swipe " + intp(query,"x1",0) + " " + intp(query,"y1",0) + " " + intp(query,"x2",0) + " " + intp(query,"y2",0) + " " + intp(query,"d",0) + " " + intp(query,"ms",200))); return; }
@@ -454,6 +457,86 @@ public class ControlServer {
         }
     }
 
+    // ---------------- hardware-H.264 (MediaCodec -> fMP4 -> MSE) ----------------
+
+    // /screen.mp4: live fMP4-stream. Starter H.264 lazily (deler ScreenService' projection), tilmelder klienten,
+    // og holder forbindelsen aaben mens H264Stream skriver fragmenter til den. Lukker + river ned naar tom.
+    private void writeH264Stream(Socket c, OutputStream out) throws IOException {
+        c.setSoTimeout(0);
+        try { c.setTcpNoDelay(true); } catch (Throwable ignored) {}
+        H264Stream st = Rig.ensureH264();
+        if (st == null) { writeText(out, 503, "ingen skærm/H.264 (slå skærmdeling til i appen)"); return; }
+        String head = "HTTP/1.0 200 OK\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Type: video/mp4\r\n\r\n";
+        out.write(head.getBytes("UTF-8")); out.flush();
+        H264Stream.Client cl = st.addClient(out);
+        try { while (running && st.hasClient(cl)) { Thread.sleep(400); } }
+        catch (InterruptedException ignored) {}
+        st.removeClient(cl);
+        if (st.clientCount() == 0) Rig.stopH264();   // lazy teardown: frigiv encoder + 2.-VirtualDisplay
+    }
+
+    // /screen.codec: starter H.264 (lazy) + venter til SPS er kendt -> "avc1.PPCCLL" til MSE addSourceBuffer.
+    private String h264Codec() {
+        H264Stream st = Rig.ensureH264();
+        if (st == null) return "";
+        for (int i = 0; i < 30; i++) {
+            String cs = st.getCodec();
+            if (cs != null && !cs.isEmpty()) return cs;
+            try { Thread.sleep(100); } catch (InterruptedException e) { break; }
+        }
+        return "";
+    }
+
+    // /controlhw: hardware-accelereret (H.264/MSE) udgave af /control - lavere lag + baandbredde. Hele skaermen
+    // passer i vinduet; klik=tap, traek=swipe (samme input-mapping som /control). /control (MJPEG) er fallback.
+    private String controlHwHtml(String query) {
+        String tok = param(query, "token");
+        String amp = (tok == null || tok.isEmpty()) ? "" : "&token=" + tok;
+        String tq = (tok == null || tok.isEmpty()) ? "" : "?token=" + tok;
+        int w = Rig.screenW, h = Rig.screenH;
+        return "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'>"
+             + "<title>Husk control (HW)</title>"
+             + "<body style='margin:0;height:100vh;height:100dvh;display:flex;flex-direction:column;background:#111;color:#ccc;font-family:sans-serif;text-align:center;overflow:hidden;touch-action:manipulation'>"
+             + "<div style='flex:none;padding:6px'>"
+             + "<button onclick=\"k('back')\">Tilbage</button> "
+             + "<button onclick=\"k('home')\">Hjem</button> "
+             + "<button onclick=\"k('recents')\">Recents</button>"
+             + " <span id=stx style='font-size:12px;color:#888'>H.264 starter &middot; klik=tap &middot; træk=swipe</span>"
+             + " <a href='/control" + tq + "' style='color:#6cf;font-size:12px'>MJPEG-fallback</a></div>"
+             + "<div style='flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden'>"
+             + "<video id=v muted autoplay playsinline style='max-width:100%;max-height:100%;touch-action:none;background:#000'></video></div>"
+             + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "',Q='" + tq + "';"
+             + "var v=document.getElementById('v'),stx=document.getElementById('stx');"
+             + "function k(n){fetch('/key?k='+n+A);}"
+             + "function say(m){stx.textContent=m;}"
+             + "var sx=0,sy=0,t0=0,dn=false;"
+             + "function rp(e){var r=v.getBoundingClientRect();return{cx:e.clientX-r.left,cy:e.clientY-r.top,rw:r.width,rh:r.height};}"
+             + "v.addEventListener('pointerdown',function(e){if(!W||!H)return;var p=rp(e);sx=p.cx;sy=p.cy;t0=Date.now();dn=true;e.preventDefault();});"
+             + "v.addEventListener('pointerup',function(e){if(!dn||!W||!H)return;dn=false;var p=rp(e);"
+             + "var X1=Math.round(sx/p.rw*W),Y1=Math.round(sy/p.rh*H),X2=Math.round(p.cx/p.rw*W),Y2=Math.round(p.cy/p.rh*H);"
+             + "if(Math.abs(p.cx-sx)+Math.abs(p.cy-sy)<10){fetch('/tap?x='+X1+'&y='+Y1+A);}"
+             + "else{fetch('/swipe?x1='+X1+'&y1='+Y1+'&x2='+X2+'&y2='+Y2+'&ms='+Math.min(800,Math.max(60,Date.now()-t0))+A);}});"
+             + "function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}"
+             + "async function go(){"
+             + "var codec='';for(var i=0;i<25&&!codec;i++){try{var t=(await (await fetch('/screen.codec'+Q)).text()).trim();if(t.indexOf('avc1')==0)codec=t;}catch(e){}if(!codec)await sleep(200);}"
+             + "if(!codec){say('H.264 ikke klar - brug /control');return;}"
+             + "if(!('MediaSource' in window)){say('MSE mangler - brug /control');return;}"
+             + "var mime='video/mp4; codecs=\"'+codec+'\"';"
+             + "if(!MediaSource.isTypeSupported(mime)){say('codec ikke støttet: '+codec);return;}"
+             + "var ms=new MediaSource();v.src=URL.createObjectURL(ms);"
+             + "ms.addEventListener('sourceopen',function(){"
+             + "if(ms.sourceBuffers.length){return;}"   // sourceopen kan fyre igen -> undgaa dobbelt addSourceBuffer
+             + "var sb;try{sb=ms.addSourceBuffer(mime);}catch(e){say('addSourceBuffer: '+e);return;}"
+             + "try{sb.mode='sequence';}catch(e){}"
+             + "var q=[];function flush(){if(sb.updating||!q.length)return;try{sb.appendBuffer(q.shift());}catch(e){}}"
+             + "sb.addEventListener('updateend',function(){flush();try{if(v.buffered.length){var end=v.buffered.end(v.buffered.length-1);if(end-v.currentTime>1.2)v.currentTime=end-0.1;}}catch(e){}});"
+             + "fetch('/screen.mp4'+Q).then(function(resp){var rd=resp.body.getReader();say('H.264 (HW) live');(function pump(){rd.read().then(function(r){if(r.done){return;}q.push(r.value);flush();pump();}).catch(function(){});})();}).catch(function(e){say('stream-fejl: '+e);});"
+             + "});"
+             + "v.play().catch(function(){});"
+             + "}go();"
+             + "</script>";
+    }
+
     // Proxy en kommando til a11y-motoren paa 127.0.0.1:8127 (samme linjeprotokol som engine.rpc),
     // saa browser-styring (/tap //swipe //key) injiceres via a11y - ingen adb/WD noedvendig.
     private String rpc(String cmd) {
@@ -500,7 +583,8 @@ public class ControlServer {
              + "<button onclick=\"k('back')\">Tilbage</button> "
              + "<button onclick=\"k('home')\">Hjem</button> "
              + "<button onclick=\"k('recents')\">Recents</button>"
-             + " <span style='font-size:12px;color:#888'>klik=tap &middot; træk=swipe/scroll</span></div>"
+             + " <span style='font-size:12px;color:#888'>klik=tap &middot; træk=swipe/scroll</span>"
+             + " <a href='/controlhw" + tq + "' style='color:#6cf;font-size:12px'>HW (H.264, mindre lag)</a></div>"
              + "<div style='flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden'>"
              + "<img id=v style='max-width:100%;max-height:100%;touch-action:none' src='/screen" + tq + "'></div>"
              + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "';"

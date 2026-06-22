@@ -118,6 +118,9 @@ public class ScreenService extends Service {
             vdisplay = projection.createVirtualDisplay("husk-screen", sw, sh, dpi,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader.getSurface(), null, handler);
             Rig.screenRunning = true;   // skaermdeling koerer reelt nu
+            // Eksponér projection + downscalede dims, saa H264Stream (opt-in /screen.mp4) kan lave sit eget
+            // VirtualDisplay paa samme projection til hardware-H.264. Roerer ikke JPEG-/MJPEG-vejen.
+            Rig.mediaProjection = projection; Rig.capW = sw; Rig.capH = sh; Rig.capDpi = dpi;
             Log.i(TAG, "screen: capture " + sw + "x" + sh + " (rigtig " + w + "x" + h + ")");
         } catch (Throwable t) {
             Log.e(TAG, "startCapture", t);
@@ -168,6 +171,8 @@ public class ScreenService extends Service {
         try { if (reader != null) reader.close(); } catch (Throwable ignored) {}
         try { if (projection != null) projection.stop(); } catch (Throwable ignored) {}
         try { if (thread != null) thread.quitSafely(); } catch (Throwable ignored) {}
+        try { Rig.stopH264(); } catch (Throwable ignored) {}
+        Rig.mediaProjection = null;
         Rig.latestScreenJpeg = null;
         Rig.screenRunning = false;
         super.onDestroy();
