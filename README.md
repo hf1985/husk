@@ -11,7 +11,7 @@ Android app (no AndroidX, no trackers, no ads) published as FOSS.
 - **Camera streaming** (MJPEG) viewable in a browser or usable as a webcam in a meeting (via a PC virtual camera).
 - **Automation engine** (AccessibilityService) for hands-free, scripted on-screen actions on any display (incl. Samsung DeX).
 - **Wireless-Debugging recovery** in-app after a reboot.
-- **App-native adb bridge** (Tailscale-IP:5557 -> the device's own adbd) so a PC can mirror/control the phone with `scrcpy` -- no Termux, no ssh, no socat. One-time pairing via the in-app `/pair` endpoint.
+- **App-native adb bridge** (Tailscale-IP:15557 -> the device's own adbd) so a PC can mirror/control the phone with `scrcpy` -- no Termux, no ssh, no socat. One-time pairing via the in-app `/pair` endpoint. (Port 15557 sits outside adb's 5555-5585 emulator-scan range, so a local adb server never adopts the bridge as a phantom "emulator-5556".)
 - **DeX auto-reconnect** toggle (shown only on DeX-capable phones).
 - **Starts after reboot** (boot persistence).
 
@@ -41,7 +41,7 @@ winget, pairs the PC hands-free via `/pair`, creates desktop shortcuts). See **x
 ## HTTP API (port 8090, loopback + Tailscale, optional `?token=`)
 `/healthz` (open) · `/snapshot` · `/stream` (MJPEG) · `/wd` (turn on Wireless Debugging, read ip:port)
 · `/pair` (WD pairing for a new PC) · `/flags` (read-only state) · `/set` (camera params) · `/` (viewer).
-adb bridge on port **5557**. Automation RPC on loopback **8127**.
+adb bridge on port **15557**. Automation RPC on loopback **8127**.
 
 ## Permissions (and why)
 INTERNET (local HTTP + adb bridge, loopback/Tailscale only), CAMERA, FOREGROUND_SERVICE(_CAMERA),

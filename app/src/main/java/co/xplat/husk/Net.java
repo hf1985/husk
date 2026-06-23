@@ -54,7 +54,7 @@ public final class Net {
         return o != null && o[0] == 100 && o[1] >= 64 && o[1] <= 127;
     }
 
-    // Kilde-IP-ACL, DELT af ControlServer (8090) + AdbForward (5557): kun loopback + privat (RFC1918) +
+    // Kilde-IP-ACL, DELT af ControlServer (8090) + AdbForward (15557): kun loopback + privat (RFC1918) +
     // Tailscale (CGNAT 100.64/10, IPv6-ULA fc00::/7) peers maa naa serverne. Link-local tillades IKKE
     // (en nabo paa samme L2-segment maatte ellers naa ind). Sikkert sammen med 0.0.0.0-bind, fordi det
     // tjekker PEER-adressen - en offentlig kilde (fx mobildata) afvises uanset bind.

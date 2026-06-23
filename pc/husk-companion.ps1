@@ -2,7 +2,7 @@
   husk-companion.ps1 - PC companion for the Husk app (screen mirroring via scrcpy). PART OF Husk.
 
   Termux-INDEPENDENT: scrcpy reaches the phone through the app's own adb bridge (AdbForward) on
-  Tailscale-IP:5557 -> the device's adbd. No WSL, no ssh, no socat, no Termux adb server.
+  Tailscale-IP:15557 -> the device's adbd. No WSL, no ssh, no socat, no Termux adb server.
 
   Runs on a freshly installed Windows 11: bootstraps scrcpy via winget (built into Win11), pairs
   the PC hands-free via the app's /pair endpoint (Android 12 Wireless Debugging = TLS, one-time
@@ -18,7 +18,7 @@
 param(
   [int]$Display = -1,                       # -1 = install mode; 0/2 = launcher (shortcut)
   [string]$TsIp = '',                       # phone's Tailscale IP (prompted if empty)
-  [int]$RelayPort = 5557,
+  [int]$RelayPort = 15557,                  # AdbForward bridge port (outside adb's 5555-5585 emulator scan)
   [int]$AppPort = 8090
 )
 $ErrorActionPreference = 'Stop'

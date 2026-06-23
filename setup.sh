@@ -52,4 +52,4 @@ if command -v curl >/dev/null 2>&1; then
   echo "/healthz -> $(curl -s --max-time 6 http://127.0.0.1:8090/healthz)"
   echo "/snapshot -> HTTP $(curl -s -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1:8090/snapshot${RIG_TOKEN:+?token=$RIG_TOKEN})"
 fi
-echo "FAERDIG. Stream http://<tailscale>:8090/stream | scrcpy: adb connect <tailscale>:5557 (efter /pair)"
+echo "FAERDIG. Stream http://<tailscale>:8090/stream | scrcpy: adb connect <tailscale>:15557 (efter /pair)"

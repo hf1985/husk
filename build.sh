@@ -15,6 +15,13 @@ KS="$PWD/debug.keystore"
 RES="app/src/main/res"
 MANIFEST="app/src/main/AndroidManifest.xml"
 
+# Version fra build.gradle (manifestet baerer den IKKE; Gradle injicerer normalt -> on-phone-build
+# skal selv goere det, ellers bliver APK'en versionCode 0 og 'adb install -r' afvises som downgrade).
+VC="$(grep -oE 'versionCode +[0-9]+' app/build.gradle | grep -oE '[0-9]+' | head -1)"
+VN="$(grep -oE 'versionName +"[^"]+"' app/build.gradle | sed -E 's/.*"([^"]+)".*/\1/' | head -1)"
+[ -n "$VC" ] || { echo "MANGLER versionCode i app/build.gradle"; exit 1; }
+echo "version: $VN ($VC)"
+
 [ -f "$AJ" ] || { [ -f "$DEXRPC_DIR/android.jar" ] && cp "$DEXRPC_DIR/android.jar" "$AJ" || { echo "MANGLER android.jar"; exit 1; }; }
 [ -f "$KS" ] || { [ -f "$DEXRPC_DIR/debug.keystore" ] && cp "$DEXRPC_DIR/debug.keystore" "$KS" || {
   echo "genererer NY debug.keystore"; keytool -genkeypair -keystore "$KS" -storepass android -keypass android \
@@ -30,6 +37,7 @@ aapt2 link -o bin/app-unaligned.apk -I "$AJ" \
   --manifest "$MANIFEST" \
   --java gen \
   --min-sdk-version 30 --target-sdk-version 33 \
+  --version-code "$VC" --version-name "$VN" \
   bin/res.zip
 
 echo "== compile java (ecj default-compliance; ingen lambdaer -> dx-kompatibel) =="

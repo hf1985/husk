@@ -14,18 +14,24 @@ import java.net.Socket;
 
 // Raa TCP-bro: eksponerer enhedens egen adbd (Wireless Debugging) paa Tailscale-IP'en, saa
 // scrcpy/adb-over-Tailscale bliver en DEL AF APPEN - Termux-UAFHAENGIGT. Ingen socat, ingen
-// Termux-adb-server, ingen Termux:Boot-hook: PC'en kan 'adb connect <tailscale>:5557' direkte
-// mod adbd via denne bro (appen broer Tailscale-IP:5557 -> 127.0.0.1:<WD-port>, hvor adbd lytter
+// Termux-adb-server, ingen Termux:Boot-hook: PC'en kan 'adb connect <tailscale>:15557' direkte
+// mod adbd via denne bro (appen broer Tailscale-IP:15557 -> 127.0.0.1:<WD-port>, hvor adbd lytter
 // paa loopback). WD-porten skifter ved reboot; vi henter den fra Rig.lastWdIpPort (appens egen
 // in-process WD-recovery cacher den; tom -> trigger recovery).
+//
+// PORT-VALG (15557, IKKE 5557): en adb-SERVER scanner automatisk localhost 5555-5585 og ADOPTERER
+// alt der lytter dér som en "emulator-NNNN". Bandt broen 5557 (0.0.0.0 -> ogsaa loopback), opdagede
+// en adb-server PAA SAMME enhed (fx Termux-overbygningen) broen som et EKSTRA device (emulator-5556)
+// -> bare 'adb'-kald fik "more than one device/emulator". 15557 ligger UDEN FOR scan-intervallet, saa
+// broen aldrig auto-adopteres. (Fix 2026-06-23; consumere der konfigurerer en adb-host: brug 15557.)
 //
 // SIKKERHED: en adb-forbindelse = fuld enhedskontrol. Broen binder 0.0.0.0 (saa den overlever Tailscale-IP-
 // skift, praecis som ControlServer i v0.8 - ellers gik scrcpy permanent moerk ved reconnect), men er beskyttet
 // af den DELTE kilde-IP-ACL (Net.peerAllowed: kun loopback/RFC1918/Tailscale). adbd's egen RSA-noegle-
-// godkendelse gaelder stadig pr. host. Anbefalet: begraens desuden 5557 til PC'en i Tailscale-admin-ACL'en.
+// godkendelse gaelder stadig pr. host. Anbefalet: begraens desuden 15557 til PC'en i Tailscale-admin-ACL'en.
 public class AdbForward {
     static final String TAG = "Husk";
-    static final int LISTEN_PORT = 5557;
+    static final int LISTEN_PORT = 15557;   // UDEN FOR adb's emulator-scan (5555-5585); se port-valg ovenfor
 
     private volatile boolean running = false;
     private ServerSocket server;
