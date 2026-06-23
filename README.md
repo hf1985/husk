@@ -26,13 +26,15 @@ required system setting (Accessibility, Developer options / Wireless debugging, 
 App permissions), and a link to the PC companion. Bilingual: **Danish on Danish devices, English elsewhere.**
 
 ## Build
-Standard Gradle project (Android Gradle Plugin 7.4.2, Gradle 7.6.x, compileSdk 33, minSdk 30).
+Standard Gradle project (Android Gradle Plugin 8.5.2, Gradle 8.7, JDK 17, compileSdk 34, minSdk 26).
 Pure framework APIs only -- no dependencies.
 ```bash
 ./gradlew assembleRelease        # -> app/build/outputs/apk/release/app-release-unsigned.apk
 ```
-A convenience on-phone build (`build.sh`, ecj/dx/aapt2 in Termux) exists for fast iteration on the
-device itself; the canonical/F-Droid build is Gradle.
+The canonical/F-Droid build is Gradle. **Full, reproducible procedure (WSL build env, the
+G:->WSL sync, signing key, per-release checklist):** see [`docs/BUILD.md`](docs/BUILD.md);
+the one-command helper is [`gradle-build.sh`](gradle-build.sh). A convenience on-phone build
+(`build.sh`, ecj/dx/aapt2 in Termux) exists for fast iteration on the device itself.
 
 ## PC companion (scrcpy)
 `pc/husk-companion.ps1` -- a PowerShell setup script for a fresh Windows 11 (bootstraps scrcpy via
