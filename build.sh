@@ -22,6 +22,14 @@ VN="$(grep -oE 'versionName +"[^"]+"' app/build.gradle | sed -E 's/.*"([^"]+)".*
 [ -n "$VC" ] || { echo "MANGLER versionCode i app/build.gradle"; exit 1; }
 echo "version: $VN ($VC)"
 
+# Pakkenavn fra build.gradle. Gradle injicerer 'package' i manifestet fra namespace/applicationId, og
+# manifestet maa IKKE selv have package= med AGP 8 -> on-phone-aapt2 kraever det, saa vi injicerer det
+# i en temp-manifest ved build (nedenfor). Ellers: "<manifest> must have a 'package' attribute".
+PKG="$(grep -oE 'applicationId +"[^"]+"' app/build.gradle | sed -E 's/.*"([^"]+)".*/\1/' | head -1)"
+[ -n "$PKG" ] || PKG="$(grep -oE "namespace +'[^']+'" app/build.gradle | sed -E "s/.*'([^']+)'.*/\1/" | head -1)"
+[ -n "$PKG" ] || { echo "MANGLER applicationId/namespace i app/build.gradle"; exit 1; }
+echo "package: $PKG"
+
 [ -f "$AJ" ] || { [ -f "$DEXRPC_DIR/android.jar" ] && cp "$DEXRPC_DIR/android.jar" "$AJ" || { echo "MANGLER android.jar"; exit 1; }; }
 [ -f "$KS" ] || { [ -f "$DEXRPC_DIR/debug.keystore" ] && cp "$DEXRPC_DIR/debug.keystore" "$KS" || {
   echo "genererer NY debug.keystore"; keytool -genkeypair -keystore "$KS" -storepass android -keypass android \
@@ -29,12 +37,16 @@ echo "version: $VN ($VC)"
 
 rm -rf obj bin gen; mkdir -p obj bin gen
 
+# Injicér package= i en TEMP-manifest (aapt2 link kraever det; maa ikke staa permanent pga. AGP 8).
+MFP="bin/AndroidManifest.packaged.xml"
+sed -E "s|<manifest |<manifest package=\"$PKG\" |" "$MANIFEST" > "$MFP"
+
 echo "== aapt2 compile res =="
 aapt2 compile --dir "$RES" -o bin/res.zip
 
 echo "== aapt2 link (+ R.java) =="
 aapt2 link -o bin/app-unaligned.apk -I "$AJ" \
-  --manifest "$MANIFEST" \
+  --manifest "$MFP" \
   --java gen \
   --min-sdk-version 30 --target-sdk-version 33 \
   --version-code "$VC" --version-name "$VN" \
