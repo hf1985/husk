@@ -1,5 +1,8 @@
-<!-- RFP (Request For Packaging) til F-Droid. Indsaet som ny issue paa
-     https://gitlab.com/fdroid/rfp/-/issues/new (vaelg RFP-templaten). -->
+<!-- RFP (Request For Packaging) til F-Droid. Reference/skabelon til indsendelse paa
+     https://gitlab.com/fdroid/rfp/-/issues/new (vaelg RFP-templaten).
+     STATUS: pakningen er ALLEREDE i gang via fdroiddata-MR !40810 (se docs/BUILD.md afsnit 7);
+     denne fil holdes blot ajour som menneskelaesbar reference. Den kanoniske build-metadata er
+     fdroid/co.xplat.husk.yml. -->
 
 ### App information
 
@@ -7,7 +10,7 @@
 - **Application ID:** `co.xplat.husk`
 - **Source code:** https://github.com/hf1985/husk
 - **License:** GPL-3.0-or-later
-- **Latest version:** 0.1 (git tag `v0.1`)
+- **Latest version:** 0.9.21 (git tag `v0.9.21`)
 - **Website:** https://xplat.co/husk
 
 ### Summary
@@ -29,8 +32,8 @@ network (Tailscale), without root:
 ### Packaging notes
 
 - **Pure framework app: no AndroidX, no proprietary dependencies, no trackers, no ads.**
-- Builds with Gradle (Android Gradle Plugin 7.4.2): `./gradlew assembleRelease` in subdir `app`
-  (compileSdk 33, minSdk 30, targetSdk 33). The build has been verified.
+- Builds with Gradle (Android Gradle Plugin 8.5.2 / Gradle 8.7 / JDK 17): `./gradlew assembleRelease`
+  in subdir `app` (compileSdk 34, minSdk 26, targetSdk 34). The build has been verified.
 - A ready-to-use fdroiddata metadata file is included in the repo at `fdroid/co.xplat.husk.yml`.
 - **Sensitive capabilities (intentional, documented):** an AccessibilityService (for on-screen
   automation) and an adb bridge. Network services listen on all interfaces but are gated by a
