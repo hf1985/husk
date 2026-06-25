@@ -60,6 +60,10 @@ public class CameraService extends Service {
     private PowerManager.WakeLock wakeLock;
     private volatile boolean started = false;
     private volatile boolean destroyed = false;
+    private volatile boolean othersHaveCamera = false;   // en ANDEN app holder kameraet -> aabn ALDRIG (ingen eviction)
+    private volatile boolean opening = false;            // aabning i gang (async) -> undgaa dobbelt-aabning fra demandCheck
+    private volatile String  targetCamId = null;          // id'et vi vil bruge (til availability-matchning)
+    private CameraManager.AvailabilityCallback availCb;
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
@@ -103,7 +107,8 @@ public class CameraService extends Service {
             camThread.start();
             camHandler = new Handler(camThread.getLooper());
             startServer();
-            camHandler.post(new Runnable() { public void run() { openCamera(); } });
+            registerCameraAvailability();   // foelg om en anden app holder kameraet (saa vi ALDRIG evicter)
+            camHandler.post(demandCheck);   // DOVEN: aaben/luk kameraet efter faktisk efterspoergsel + ledighed
             maybeReconnectDex();
             maybeAutoScreenShare();
         }
@@ -166,15 +171,49 @@ public class CameraService extends Service {
 
     // ---------------- Camera2 ----------------
 
-    // Watchdog: hvis OS'et river kameraet fra os (onDisconnected/onError), genaabn med backoff i stedet for
-    // at lade feed'et fryse tavst (enheden saa "oppe" men /snapshot frosset). Stopper naar servicen destrueres.
-    private void scheduleReopen() {
-        if (destroyed || camHandler == null) return;
-        camHandler.postDelayed(new Runnable() { public void run() {
-            if (destroyed || Rig.cameraRunning || cameraDevice != null) return;
-            Log.i(TAG, "kamera reopen-forsoeg");
-            try { openCamera(); } catch (Throwable t) { Log.e(TAG, "reopen", t); scheduleReopen(); }
-        } }, 5000);
+    // DOVEN kamera-styring (koerer paa camHandler hvert 1s + ved availability-event): aaben kun naar
+    // (a) noget forbruger Husks feed ELLER motion er TIL, OG (b) kameraet er LEDIGT (ingen anden app).
+    // Slip enheden naar efterspoergslen forsvinder, saa fx Discord-moedekameraet kan bruge kameraet
+    // uforstyrret. Erstatter den gamle aggressive reopen-watchdog (der genaabnede = evictede en anden app).
+    private final Runnable demandCheck = new Runnable() { public void run() {
+        if (destroyed) return;
+        boolean want = Rig.motionEnabled
+                || (android.os.SystemClock.uptimeMillis() - Rig.lastCameraClientMs) < Rig.CAMERA_IDLE_MS;
+        if (want && cameraDevice == null && !opening && !othersHaveCamera) {
+            try { openCamera(); } catch (Throwable t) { Log.e(TAG, "openCamera", t); }
+        } else if (!want && cameraDevice != null) {
+            Log.i(TAG, "ingen kamera-forbruger -> slipper kameraet (ledigt for andre apps)");
+            closeCameraDevice();
+        }
+        if (!destroyed && camHandler != null) camHandler.postDelayed(this, 1000);
+    } };
+
+    // Foelg systemets kamera-ledighed, saa vi ALDRIG aabner (= evicter) et kamera en anden app bruger.
+    private void registerCameraAvailability() {
+        try {
+            cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+            try { targetCamId = pickCamera(cameraManager, Rig.useFront); } catch (Throwable ignored) {}
+            availCb = new CameraManager.AvailabilityCallback() {
+                @Override public void onCameraAvailable(String id) {
+                    if (id.equals(targetCamId)) { othersHaveCamera = false; if (camHandler != null) camHandler.post(demandCheck); }
+                }
+                @Override public void onCameraUnavailable(String id) {
+                    // "unavailable" gaelder ogsaa naar VI har det aabent -> kun en ANDEN app hvis vi IKKE har det.
+                    if (id.equals(targetCamId) && cameraDevice == null) othersHaveCamera = true;
+                }
+            };
+            cameraManager.registerAvailabilityCallback(availCb, camHandler);
+        } catch (Throwable t) { Log.e(TAG, "registerCameraAvailability", t); }
+    }
+
+    // Luk kamera-ENHEDEN (frigiv til andre apps) UDEN at stoppe servicen/serveren (modsat onDestroy).
+    private void closeCameraDevice() {
+        try { if (captureSession != null) captureSession.close(); } catch (Throwable ignored) {}
+        try { if (cameraDevice != null) cameraDevice.close(); } catch (Throwable ignored) {}
+        try { if (imageReader != null) imageReader.close(); } catch (Throwable ignored) {}
+        captureSession = null; cameraDevice = null; imageReader = null;
+        Rig.cameraRunning = false;
+        Rig.latestJpeg = null;   // ryd stale frame -> /snapshot venter paa en frisk efter genaabning
     }
 
     private void openCamera() {
@@ -182,11 +221,15 @@ public class CameraService extends Service {
             Log.e(TAG, "CAMERA-permission ikke givet - kan ikke aabne kamera (kor 'pm grant')");
             return;
         }
+        if (othersHaveCamera) { Log.i(TAG, "kameraet er optaget af en anden app -> aabner IKKE (ingen eviction)"); return; }
+        if (cameraDevice != null || opening) return;   // allerede aaben / aabning i gang
+        opening = true;
         try {
             try { if (imageReader != null) { imageReader.close(); imageReader = null; } } catch (Throwable ignored) {}   // undgaa ImageReader-laek ved reopen
             cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
             String camId = pickCamera(cameraManager, Rig.useFront);
-            if (camId == null) { Log.e(TAG, "intet kamera fundet"); return; }
+            if (camId == null) { Log.e(TAG, "intet kamera fundet"); opening = false; return; }
+            targetCamId = camId;
             CameraCharacteristics cc = cameraManager.getCameraCharacteristics(camId);
             StreamConfigurationMap map = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             Size size = pickSize(map.getOutputSizes(ImageFormat.JPEG));
@@ -198,13 +241,17 @@ public class CameraService extends Service {
             }, camHandler);
 
             cameraManager.openCamera(camId, new CameraDevice.StateCallback() {
-                public void onOpened(CameraDevice device) { cameraDevice = device; createSession(); }
-                public void onDisconnected(CameraDevice device) { Log.w(TAG, "kamera disconnected"); Rig.cameraRunning = false; device.close(); cameraDevice = null; scheduleReopen(); }
-                public void onError(CameraDevice device, int error) { Log.e(TAG, "kamera-fejl " + error); Rig.cameraRunning = false; device.close(); cameraDevice = null; scheduleReopen(); }
+                public void onOpened(CameraDevice device) { opening = false; cameraDevice = device; createSession(); }
+                // Mistede kameraet (taget af en anden app, fx Discord) -> markér optaget + genaabn ALDRIG af os selv;
+                // availability-callback'en rydder flaget naar kameraet bliver ledigt igen, og demandCheck aabner da (hvis efterspurgt).
+                public void onDisconnected(CameraDevice device) { Log.w(TAG, "kamera disconnected (taget af anden app)"); opening = false; Rig.cameraRunning = false; device.close(); cameraDevice = null; othersHaveCamera = true; }
+                public void onError(CameraDevice device, int error) { Log.e(TAG, "kamera-fejl " + error); opening = false; Rig.cameraRunning = false; device.close(); cameraDevice = null; othersHaveCamera = true; }
             }, camHandler);
         } catch (CameraAccessException e) {
+            opening = false;
             Log.e(TAG, "openCamera", e);
         } catch (SecurityException e) {
+            opening = false;
             Log.e(TAG, "openCamera security", e);
         }
     }
@@ -218,7 +265,8 @@ public class CameraService extends Service {
                         startRepeating();
                     }
                     public void onConfigureFailed(CameraCaptureSession session) {
-                        Log.e(TAG, "session-config fejlede");
+                        Log.e(TAG, "session-config fejlede - slipper kameraet (demandCheck proever igen)");
+                        closeCameraDevice();
                     }
                 }, camHandler);
         } catch (CameraAccessException e) {
@@ -309,8 +357,9 @@ public class CameraService extends Service {
 
     @Override
     public void onDestroy() {
-        destroyed = true;            // stop reopen-watchdog
+        destroyed = true;            // stop demand-check
         Rig.cameraRunning = false;   // kamera stoppes -> status/flags maa vise "off" (ControlServer lever videre)
+        try { if (availCb != null && cameraManager != null) cameraManager.unregisterAvailabilityCallback(availCb); } catch (Throwable ignored) {}
         try { if (captureSession != null) captureSession.close(); } catch (Throwable ignored) {}
         try { if (cameraDevice != null) cameraDevice.close(); } catch (Throwable ignored) {}
         try { if (imageReader != null) imageReader.close(); } catch (Throwable ignored) {}

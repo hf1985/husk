@@ -54,6 +54,36 @@ proces - og fylde `AccessibilityCache` i Husks adresserum (millioner af node-all
 - **ADVARSEL:** Sæt IKKE `typeWindowContentChanged` (eller `typeAllMask`) permanent i
   `accessibilityconfig.xml` igen.
 
+### Invariant C - kameraet holdes DOVENT og Husk EVICTER aldrig en anden app
+Husk er universel, men på en rig der DELER kameraet med en anden app (Discord-mødekameraet) må Husk
+aldrig rive kameraet til sig. To regler i `CameraService`:
+
+- **Doven:** kamera-ENHEDEN åbnes kun når noget faktisk forbruger Husks feed (`/stream` eller
+  `/snapshot` inden for `Rig.CAMERA_IDLE_MS`) ELLER `motionEnabled`. Ingen forbruger → enheden
+  slippes (`closeCameraDevice`), så en anden app kan bruge den. `ControlServer` stempler
+  `Rig.lastCameraClientMs`; en `demandCheck` (camHandler, hvert 1 s) åbner/lukker efter
+  efterspørgsel. (Samme princip som Invariant A.)
+- **Aldrig eviction:** `openCamera` åbner KUN når kameraet er LEDIGT - en
+  `CameraManager.AvailabilityCallback` sætter `othersHaveCamera` når en anden app holder det, og så
+  springer `openCamera` over (Android ville ellers give en forgrunds-Husk kamera-PRIORITET og
+  smide den anden app af). Ved `onDisconnected/onError` (taget af en anden) genåbner Husk ALDRIG af
+  sig selv; availability-callback'en rydder flaget når kameraet bliver ledigt igen.
+- **Hvorfor:** før dette gjaldt, åbnede Husks `CameraService` kameraet uafhængigt, og når Husks
+  `MainActivity` kom i FORGRUNDEN (bruger åbnede appen) fik Husk kamera-prioritet og **evictede
+  Discord** → mødets video frøs. Det var roden til "kameraet fryser når jeg åbner/lukker Husk".
+- **ADVARSEL:** Lad IKKE `CameraService` åbne kameraet eagerly (fx i `onStartCommand` eller en blind
+  reopen-watchdog der genåbner ved `onError`). Det evicter co-resident apps.
+
+### Invariant D - Husks UI bliver på den indbyggede skærm (display 0), aldrig DeX
+På en DeX-rig kører videomødet (Discord) på DeX-desktoppen (et virtuelt display, fx id 2, spejlet til
+HDMI). Hvis Husks `MainActivity` åbnes DER, fortrænges Discords aktivitet → Discord pauser sit eget
+kamera → frys (uafhængigt af Invariant C). `MainActivity.onCreate` bouncer derfor straks til display 0
+(`Display.DEFAULT_DISPLAY`) hvis den lander på et andet display, FØR den starter services/UI.
+- **NB (Samsung-begrænsning):** at bringe `MainActivity` i forgrunden nær DeX kan trigge Samsungs
+  "App kører på en anden skærm - genstart?" → proces-churn der midlertidigt afbinder a11y-tjenesten
+  (8127 nede). a11y-watchdog'en + et reboot genopretter. Test derfor IKKE ved gentagne
+  `am start MainActivity` på den kørende rig (det churner a11y, jf. §3).
+
 ---
 
 ## 2. Diagnostik på en kørende host (find CPU-tyven)
@@ -92,13 +122,16 @@ På en rig hvor Husk deler enheden med en anden kamera-app (Discord), gælder:
   (8090) - dem starter `CameraService.onCreate` (`Rig.ensureControlServer()` + `maybeAutoScreenShare`).
   Et `adb reboot` lader boot-kæden (på rig'en: `husk-overbygning/boot-start.sh` → `wd-up.sh` →
   `join.sh`) genrejse alt rent.
-- **LAUNCH ALDRIG `MainActivity` PÅ EN KØRENDE RIG.** `MainActivity` er den eneste eksporterede
-  aktivitet (`ScreenConsentActivity`/services er `exported=false` → `am start` afvises for shell-uid).
-  Men `MainActivity` bringer Husk i **forgrunden** → `CameraService` får kamera-PRIORITET → den
-  **EVICTER den anden app fra kameraet** (set i `dumpsys media.camera`: `EVICT ... com.discord ...
-  Evicted by ... co.xplat.husk`) → den andens video dør. (Dette er ud over den kendte DeX-
-  "restart on another display"-churn af a11y.) **Genrejs 8090/ScreenService med en reboot, ikke
-  med en app-launch.**
+- **LAUNCH IKKE `MainActivity` PÅ EN KØRENDE RIG via `am start` (til test).** `MainActivity` er den
+  eneste eksporterede aktivitet (`ScreenConsentActivity`/services er `exported=false`). Kamera-delen
+  er nu beskyttet (Invariant C/D: Husk evicter ikke + UI bouncer til display 0), MEN at forgrunde
+  `MainActivity` nær DeX kan stadig trigge Samsungs "App kører på en anden skærm - genstart?" →
+  proces-churn der midlertidigt afbinder a11y (8127 nede; `am start --display 2` rapporterer ofte
+  "Activity kept for the user" men churner alligevel). **Test derfor kamera-fixet på andre måder**
+  (verificér `camera:false` i `/flags` + `dumpsys media.camera`-ejer forbliver den anden app, INGEN
+  `Evicted by ... co.xplat.husk`), og **genrejs 8090/ScreenService med en reboot, ikke en app-launch.**
+  a11y er PONG lige efter boot og forbliver stabil når rig'en får fred - det er aktive
+  DeX-forgrunds-launches der churner den.
 - I tomgang er den korrekte sameksistens-tilstand: Husks `CameraService` baggrunds-`openCamera`
   bliver AFVIST mens den anden app (forgrund) holder kameraet (`camera:false` i `/flags`) - det er
   rigtigt, ikke en fejl.

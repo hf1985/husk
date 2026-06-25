@@ -4,6 +4,7 @@
 package co.xplat.husk;
 
 import android.app.Activity;
+import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -48,6 +49,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        // Husk-UI maa ALDRIG blive paa DeX-/ekstern-skaermen (display != 0). Paa moedekamera-rig'en koerer
+        // videomoedet (Discord) paa DeX-desktoppen (display 2); hvis Husk aabnes DER, fortraenges Discord ->
+        // dets kamera fryser (= brugerens "kamera fryser ved aabn/luk af Husk"). Bounce straks til display 0
+        // (telefonens indbyggede skaerm) FOER vi starter services/UI, og afslut den fejlplacerede instans.
+        // Enkelt-display-enheder (ingen DeX/ekstern skaerm) er altid display 0 -> dette er en no-op for dem.
+        if (Build.VERSION.SDK_INT >= 30 && bounceToBuiltInDisplayIfNeeded()) return;
+
         // Vaek + hold display 0 taendt naar appen kommer i forgrunden (fx fjern-self-update): paa en DeX-rig er
         // telefonskaermen ofte SLUKKET -> install-dialogen ville lande paa en moerk skaerm (usynlig + ikke tap-bar).
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
@@ -79,6 +87,27 @@ public class MainActivity extends Activity {
         if (headless) { finish(); return; }
 
         setContentView(buildUi());
+    }
+
+    // Hvis denne instans er havnet paa en anden skaerm end den indbyggede (display 0) - typisk DeX-desktoppen
+    // hvor moedet koerer - saa gen-launch paa display 0 og afslut den fejlplacerede instans. Returnerer true
+    // hvis vi flyttede os (kalderen skal saa returnere uden at fortsaette onCreate -> ingen service-start/UI her).
+    // Best-effort: enhver fejl -> fald igennem og vis normalt (hellere end at crashe).
+    private boolean bounceToBuiltInDisplayIfNeeded() {
+        try {
+            android.view.Display disp = getDisplay();
+            if (disp == null || disp.getDisplayId() == android.view.Display.DEFAULT_DISPLAY) return false;
+            Intent re = new Intent(this, MainActivity.class);
+            re.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            if (getIntent() != null && getIntent().getExtras() != null) re.putExtras(getIntent().getExtras());
+            ActivityOptions opts = ActivityOptions.makeBasic();
+            opts.setLaunchDisplayId(android.view.Display.DEFAULT_DISPLAY);   // = 0, telefonens indbyggede skaerm
+            startActivity(re, opts.toBundle());
+            finish();
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     // ---------------- UI ----------------

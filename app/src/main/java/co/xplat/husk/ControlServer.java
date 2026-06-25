@@ -220,7 +220,14 @@ public class ControlServer {
     }
 
     private void writeSnapshot(OutputStream out) throws IOException {
+        // Signalér efterspoergsel (doven CameraService aabner kameraet hvis ledigt) + vent kort paa en frisk frame.
+        Rig.lastCameraClientMs = android.os.SystemClock.uptimeMillis();
+        long seq0 = Rig.latestSeq;
         byte[] jpeg = Rig.latestJpeg;
+        for (int i = 0; i < 120 && (jpeg == null || Rig.latestSeq == seq0); i++) {
+            try { Thread.sleep(15); } catch (InterruptedException e) { break; }
+            jpeg = Rig.latestJpeg;
+        }
         if (jpeg == null) { writeText(out, 503, "no frame yet"); return; }
         StringBuilder hdr = new StringBuilder();
         hdr.append("HTTP/1.1 200 OK\r\n")
@@ -245,6 +252,7 @@ public class ControlServer {
         long sent = -1;
         long frameMs = 1000L / Math.max(1, Rig.targetFps);
         while (running) {
+            Rig.lastCameraClientMs = android.os.SystemClock.uptimeMillis();   // efterspoergsel: hold kameraet aabent mens klienten ser med
             byte[] jpeg = Rig.latestJpeg;
             long seq = Rig.latestSeq;
             if (jpeg != null && seq != sent) {

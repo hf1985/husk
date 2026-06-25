@@ -39,6 +39,15 @@ public final class Rig {
     public static volatile boolean useFront = false;   // false = bagkamera (default)
     public static volatile int     targetFps = 10;     // oevre graense for MJPEG-afsendelse
 
+    // DOVEN kamera (samme princip som skaerm-gaten): CameraService holder kun kamera-ENHEDEN aaben naar
+    // noget faktisk forbruger Husks kamera-feed (/stream el. /snapshot inden for CAMERA_IDLE_MS) ELLER
+    // motion er TIL. Ingen forbruger -> kameraet SLIPPES, saa en anden app (fx Discord-moedekameraet paa
+    // samme enhed) kan bruge det uforstyrret. Husk EVICTER ALDRIG en anden app (aabner kun naar ledigt).
+    // Det var roden til at kameraet "frees" naar man aabnede/lukkede Husk-appen ved siden af Discord.
+    // Stemples (uptimeMillis, monotont) af ControlServer ved /stream(-loop) + /snapshot.
+    public static volatile long    lastCameraClientMs = 0;
+    public static final  int       CAMERA_IDLE_MS     = 4000;   // bliv ved ~4s efter sidste klient-tick
+
     // Delt token. Tom = ingen token sat (kun loopback+Tailscale-bind beskytter da, jf. ACL-laget).
     public static volatile String token = "";
 
