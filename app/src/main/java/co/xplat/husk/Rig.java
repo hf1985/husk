@@ -25,6 +25,14 @@ public final class Rig {
     public static volatile int    screenQuality    = 50;   // JPEG-kvalitet 1..100
     public static volatile int    screenMinFrameMs = 60;   // capture-throttle (60ms ~= 16 fps)
 
+    // DOVEN skaerm-produktion. ScreenService.onFrame springer den dyre Bitmap-alloc + JPEG-encode over
+    // naar INGEN /screen(-snapshot)-klient ser med (og bevaegelses-alarm er FRA). Uden en forbruger er
+    // 16fps-kodningen ren spildt CPU - det var rig'ens dominerende 24/7-CPU-post (traaden screen-bg) der
+    // sultede Discords video. Stemples (uptimeMillis, monotont) af ControlServer ved hver /screen-foresporgsel;
+    // H.264 (/screen.mp4) har sin egen lazy start/stop og roeres ikke. Boot-default 0 = ingen klient = idle.
+    public static volatile long   lastScreenClientMs = 0;
+    public static final  int      SCREEN_IDLE_MS     = 4000;   // bliv ved ~4s efter sidste klient-tick (glat ved korte drop)
+
     // Kamera-config (kan saettes via control-endpoint /set). Rotation = JPEG_ORIENTATION i grader.
     public static volatile int     rotation = 0;       // 0|90|180|270
     public static volatile boolean flip     = false;   // horisontal spejling

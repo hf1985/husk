@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- SMAL steady-state-maske: KUN typeWindowStateChanged. typeWindowContentChanged fyrer ved HVER
+     indholdsaendring i ENHVER app (Discords video-UI = hundredvis/sek) -> selv med tom onAccessibilityEvent
+     tvinger det frameworket til at beregne+udsende events systembredt = 40% husk-CPU + Discord-hak (v0.9.15).
+     WD-recovery-scroll'ens behov for en frisk AccessibilityCache loeses i stedet ved at UDVIDE masken
+     midlertidigt (RigAccessibilityService.pushFreshCache) KUN under recovery - se den klasse. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
     android:canPerformGestures="true"

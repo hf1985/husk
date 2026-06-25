@@ -135,6 +135,10 @@ public class ScreenService extends Service {
             long now = SystemClock.uptimeMillis();
             if (now - lastFrameMs < Rig.screenMinFrameMs) return;   // throttle (live-justerbar via /set?sfps=)
             lastFrameMs = now;
+            // DOVEN produktion: ingen /screen-klient inden for SCREEN_IDLE_MS OG bevaegelses-alarm FRA -> drop
+            // frame billigt (img lukkes i finally). VirtualDisplay spejler videre (billig compositor-vej), men vi
+            // undgaar Bitmap.createBitmap + copyPixelsFromBuffer + JPEG-compress, som ER screen-bg's hoved-CPU.
+            if (!Rig.motionEnabled && now - Rig.lastScreenClientMs > Rig.SCREEN_IDLE_MS) return;
             Image.Plane p = img.getPlanes()[0];
             ByteBuffer buf = p.getBuffer();
             int pixelStride = p.getPixelStride();

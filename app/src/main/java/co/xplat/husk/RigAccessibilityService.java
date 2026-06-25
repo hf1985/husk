@@ -4,6 +4,7 @@
 package co.xplat.husk;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.accessibilityservice.GestureDescription;
 import android.app.ActivityOptions;
 import android.content.Context;
@@ -233,6 +234,7 @@ public class RigAccessibilityService extends AccessibilityService {
     // ---------------- main-thread bridge (node-ops skal koere paa main) ----------------
 
     private String onMain(final Job job, final long timeoutMs) {
+        keepCacheFresh();   // enhver a11y-op holder cachen frisk i 5s (daekker scroll-then-read i recovery)
         final String[] box = new String[1];
         final CountDownLatch latch = new CountDownLatch(1);
         mainHandler.post(new Runnable() {
@@ -388,6 +390,46 @@ public class RigAccessibilityService extends AccessibilityService {
                 return "OK";
             } catch (Throwable t) { return "ERR " + t; }
         } }, 4000);
+    }
+
+    // ---------------- dynamisk event-maske (frisk a11y-cache KUN under recovery) ----------------
+    //
+    // Steady-state-masken er smal (kun TYPE_WINDOW_STATE_CHANGED, sat i accessibilityconfig.xml), saa
+    // servicen er billig 24/7 - et permanent abonnement paa TYPE_WINDOW_CONTENT_CHANGED gav 40% husk-CPU
+    // + Discord-hak (Discords video-UI fyrer indholds-events uafbrudt). Men WD-recovery/dev-options SCROLLER
+    // i Settings, og uden friske content-events invaliderer AccessibilityCache ikke -> stateD efter en scroll
+    // laeser FOER-scroll-skaermen (v0.9.15-bug). Android 12 (API 31) har ingen clearCache(), saa vi UDVIDER
+    // masken midlertidigt under recovery og snaevrer ind igen bagefter. Ref-taelles, saa nestede kald
+    // (recoverWirelessDebugging -> ensureDeveloperOptions) ikke snaevrer for tidligt. Best-effort: fejler
+    // setServiceInfo, degraderer recovery til foer-v0.9.15 (kan scrolle forbi) - ALDRIG til breakage.
+    private static final int EVENTS_NARROW = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
+    private static final int EVENTS_WIDE = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+            | AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED | AccessibilityEvent.TYPE_WINDOWS_CHANGED;
+    private volatile long wideUntilMs = 0;
+    private final Runnable narrowTask = new Runnable() { public void run() {
+        if (android.os.SystemClock.uptimeMillis() >= wideUntilMs) applyEventTypes(EVENTS_NARROW);
+        else mainHandler.postDelayed(this, 1000);
+    } };
+
+    // Hold AccessibilityCache frisk i et kort vindue (5s) efter ENHVER a11y-operation. Kaldes fra onMain,
+    // som BAADE in-process WD-recovery (stateD/scrollD/...) OG shell-drevet wd-up.sh (RPC scroll/state/gettext)
+    // funnel'er igennem -> begge recovery-stier ser POST-scroll-skaermen (loeser v0.9.15-stale-cache-bug uden
+    // et permanent abonnement). Steady-state (ingen ops, fx 24/7 i et Discord-moede) forbliver SMAL -> intet
+    // content-event-bombardement fra Discords video-UI -> ingen 40% husk-CPU / Discord-hak. Debounced.
+    void keepCacheFresh() {
+        if (mainHandler == null) return;
+        wideUntilMs = android.os.SystemClock.uptimeMillis() + 5000;
+        applyEventTypes(EVENTS_WIDE);
+        mainHandler.removeCallbacks(narrowTask);
+        mainHandler.postDelayed(narrowTask, 5000);
+    }
+    private void applyEventTypes(int types) {
+        try {
+            AccessibilityServiceInfo info = getServiceInfo();
+            if (info == null || info.eventTypes == types) return;
+            info.eventTypes = types;
+            setServiceInfo(info);
+        } catch (Throwable t) { Log.w(TAG, "applyEventTypes", t); }
     }
 
     // ---------------- WD-recovery (port af meeting-camera/wd-up.sh, in-process) ----------------

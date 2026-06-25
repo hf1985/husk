@@ -425,7 +425,15 @@ public class ControlServer {
     // ---------------- skaerm (MediaProjection) + input-proxy til 8127-motoren ----------------
 
     private void writeScreenSnapshot(OutputStream out) throws IOException {
+        // Signalér efterspoergsel (doven ScreenService genoptager produktion) + vent kort paa en FRISK frame:
+        // efter idle er Rig.latestScreenJpeg evt. gammel/null indtil onFrame har lavet en ny.
+        Rig.lastScreenClientMs = android.os.SystemClock.uptimeMillis();
+        long seq0 = Rig.latestScreenSeq;
         byte[] jpeg = Rig.latestScreenJpeg;
+        for (int i = 0; i < 50 && (jpeg == null || Rig.latestScreenSeq == seq0); i++) {
+            try { Thread.sleep(15); } catch (InterruptedException e) { break; }
+            jpeg = Rig.latestScreenJpeg;
+        }
         if (jpeg == null) { writeText(out, 503, "ingen skærm-frame (slå skærmdeling til i appen)"); return; }
         StringBuilder hdr = new StringBuilder();
         hdr.append("HTTP/1.1 200 OK\r\n")
@@ -449,6 +457,7 @@ public class ControlServer {
         out.flush();
         long sent = -1, lastSent = 0;
         while (running) {
+            Rig.lastScreenClientMs = android.os.SystemClock.uptimeMillis();   // efterspoergsel: hold ScreenService i gang mens klienten ser med
             byte[] jpeg = Rig.latestScreenJpeg;
             long seq = Rig.latestScreenSeq;
             long now = System.currentTimeMillis();
