@@ -41,7 +41,14 @@ Builds:
     gradle:
       - yes
 
+  - versionName: 0.9.22
+    versionCode: 41
+    commit: v0.9.22
+    subdir: app
+    gradle:
+      - yes
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 0.9.21
-CurrentVersionCode: 40
+CurrentVersion: 0.9.22
+CurrentVersionCode: 41

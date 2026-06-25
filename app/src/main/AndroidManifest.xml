@@ -28,6 +28,13 @@
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- Pakke-synlighed (Android 11+): DeXDetector tjekker om DeX-UI-servicen er forudinstalleret
+         (= enheden er DeX-kapabel). Uden denne <queries> ville getPackageInfo altid kaste
+         NameNotFound paa targetSdk 30+, selv naar pakken FINDES. -->
+    <queries>
+        <package android:name="com.sec.android.desktopmode.uiservice" />
+    </queries>
+
     <application
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"

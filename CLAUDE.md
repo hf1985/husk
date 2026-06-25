@@ -37,8 +37,10 @@ efter konkrete CPU-/frys-regressioner – rul dem ALDRIG tilbage):
 - **C – kameraet er DOVENT + Husk EVICTER aldrig:** `CameraService` åbner kun kamera-enheden når en
   forbruger (`/stream`/`/snapshot`/motion) bruger den OG kameraet er LEDIGT (`AvailabilityCallback`).
   Ingen forbruger → slip enheden. (Fix v0.9.21 – kamera-frys ved siden af Discord.)
-- **D – UI bliver på display 0:** `MainActivity.onCreate` bouncer til den indbyggede skærm hvis den
-  lander på en anden (DeX), så et co-resident møde ikke fortrænges. (Fix v0.9.21.)
+- **D (FJERNET v0.9.22):** v0.9.21's display-0-bounce af `MainActivity` blev fjernet igen - den
+  triggede Samsungs "genstart på anden skærm"-dialog + crashede scrcpy/Discord på DeX. Kamera-frysen
+  dækkes af C alene. **Gen-indfør ALDRIG en cross-display launch/bounce** (Samsung-DeX-fjendtlig);
+  Husk åbner hvor den launches og sameksisterer som vindue på DeX. Se docs/YDELSE-OG-DRIFT.md.
 
 ## Build, signering, release
 Kanonisk build = Gradle `assembleRelease` i WSL (`~/android-build`, env21.sh = JDK21+SDK). **Se

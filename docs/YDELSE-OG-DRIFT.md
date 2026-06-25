@@ -74,15 +74,16 @@ aldrig rive kameraet til sig. To regler i `CameraService`:
 - **ADVARSEL:** Lad IKKE `CameraService` åbne kameraet eagerly (fx i `onStartCommand` eller en blind
   reopen-watchdog der genåbner ved `onError`). Det evicter co-resident apps.
 
-### Invariant D - Husks UI bliver på den indbyggede skærm (display 0), aldrig DeX
-På en DeX-rig kører videomødet (Discord) på DeX-desktoppen (et virtuelt display, fx id 2, spejlet til
-HDMI). Hvis Husks `MainActivity` åbnes DER, fortrænges Discords aktivitet → Discord pauser sit eget
-kamera → frys (uafhængigt af Invariant C). `MainActivity.onCreate` bouncer derfor straks til display 0
-(`Display.DEFAULT_DISPLAY`) hvis den lander på et andet display, FØR den starter services/UI.
-- **NB (Samsung-begrænsning):** at bringe `MainActivity` i forgrunden nær DeX kan trigge Samsungs
-  "App kører på en anden skærm - genstart?" → proces-churn der midlertidigt afbinder a11y-tjenesten
-  (8127 nede). a11y-watchdog'en + et reboot genopretter. Test derfor IKKE ved gentagne
-  `am start MainActivity` på den kørende rig (det churner a11y, jf. §3).
+### (Tidligere Invariant D - display-0-bounce: FJERNET i v0.9.22, gør IKKE igen)
+v0.9.21 lod `MainActivity.onCreate` "bounce" til display 0 hvis den blev åbnet på en anden skærm (DeX),
+for at undgå at fortrænge mødet. Det var en FEJL: bouncen tvinger et skift på tværs af skærme, hvilket
+udløser Samsungs **"App kører på en anden skærm - genstart?"**-dialog OG får scrcpy (der spejler DeX) +
+Discord til at crashe ved skærm-churnet. Kamera-frysen håndteres allerede af **Invariant C alene**
+(Husk evicter ikke kameraet), så bouncen gav kun skade. **v0.9.22 fjernede den** → Husk åbner nu hvor
+den launches; på DeX åbner den som et almindeligt vindue (resizeableActivity er default-true for
+targetSdk 34) der sameksisterer med Discord uden at fortrænge det. **Gen-indfør ALDRIG en cross-display
+launch/bounce af `MainActivity`** - det er Samsung-DeX-fjendtligt. (Hvis Husks UI ikke ønskes på
+mødeskærmen: åbn den på telefonskærmen eller brug browser-`/control`.)
 
 ---
 
