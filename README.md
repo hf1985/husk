@@ -36,6 +36,16 @@ G:->WSL sync, signing key, per-release checklist):** see [`docs/BUILD.md`](docs/
 the one-command helper is [`gradle-build.sh`](gradle-build.sh). A convenience on-phone build
 (`build.sh`, ecj/dx/aapt2 in Termux) exists for fast iteration on the device itself.
 
+## Performance, resource invariants & operating a live rig
+**Before changing `ScreenService` or the accessibility event mask, read
+[`docs/YDELSE-OG-DRIFT.md`](docs/YDELSE-OG-DRIFT.md).** Husk runs idle most of the time and must
+only burn CPU on demand. That doc captures two must-not-regress invariants (lazy screen encoding;
+narrow a11y mask kept fresh only during recovery), a diagnostics playbook for finding CPU hogs on
+the host (Termux `top` is blind to other UIDs -- use `adb shell dumpsys cpuinfo`), and the safe
+deploy path on a device that shares the camera with another app (never foreground `MainActivity`
+on a running rig -- it evicts the other app from the camera). Includes the v0.9.19 "Discord
+stutter" postmortem.
+
 ## PC companion (scrcpy)
 `pc/husk-companion.ps1` -- a PowerShell setup script for a fresh Windows 11 (bootstraps scrcpy via
 winget, pairs the PC hands-free via `/pair`, creates desktop shortcuts). See **xplat.co/husk**.
