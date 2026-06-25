@@ -513,11 +513,19 @@ public class RigAccessibilityService extends AccessibilityService {
         clickD(d, "^wireless debugging|^tr.dl.s fejlfinding");
         sleep(2000);
 
-        // Kan vi allerede laese en ip:port -> WD er TIL. Vi slaar ALDRIG fra.
+        // Kan vi laese en ip:port? HAERDET: en reboot/port-skift kan efterlade en STALE port paa WD-skaermen
+        // der ikke lytter (adb connect fejler tavst - set 2026-06-25). Verificér derfor at porten faktisk er
+        // LIVE; er den det, er WD oppe og vi er faerdige. Er den IKKE live, slukker vi WD for at tvinge en frisk.
         String ipp = readIpPort(d, ipPort);
-        if (ipp != null) { Log.i(TAG, "wd-recovery: allerede TIL " + ipp); return remember(ipp); }
+        if (ipp != null && portLive(ipp)) { Log.i(TAG, "wd-recovery: allerede TIL + live " + ipp); return remember(ipp); }
+        if (ipp != null) {
+            Log.w(TAG, "wd-recovery: WD viser stale/doed port " + ipp + " -> slukker for frisk port");
+            clickD(d, "use wireless debugging|brug tr.dl.s fejlfinding");   // sluk
+            sleep(3000);
+        }
 
-        Log.i(TAG, "wd-recovery: ingen ip:port -> taender toggle");
+        // WD er nu FRA (fra start eller lige slukket) -> taend igen.
+        Log.i(TAG, "wd-recovery: taender toggle");
         clickD(d, "use wireless debugging|brug tr.dl.s fejlfinding");
         sleep(3000);
 
@@ -534,14 +542,43 @@ public class RigAccessibilityService extends AccessibilityService {
             clickD(d, "^allow$|^tillad$");
             sleep(3000);
         }
-        for (int i = 0; i < 8; i++) {
-            ipp = readIpPort(d, ipPort);
-            if (ipp != null) break;
+        // Vent paa en ip:port der ER live (ikke bare laesbar): en frisk toggle kan vise porten et oejeblik
+        // foer WD-daemonen reelt lytter.
+        ipp = null;
+        for (int i = 0; i < 12; i++) {
+            String r = readIpPort(d, ipPort);
+            if (r != null && portLive(r)) { ipp = r; break; }
             sleep(1000);
         }
-        if (ipp == null) { Log.w(TAG, "wd-recovery: kunne ikke laese ip:port"); return cachedOrNull(); }
-        Log.i(TAG, "wd-recovery: laeste " + ipp);
+        if (ipp == null) { Log.w(TAG, "wd-recovery: ingen LIVE ip:port efter toggle"); return cachedOrNull(); }
+        Log.i(TAG, "wd-recovery: laeste live-port " + ipp);
         return remember(ipp);
+    }
+
+    // Tjek om en WD ip:port faktisk LYTTER (= live). En reboot/port-skift kan efterlade en stale port paa
+    // WD-skaermen der ikke accepterer forbindelser -> adb connect fejler tavst (set 2026-06-25: skaermen viste
+    // 40049, men intet lyttede der). Raa TCP-connect til loopback er nok som liveness-tjek (WD lytter paa
+    // 127.0.0.1 naar den er live; WD's TLS-handshake behoeves ikke). To korte forsoeg (frisk toggle kan vaere
+    // et oejeblik om at begynde at lytte).
+    private boolean portLive(String ipp) {
+        if (ipp == null) return false;
+        int c = ipp.lastIndexOf(':');
+        if (c < 0) return false;
+        final int port;
+        try { port = Integer.parseInt(ipp.substring(c + 1).trim()); } catch (Throwable t) { return false; }
+        for (int attempt = 0; attempt < 2; attempt++) {
+            Socket s = new Socket();
+            try {
+                s.connect(new java.net.InetSocketAddress("127.0.0.1", port), 1500);
+                return true;
+            } catch (Throwable t) {
+                // ikke live (endnu)
+            } finally {
+                try { s.close(); } catch (Throwable ignored) {}
+            }
+            sleep(400);
+        }
+        return false;
     }
 
     // WD-parring for en NY adb-host (fx en frisk PC): aabn "Pair device with pairing code"-dialogen
