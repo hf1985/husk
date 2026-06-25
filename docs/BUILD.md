@@ -188,7 +188,13 @@ F-Droid-CI):
 2. Byg + signér (afsnit 4–5).
 3. Opdater repo'ets `latest.json` + `husk-latest.apk` (in-app-update henter dem via
    raw.githubusercontent / ISRG-cert – se [[husk-app]] for cert-historikken).
-4. Opdater xplat HUSK-konstanter i `P_xplat/hosting/app.py` (+ `HUSK_API` ved nye endpoints).
+4. Opdater xplat HUSK-konstanter i `P_xplat/hosting/app.py` (`HUSK_VERSION_NAME`,
+   `HUSK_VERSION_CODE`, `HUSK_APK` = raw `husk-latest.apk`) **OG DEPLOY xplat.co** (`P_xplat`:
+   `check-local.sh` grøn → `wsl.exe -- bash -c "cd .../P_xplat && bash scripts/hosting-deploy.sh --apply"`)
+   **+ verificér live**: `curl https://xplat.co/husk/latest.json` skal vise den nye `versionCode`.
+   KRITISK: appens updater spørger xplat.co FØRST (GitHub-raw er kun fallback) – glemmer man at
+   deploye xplat, siger enheder der nåer xplat "allerede nyeste" (set 0.9.18–0.9.21). Begge endpoints
+   skal vise samme version. (+ `HUSK_API` ved nye endpoints.)
 5. GitHub-release med den signerede APK.
 6. F-Droid-fork: opdater `fdroid/co.xplat.husk.yml` (MR !40810).
    - **Quote-regel for `CurrentVersion`/`versionName`:** numerisk-udseende (fx `0.9`, `0.2`)
