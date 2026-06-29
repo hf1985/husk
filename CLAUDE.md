@@ -1,5 +1,7 @@
 # P_app_husk – agent-kontekst
 
+> **Miljø-regel (Windows/PowerShell→ssh):** sender du en `ssh`/`scp`/`mysql -e`-kommando med `(` `)` `$()` backtick, linjeskift eller `"`? Inline den IKKE — PowerShell spiser embedded quotes, så metakarakterer brækker remote-bash (`syntax error near '('`). Skriv til lokal fil (LF), `scp`, kør `ssh host "bash /sti.sh"`. Fuld regel: `10_PROJEKTER/CLAUDE.md`.
+
 **Husk** (`co.xplat.husk`, GPL-3.0-or-later, udgiver **xplat**) er den generiske, publicerede FOSS-app
 afledt af Note10-rig'en: gør en gammel Android-telefon til et fjernstyret kamera + accessibility-
 automations-motor + scrcpy/adb-bro over eget Tailscale-net, uden root. Udgives på **F-Droid**
