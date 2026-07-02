@@ -1,6 +1,6 @@
 # P_app_husk – agent-kontekst
 
-> **Miljø-regel (Windows/PowerShell→ssh):** sender du en `ssh`/`scp`/`mysql -e`-kommando med `(` `)` `$()` backtick, linjeskift eller `"`? Inline den IKKE — PowerShell spiser embedded quotes, så metakarakterer brækker remote-bash (`syntax error near '('`). Skriv til lokal fil (LF), `scp`, kør `ssh host "bash /sti.sh"`. Fuld regel: `10_PROJEKTER/CLAUDE.md`.
+> **Miljø-regel (Windows/PowerShell→ssh):** sender du en `ssh`/`scp`/`mysql -e`-kommando med `(` `)` `$()` backtick, linjeskift eller `"`? Inline den IKKE – PowerShell spiser embedded quotes, så metakarakterer brækker remote-bash (`syntax error near '('`). Skriv til lokal fil (LF), `scp`, kør `ssh host "bash /sti.sh"`. Fuld regel: `10_PROJEKTER/CLAUDE.md`.
 
 **Husk** (`co.xplat.husk`, GPL-3.0-or-later, udgiver **xplat**) er den generiske, publicerede FOSS-app
 afledt af Note10-rig'en: gør en gammel Android-telefon til et fjernstyret kamera + accessibility-
@@ -52,7 +52,7 @@ Een-kommando: `gradle-build.sh`. **Byg IKKE via `/mnt/g`** (Drive i WSL flaky) �
 alias `ad`, pass `android`) ligger i WSL `~/android-build/husk-signing/` + telefon-backup – ALDRIG i
 repoet/Drive (`.gitignore` dækker `*.keystore`). Per release: bump `app/build.gradle` (versionCode+Name)
 + opdatér `latest.json` + `husk-latest.apk` (signeret) + `fdroid/co.xplat.husk.yml` + tag `vX.Y.Z`.
-Nuværende: **0.9.21 / versionCode 40**. Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
+Nuværende: **0.9.24 / versionCode 43** (0.9.24 = persistent token via `Settings.Global husk_token`, audit 2/7). Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
 
 ## Deploy til den KØRENDE rig (kamera-sameksistens) – se docs/YDELSE-OG-DRIFT.md §3
 - `adb install -r <apk>` (når adb/WD er sund) → a11y/8127 re-binder selv (~4s), kameraet røres ikke;

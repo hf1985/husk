@@ -135,6 +135,16 @@ public final class Rig {
             ntfyTopic = p.getString("ntfy_topic", "");
             motionSensitivity = p.getInt("motion_sensitivity", 5);
         } catch (Throwable ignored) {}
+        // Delt token (v0.9.24): laes persistent fra Settings.Global "husk_token". Det er den
+        // eneste UI-frie, reboot-sikre maade at saette token paa en koerende rig (MainActivity
+        // maa ALDRIG launches paa DeX-riggen, og service-intents er ikke exported for shell):
+        //   adb shell settings put global husk_token <token>
+        // Kaldes ved service-start (Camera-/ScreenService.onCreate); et token-intent-extra via
+        // MainActivity (onStartCommand) saettes SENERE og vinder derfor i sessionen som hidtil.
+        try {
+            String t = android.provider.Settings.Global.getString(c.getContentResolver(), "husk_token");
+            if (t != null && !t.isEmpty()) token = t;
+        } catch (Throwable ignored) {}
     }
 
     public static void saveMotionPrefs(android.content.Context c) {
