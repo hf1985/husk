@@ -35,6 +35,9 @@ public class InstallReceiver extends BroadcastReceiver {
             // En selv-opdatering draeber app-processen; uden dette ville ControlServeren (8090) IKKE komme
             // op igen, og en fjernstyret enhed ville gaa moerk. Genstart kamera-servicen (= ControlServer
             // + evt. auto-skaermdeling) saa fjernadgang bevares efter opdatering uden at aabne app'en.
+            // NB (J4): dette forsoeg er best-effort - paa Android 12+ blokerer baggrunds-FGS-restriktionen
+            // typisk starten herfra. Den PAALIDELIGE genrejsning sker via BootReceiver's MY_PACKAGE_REPLACED
+            // (FGS-start-undtaget). Vi beholder forsoeget her som ekstra lag paa aeldre/andre OEM-veje.
             try {
                 Intent svc = new Intent(ctx, CameraService.class);
                 if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(svc); else ctx.startService(svc);
