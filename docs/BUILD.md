@@ -216,13 +216,14 @@ failed pipeline. Stående regel: erklær aldrig "færdig" før pipelinen er grø
 som kopieres til `metadata/co.xplat.husk.yml` på forken. GitLab kører F-Droids CI (bl.a.
 `fdroid lint` + `fdroid rewritemeta`/checkupdates + build-recipe-checks) på hver push til
 fork-branchen. Publiceringen køres via GitLab-API'et med curl (telefonen har hverken `glab`
-eller `gh`; al publicering sker fra sessionen). **Tokens:** det tidligere fuld-scope-token
-blev revoked – brug et friskt, mindst muligt scoped GitLab-token (api), og bed brugeren
-revoke det igen bagefter.
+eller `gh`; al publicering sker fra sessionen). **Token (persistent):** GitLab-PAT'et bor i
+`C:\Users\hf198\Tools\gitlab\token.txt` (off Drive + off git; pointer i `adgange.md` §6). Læs
+det derfra – hardcode aldrig værdien. Det er bevidst persistent (ikke revoke-after) så både denne
+og en anden session/bruger kan køre verifikationen uden at bede om et nyt token hver gang.
 
 **Sådan verificeres pipelinen (det jeg gjorde hver gang):**
 ```bash
-TOKEN=<friskt-gitlab-token>
+TOKEN="$(grep -oE '^glpat-[A-Za-z0-9_.-]+' /c/Users/hf198/Tools/gitlab/token.txt | head -1)"
 FORK="hf16%2Ff-droid"        # url-encoded projekt-sti (eller brug det numeriske projekt-id)
 BR="co.xplat.husk"
 H="PRIVATE-TOKEN: $TOKEN"
