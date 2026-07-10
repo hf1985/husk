@@ -333,6 +333,22 @@ public class ControlServer {
         return "remote self-update startet (foreground + auto-accept" + (force ? ", force" : "") + ") - laes /flags";
     }
 
+    // Reflekteres i controlHtml()/controlHwHtml() baade i et HTML-attribut ('/control?token=...') og i en
+    // <script>-streng (A='&token=...') - param() URL-afkoder IKKE, saa raa metakarakterer i query-strengen
+    // (', ", <, >) ville naa direkte igennem. Rigtige tokens er alfanumeriske; strip alt andet i stedet for
+    // at forsoege kontekst-specifik escaping paa tvaers af to forskellige indsaettelser.
+    private static String sanitizeToken(String s) {
+        if (s == null) return null;
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '_' || ch == '.') {
+                b.append(ch);
+            }
+        }
+        return b.toString();
+    }
+
     private static String jsonEsc(String s) {
         if (s == null) return "";
         StringBuilder b = new StringBuilder();
@@ -520,7 +536,7 @@ public class ControlServer {
     // /controlhw: hardware-accelereret (H.264/MSE) udgave af /control - lavere lag + baandbredde. Hele skaermen
     // passer i vinduet; klik=tap, traek=swipe (samme input-mapping som /control). /control (MJPEG) er fallback.
     private String controlHwHtml(String query) {
-        String tok = param(query, "token");
+        String tok = sanitizeToken(param(query, "token"));
         String amp = (tok == null || tok.isEmpty()) ? "" : "&token=" + tok;
         String tq = (tok == null || tok.isEmpty()) ? "" : "?token=" + tok;
         int w = Rig.screenW, h = Rig.screenH;
@@ -608,7 +624,7 @@ public class ControlServer {
     // /control: skaerm-stream + klik->a11y-tap (mapper klik-px til de RIGTIGE skaerm-px via screenW/H)
     // + Tilbage/Hjem/Recents. token arves fra ?token= saa img + fetch er autoriseret.
     private String controlHtml(String query) {
-        String tok = param(query, "token");
+        String tok = sanitizeToken(param(query, "token"));
         String amp = (tok == null || tok.isEmpty()) ? "" : "&token=" + tok;
         String tq = (tok == null || tok.isEmpty()) ? "" : "?token=" + tok;
         int w = Rig.screenW, h = Rig.screenH;
