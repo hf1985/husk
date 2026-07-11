@@ -27,6 +27,64 @@ vej som F-Droids byggeserver. Der findes også en hurtig on-phone dev-build, men
 
 ---
 
+## 0b. Fuld release-recept + Windows/WSL-gotchas (verificeret 2026-07-11, v0.9.26)
+
+Denne recept tog v0.9.26 hele vejen (byg -> signér -> begge `latest.json`-endpoints -> F-Droid-CI
+grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra Bash-værktøjet
+(git-bash), ikke PowerShell.**
+
+**Windows/WSL-gotchas der bider (med fix):**
+1. **`wsl.exe` inline med metakarakterer mangler.** En kommando med `|`, `(`, `)`, `;`, `&&` eller `"`
+   sendt som `wsl.exe -- bash -lc '... | grep ...'` brækkes på vej over git-bash -> wsl.exe ->
+   WSL-bash. Symptom: `bash: line N: : command not found`. **Fix:** skriv logikken til en fil og kald
+   den metakarakter-frit. Robust mønster (LF-heredoc direkte til WSL-fs, kør via `~`):
+   ```bash
+   cat > "//wsl.localhost/Ubuntu/home/hf198/x.sh" <<'EOF'
+   #!/usr/bin/env bash
+   ... din logik med pipes/parens frit ...
+   EOF
+   wsl.exe --cd '~' -- bash -lc 'bash ~/x.sh'
+   ```
+2. **MSYS path-conversion.** `wsl.exe -- bash /home/hf198/x.sh` -> git-bash omskriver `/home/...` til
+   `C:/Program Files/Git/home/...` -> "No such file or directory". **Fix:** brug `~/x.sh` INDE i den
+   single-quotede `bash -lc '...'` (tilde ekspanderer på WSL-siden), eller sæt `MSYS_NO_PATHCONV=1`.
+3. **`python3` er MS Store-stubben** i git-bash ("Python was not found..."). Brug **`py -3.11`**
+   (Windows-launcher) til alt Python på PC-siden (fx F-Droid-API-scriptet).
+
+**Adgange (flyttede efter secrets-off-computer 2026-07-10):**
+- **Signeringsnøgle:** WSL `~/android-build/husk-signing/debug.keystore` (pass `android`) - uændret.
+- **Asura-SSH-nøglen ligger nu KUN i ssh-agenten** (ikke på disk). Load først:
+  `eval "$(cat ~/.ssh/agent.env)"`. Advarslen `Identity file ...khfrb_asura_openssh not accessible`
+  er FORVENTET og harmløs - agenten leverer nøglen.
+- **GitLab-PAT ligger nu i vaulten**, ikke `Tools/gitlab/token.txt` (tom). Hent:
+  `bash ~/Tools/vault-bot/vault.sh get 'tool: gitlab/token.txt'` (grep `glpat-...` ud; hardcode aldrig).
+
+**Recepten (hver linje verificeret 2026-07-11):**
+1. Bump `versionCode` + `versionName` i `app/build.gradle` (ÉT sted).
+2. Kopiér kilde G:->WSL + byg (afsnit 3-4): `assembleRelease` -> unsigned APK.
+3. **Signér via et WSL-script** (IKKE inline, jf. gotcha 1): skriv `sign-verify.sh` til `~` i WSL og
+   kør `wsl.exe --cd '~' -- bash -lc 'bash ~/sign-verify.sh'`. Verificér cert-digest =
+   `1b89a920...62af59` (ellers afviser Android opdateringen).
+4. Kopiér den signerede APK til repoets `husk-latest.apk`:
+   `cp "//wsl.localhost/Ubuntu/home/hf198/android-build/husk-build/husk-vX.apk" "/g/My Drive/10_PROJEKTER/P_app_husk/husk-latest.apk"`.
+5. Opdatér `latest.json` (ny versionCode) + `fdroid/co.xplat.husk.yml` (ny Builds-entry
+   `commit: vX.Y.Z` + `CurrentVersion`/`CurrentVersionCode`; **quoting:** to-punktums-version som
+   `0.9.26` er UNQUOTED).
+6. Opdatér `HUSK_VERSION_NAME`/`HUSK_VERSION_CODE` i `P_xplat/hosting/app.py`, kør
+   `bash scripts/check-local.sh` (grøn), og **deploy xplat.co** med agenten loaded:
+   `eval "$(cat ~/.ssh/agent.env)"; bash scripts/hosting-deploy.sh --apply` (fra `P_xplat`).
+7. Commit (brug `git commit -F <fil>` med dansk besked, så æøå ikke mangler) + `git tag vX.Y.Z` +
+   `git push origin main` + `git push origin vX.Y.Z`.
+8. **F-Droid-fork uden clone** (fdroiddata er for stor at klone): opdatér `metadata/co.xplat.husk.yml`
+   på forken `hf16/f-droid` branch `co.xplat.husk` via GitLab **commits-API**
+   (`POST /projects/hf16%2Ff-droid/repository/commits`, `action: update`), og poll pipelinen til
+   `success`. Kør med `py -3.11` + `urllib` (mønster: denne release-sessions `fdroid-update.py`).
+9. **Definition af færdig:** `curl https://xplat.co/husk/latest.json` OG
+   `curl https://raw.githubusercontent.com/hf1985/husk/main/latest.json` viser BEGGE den nye
+   `versionCode`, og F-Droid/GitLab-pipelinen er grøn.
+
+---
+
 ## 1. De to build-veje
 
 | Vej | Script | Bruges til | Værktøjer |
@@ -216,10 +274,18 @@ failed pipeline. Stående regel: erklær aldrig "færdig" før pipelinen er grø
 som kopieres til `metadata/co.xplat.husk.yml` på forken. GitLab kører F-Droids CI (bl.a.
 `fdroid lint` + `fdroid rewritemeta`/checkupdates + build-recipe-checks) på hver push til
 fork-branchen. Publiceringen køres via GitLab-API'et med curl (telefonen har hverken `glab`
-eller `gh`; al publicering sker fra sessionen). **Token (persistent):** GitLab-PAT'et bor i
-`C:\Users\hf198\Tools\gitlab\token.txt` (off Drive + off git; pointer i `adgange.md` §6). Læs
-det derfra – hardcode aldrig værdien. Det er bevidst persistent (ikke revoke-after) så både denne
-og en anden session/bruger kan køre verifikationen uden at bede om et nyt token hver gang.
+eller `gh`; al publicering sker fra sessionen). **Token (persistent):** GitLab-PAT'et ligger efter
+secrets-off-computer (2026-07-10) i **vaulten**, ikke længere i `C:\Users\hf198\Tools\gitlab\token.txt`
+(mappen er tom). Hent det ved runtime: `bash ~/Tools/vault-bot/vault.sh get 'tool: gitlab/token.txt'`
+og grep `glpat-...` ud – hardcode aldrig værdien. (GitLab-SSH-nøglen `gitlab_husk_ed25519` ligger
+tilsvarende i ssh-agenten/vaulten.) Det er bevidst persistent, så både denne og en anden
+session/bruger kan køre verifikationen uden at bede om et nyt token hver gang.
+
+**Fork-opdatering uden lokal clone (verificeret 2026-07-11):** fdroiddata-forken er for stor at klone;
+opdatér `metadata/co.xplat.husk.yml` direkte via GitLab commits-API
+(`POST /projects/hf16%2Ff-droid/repository/commits` med `actions:[{action:update, file_path, content}]`,
+branch `co.xplat.husk`), og poll `GET /projects/.../pipelines?ref=co.xplat.husk` til `success`. Kør
+via `py -3.11` + `urllib` (git-bash `python3` er Store-stubben).
 
 **Sådan verificeres pipelinen (det jeg gjorde hver gang):**
 ```bash
