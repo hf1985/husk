@@ -1,5 +1,32 @@
 # P_app_husk – agent-kontekst
 
+> ## ⛔ RELEASE-PLIGT – en kodeændring er IKKE færdig før den er UDGIVET
+>
+> **ENHVER ændring af app-koden (`app/src/**`) SKAL udgives som en fuld, signeret release,
+> FØR opgaven regnes som færdig.** Committet-men-ikke-udgivet = flåden (de fysiske telefoner)
+> kører stadig den GAMLE kode; det er en UFÆRDIG opgave. Det gælder også autonome/uovervågede
+> agenter (fx P_auto-optimering): stop ALDRIG ved commit. (Senest brændt: XSS-sikkerhedsfixet
+> `e999ae4` blev committet men aldrig releaset – alle enheder kørte videre på 0.9.25 uden fixet.)
+>
+> **KRITISK fælde:** appens updater spørger `https://xplat.co/husk/latest.json` FØRST
+> (GitHub-raw er kun fallback). Glemmes xplat.co-deployen, svarer enhederne »allerede nyeste«,
+> selv om GitHub er opdateret (set 0.9.18–0.9.21). BEGGE endpoints SKAL vise den nye `versionCode`.
+>
+> **Release-huskeliste** (fuld procedure: `docs/BUILD.md` §4–7):
+> 1. Bump `versionCode` + `versionName` – ÉT sted: `app/build.gradle`.
+> 2. Byg `assembleRelease` i WSL + signér med den faste keystore (alias `ad`).
+> 3. Opdatér repo'ets `latest.json` + `husk-latest.apk` (den signerede APK).
+> 4. Opdatér `fdroid/co.xplat.husk.yml` (+ fork-metadata, MR !40810).
+> 5. Opdatér HUSK-konstanterne i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
+> 6. Commit + tag `vX.Y.Z` + push; GitHub-release med den signerede APK.
+> 7. Verificér: BÅDE `https://xplat.co/husk/latest.json` OG
+>    `https://raw.githubusercontent.com/hf1985/husk/main/latest.json` viser den nye
+>    `versionCode`, og F-Droid/GitLab-pipelinen er GRØN.
+>
+> **Definition af færdig:** begge `latest.json`-endpoints viser den nye version, og
+> F-Droid-pipelinen er grøn. Før det er opgaven ÅBEN – uanset hvor grøn builden er lokalt.
+> (Flåden opdateres derefter via in-app Updater – aldrig on-phone build/adb install.)
+
 > **Miljø-regel (Windows/PowerShell→ssh):** sender du en `ssh`/`scp`/`mysql -e`-kommando med `(` `)` `$()` backtick, linjeskift eller `"`? Inline den IKKE – PowerShell spiser embedded quotes, så metakarakterer brækker remote-bash (`syntax error near '('`). Skriv til lokal fil (LF), `scp`, kør `ssh host "bash /sti.sh"`. Fuld regel: `10_PROJEKTER/CLAUDE.md`.
 
 **Husk** (`co.xplat.husk`, GPL-3.0-or-later, udgiver **xplat**) er den generiske, publicerede FOSS-app
@@ -50,8 +77,9 @@ Kanonisk build = Gradle `assembleRelease` i WSL (`~/android-build`, env21.sh = J
 Een-kommando: `gradle-build.sh`. **Byg IKKE via `/mnt/g`** (Drive i WSL flaky) – synk fra git-bash til
 `//wsl.localhost/...` ELLER kald med `MSYS_NO_PATHCONV=1`. **Signeringsnøgle** (CN=Debug, O=KHFRB, C=DK,
 alias `ad`, pass `android`) ligger i WSL `~/android-build/husk-signing/` + telefon-backup – ALDRIG i
-repoet/Drive (`.gitignore` dækker `*.keystore`). Per release: bump `app/build.gradle` (versionCode+Name)
-+ opdatér `latest.json` + `husk-latest.apk` (signeret) + `fdroid/co.xplat.husk.yml` + tag `vX.Y.Z`.
+repoet/Drive (`.gitignore` dækker `*.keystore`). Per release: følg **⛔ RELEASE-PLIGT-blokken
+øverst i denne fil** (alle 7 trin, inkl. xplat.co-konstanter + DEPLOY + verifikation af begge
+`latest.json`-endpoints); detaljer i `docs/BUILD.md` §6–7.
 Nuværende: **0.9.25 / versionCode 44** (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090/ControlServer rejser sig selv efter in-app-opdatering, FGS-start-undtaget; udgivet fra hfs-dell via WSL 2/7, F-Droid-pipeline grøn). Tidligere: 0.9.24 = persistent token via `Settings.Global husk_token`. Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
 
 ## Deploy til den KØRENDE rig (kamera-sameksistens) – se docs/YDELSE-OG-DRIFT.md §3
@@ -62,6 +90,20 @@ Nuværende: **0.9.25 / versionCode 44** (J4: `BootReceiver` håndterer `MY_PACKA
   PONG efter hvert boot og stabil i fred; verificér kamera-fix via `/flags` (`camera:false`) +
   `dumpsys media.camera`-ejer i stedet. `settings put secure accessibility_enabled 1` gen-binder IKKE
   a11y live (kun ved næste reboot).
+
+## Flåde + Termux-løs tailnet-transport (2026-07-02) – se docs/fleet-tailnet-transport.md
+- **Husk er selv en tailnet-tjeneste:** 8090 (`ControlServer`) + 15557 (`AdbForward`) binder `0.0.0.0`
+  bag kilde-IP-ACL (`Net.peerAllowed`: loopback/RFC1918/Tailscale) + valgfrit token. Enhver peer –
+  også hfs-dell – styrer en enhed DIREKTE (`curl http://<ts-ip>:8090/…`, `/rpc?cmd=ping`→PONG a11y,
+  `adb connect <ts-ip>:15557`) **uden Termux**. Termux var kun til overbygningens loopback-flader.
+- **Flåde (alle 0.9.25/44):** Note10 SM-N975U1 (A12, DeX, token, .103.102) + spare Sony **702SO**
+  (A9, tokenløs, .101.101) + spare Samsung **SM-A102U1**/A10e (A11, tokenløs, .101.102).
+- **Spares: health+kontrol bevist Termux-løst; reboot-benet blokeret headless.** adb kan ikke etableres
+  (A9/.101 mangler Wireless Debugging helt; A11/.102-a11y kan HVERKEN læse el. injicere UI: node-reads
+  =kun navbar, `tap`/`swipe`=`ERR cancelled`, `home`/`back`=no-op, enheden LÅST OP så INGEN keyguard →
+  både WD-recovery OG -pairing umulige; blind power-tap AFVISES). **`/screen` (MediaProjection) =
+  synskanal uafh. af a11y** (kan SE men ikke HANDLE). Éngangs fysisk USB→`adb tcpip 5555`/WD-pair
+  oplåser `adb reboot` headless. Fuld analyse: `docs/fleet-tailnet-transport.md` §4/§6.
 
 ## Faste regler
 - **Dansk** i docs/kommentarer/commits; danske gåseøjne »...«; brug ÆGTE æ/ø/å (ALDRIG aa/oe/ae) – men
