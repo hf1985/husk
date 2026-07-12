@@ -12,6 +12,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <!-- specialUse: CameraService starter som specialUse-FGS ved boot/self-update (hoster kun HTTP-serveren)
+         og eleverer foerst til camera-FGS naar kameraet aabnes. Paa Android 14 maa en camera-FGS ikke startes
+         fra baggrund (BOOT_COMPLETED/MY_PACKAGE_REPLACED); specialUse maa. Paa <=A13 er dette en no-op. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -74,8 +78,12 @@
 
         <service
             android:name=".CameraService"
-            android:foregroundServiceType="camera"
-            android:exported="false" />
+            android:foregroundServiceType="camera|specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Hosts the on-device remote-control HTTP server (Tailscale) at boot; the camera is opened lazily and the service elevates to a camera foreground service only while capturing." />
+        </service>
 
         <service
             android:name=".ScreenService"

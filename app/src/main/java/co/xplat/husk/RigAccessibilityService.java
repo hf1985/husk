@@ -139,11 +139,11 @@ public class RigAccessibilityService extends AccessibilityService {
         try {
             if (cmd.equals("ping")) return "PONG";
             if (cmd.equals("displays")) {
-                return onMain(new Job() { public String run() { return listDisplays(); } }, 2000);
+                return onMain(new Job() { public String run() { return listDisplays(); } }, 2000, false);
             }
             if (cmd.equals("rotation")) {
                 final int d = Integer.parseInt(tok[1]);
-                return onMain(new Job() { public String run() { return rotationOf(d); } }, 2000);
+                return onMain(new Job() { public String run() { return rotationOf(d); } }, 2000, false);
             }
             if (cmd.equals("tap")) {
                 int x = Integer.parseInt(tok[1]), y = Integer.parseInt(tok[2]), d = Integer.parseInt(tok[3]);
@@ -191,7 +191,7 @@ public class RigAccessibilityService extends AccessibilityService {
                 final String action = tok[2];
                 final String data = tok.length > 3 ? tok[3] : null;
                 final String pkg = tok.length > 4 ? tok[4] : null;
-                return onMain(new Job() { public String run() { return doLaunch(d, action, data, pkg); } }, 4000);
+                return onMain(new Job() { public String run() { return doLaunch(d, action, data, pkg); } }, 4000, false);
             }
             if (cmd.equals("text")) {   // skriv tekst i det fokuserede felt (browser-tastatur -> /control //controlhw)
                 final String s = line.length() > 5 ? line.substring(5) : "";   // alt efter "text "
@@ -208,7 +208,7 @@ public class RigAccessibilityService extends AccessibilityService {
             }
             if (cmd.equals("global")) {
                 final String name = tok.length > 1 ? tok[1] : "";
-                return onMain(new Job() { public String run() { return doGlobal(name); } }, 3000);
+                return onMain(new Job() { public String run() { return doGlobal(name); } }, 3000, false);
             }
             if (cmd.equals("devoptions")) {   // aktiver Udviklerindstillinger (7-tap) via a11y; 'probe' = kun navigation
                 final boolean probe = tok.length > 1 && tok[1].equals("probe");
@@ -233,8 +233,14 @@ public class RigAccessibilityService extends AccessibilityService {
 
     // ---------------- main-thread bridge (node-ops skal koere paa main) ----------------
 
-    private String onMain(final Job job, final long timeoutMs) {
-        keepCacheFresh();   // enhver a11y-op holder cachen frisk i 5s (daekker scroll-then-read i recovery)
+    private String onMain(final Job job, final long timeoutMs) { return onMain(job, timeoutMs, true); }
+
+    // keepFresh: KUN node-laese-ops (dump/find/click/state/gettext/scroll + text/enter via inputFocus) behoever
+    // en frisk AccessibilityCache. Ren navigation (launch/global/displays/rotation) skal IKKE arme den brede
+    // maske (invariant B): under en aktiv control-session med mange home/back/launch ville masken ellers staa
+    // permanent bred -> content-event-bombardement (Discords video-UI) = den CPU invarianten skal undgaa.
+    private String onMain(final Job job, final long timeoutMs, boolean keepFresh) {
+        if (keepFresh) keepCacheFresh();   // (daekker scroll-then-read i recovery)
         final String[] box = new String[1];
         final CountDownLatch latch = new CountDownLatch(1);
         mainHandler.post(new Runnable() {
@@ -318,13 +324,17 @@ public class RigAccessibilityService extends AccessibilityService {
 
     // Vaek + hold display 0 (telefonskaermen) taendt ~120s, saa fjern-opdaterings-install-dialogen er synlig + tap-bar.
     // SCREEN_BRIGHT_WAKE_LOCK er deprecated men taender stadig skaermen; ACQUIRE_CAUSES_WAKEUP vaekker fra slukket.
+    private android.os.PowerManager.WakeLock screenWakeLock = null;
     String wakeScreen() {
         try {
-            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
-            android.os.PowerManager.WakeLock wl = pm.newWakeLock(
-                    android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK | android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP | android.os.PowerManager.ON_AFTER_RELEASE,
-                    "husk:wake");
-            wl.acquire(120000);   // auto-release efter 120s
+            if (screenWakeLock == null) {
+                android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+                screenWakeLock = pm.newWakeLock(
+                        android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK | android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP | android.os.PowerManager.ON_AFTER_RELEASE,
+                        "husk:wake");
+                screenWakeLock.setReferenceCounted(false);   // ETT lock; gen-acquire nulstiller blot timeouten
+            }
+            screenWakeLock.acquire(120000);   // auto-release efter 120s (ikke-ref-taellet -> ingen stak af overlappende locks)
             return "OK";
         } catch (Throwable t) { return "ERR " + t; }
     }
@@ -339,17 +349,26 @@ public class RigAccessibilityService extends AccessibilityService {
         // ("Do you want to install an update...") IKKE rammes (en bred "install" ramte den foer). Loeber laenge nok
         // til at daekke download + commit; naar installen commit'er, draebes appen (denne traad med) -> loop ender.
         for (int i = 0; i < 80; i++) {
-            // Google Play Protect "App scan recommended" (fersk sideload UDEN "install anyway"-knap - kun
-            // "Scan app" / "Don't install app"): udvid "More details" -> tap "Install without scanning".
-            // ANKREDE moenstre (^...$) saa "Don't install app" (indeholder "install") og "Scan app" ALDRIG rammes.
-            // Loopet klarer sekvensen: iteration N udvider, iteration N+1 tapper den nu-synlige knap.
-            // Bevist paa Samsung A10e/A11-spare 2026-07-12 (docs/fleet-tailnet-transport.md §0/§7).
-            tapMatch("(?i)^\\s*(more details|flere oplysninger|flere detaljer)\\s*$");
-            tapMatch("(?i)^\\s*(install without scanning|installer uden (at )?scann?ing?|installer uden at scanne)\\s*$");
-            tapMatch("(?i)install anyway|installer alligevel|send anyway");   // Play Protect (aeldre variant m. knap)
-            tapMatch("(?i)^\\s*(install|update|opdater|installer|geninstaller|ok)\\s*$");  // hoved-knap (INSTALL/Opdater)
-            tapMatch("(?i)^\\s*(open|åbn|aabn|done|f(ae|æ)rdig|udf(oe|ø)rt)\\s*$");        // afslut
-            sleep(1000);
+            // Tap KUN naar Updater faktisk installerer (lastUpdate = "downloading"/"install requested"). Foer
+            // tappede vi blindt Husks EGEN foregrund-UI i 80s selv naar der IKKE var en opdatering (latest/ERR)
+            // -> kunne ramme appens egne knapper ("Opdater"/toggles). Vent under "checking"; stop ved latest/ERR.
+            String st = Rig.lastUpdate;
+            boolean installing = st != null && (st.startsWith("downloading") || st.startsWith("install requested"));
+            if (installing) {
+                // Google Play Protect "App scan recommended" (fersk sideload UDEN "install anyway"-knap - kun
+                // "Scan app" / "Don't install app"): udvid "More details" -> tap "Install without scanning".
+                // ANKREDE moenstre (^...$) saa "Don't install app" (indeholder "install") og "Scan app" ALDRIG rammes.
+                // Loopet klarer sekvensen: iteration N udvider, iteration N+1 tapper den nu-synlige knap.
+                // Bevist paa Samsung A10e/A11-spare 2026-07-12 (docs/fleet-tailnet-transport.md §0/§7).
+                tapMatch("(?i)^\\s*(more details|flere oplysninger|flere detaljer)\\s*$");
+                tapMatch("(?i)^\\s*(install without scanning|installer uden (at )?scann?ing?|installer uden at scanne)\\s*$");
+                tapMatch("(?i)install anyway|installer alligevel|send anyway");   // Play Protect (aeldre variant m. knap)
+                tapMatch("(?i)^\\s*(install|update|opdater|installer|geninstaller|ok)\\s*$");  // hoved-knap (INSTALL/Opdater)
+                tapMatch("(?i)^\\s*(open|åbn|aabn|done|f(ae|æ)rdig|udf(oe|ø)rt)\\s*$");        // afslut
+            } else if (st != null && (st.startsWith("latest") || st.startsWith("ERR"))) {
+                return "OK (ingen opdatering at installere - ingen tap)";   // Updater afgjorde: intet at goere
+            }
+            sleep(1000);   // ellers "checking..." -> vent paa Updater's afgoerelse
         }
         return "OK";
     }
@@ -843,15 +862,20 @@ public class RigAccessibilityService extends AccessibilityService {
         return "NONE";
     }
 
-    private String dfsText(AccessibilityNodeInfo n, Pattern pat) {
-        if (n == null) return null;
+    // MAX_DFS_DEPTH: haard rekursions-graense. Reelle UI-traeer er < ~30 dybe; en graense paa 100 fanger et
+    // patologisk/cyklisk traee UDEN at kunne StackOverflow'e (som ellers kun fanges grimt af onMain's catch).
+    private static final int MAX_DFS_DEPTH = 100;
+
+    private String dfsText(AccessibilityNodeInfo n, Pattern pat) { return dfsText(n, pat, 0); }
+    private String dfsText(AccessibilityNodeInfo n, Pattern pat, int depth) {
+        if (n == null || depth > MAX_DFS_DEPTH) return null;
         CharSequence t = n.getText();
         CharSequence d = n.getContentDescription();
         if (t != null && pat.matcher(t).find()) return t.toString();
         if (d != null && pat.matcher(d).find()) return d.toString();
         int cc = n.getChildCount();
         for (int i = 0; i < cc; i++) {
-            String r = dfsText(n.getChild(i), pat);
+            String r = dfsText(n.getChild(i), pat, depth + 1);
             if (r != null) return r;
         }
         return null;
@@ -871,14 +895,15 @@ public class RigAccessibilityService extends AccessibilityService {
         return null;
     }
 
-    private AccessibilityNodeInfo dfs(AccessibilityNodeInfo n, Pattern pat) {
-        if (n == null) return null;
+    private AccessibilityNodeInfo dfs(AccessibilityNodeInfo n, Pattern pat) { return dfs(n, pat, 0); }
+    private AccessibilityNodeInfo dfs(AccessibilityNodeInfo n, Pattern pat, int depth) {
+        if (n == null || depth > MAX_DFS_DEPTH) return null;
         CharSequence t = n.getText();
         CharSequence d = n.getContentDescription();
         if ((t != null && pat.matcher(t).find()) || (d != null && pat.matcher(d).find())) return n;
         int cc = n.getChildCount();
         for (int i = 0; i < cc; i++) {
-            AccessibilityNodeInfo r = dfs(n.getChild(i), pat);
+            AccessibilityNodeInfo r = dfs(n.getChild(i), pat, depth + 1);
             if (r != null) return r;
         }
         return null;

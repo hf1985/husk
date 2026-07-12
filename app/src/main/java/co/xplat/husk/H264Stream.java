@@ -125,18 +125,34 @@ class H264Stream {
         }
     }
 
-    private synchronized void publish(byte[] frag, boolean key) {
-        if (initSeg == null) return;
-        for (int i = clients.size() - 1; i >= 0; i--) {
-            Client c = clients.get(i);
+    private void publish(byte[] frag, boolean key) {
+        // KRITISK: hold IKKE 'this'-monitoren under de BLOKERENDE socket-writes. Foer gjorde publish() det,
+        // saa en enkelt hang'ende /screen.mp4-klient (pauset fane / net-stall) frøs hele H.264-subsystemet OG
+        // ANR'ede main-traaden naar ScreenService.onDestroy -> Rig.stopH264() ville tage samme laas. Nu tages
+        // et snapshot af klientlisten under laas, writes sker UDEN laas, og fejlede klienter fjernes bagefter.
+        // (Rest: en stall'et klient sinker stadig drain-loopen til dens socket lukkes af dens egen servlet-loop;
+        // MJPEG-/control er upaavirket, og der er ingen ANR laengere. Fuld per-klient-backpressure = TODO.)
+        byte[] init;
+        java.util.List<Client> snapshot;
+        synchronized (this) {
+            if (initSeg == null) return;
+            init = initSeg;
+            snapshot = new ArrayList<Client>(clients);
+        }
+        java.util.List<Client> failed = null;
+        for (Client c : snapshot) {
             try {
                 if (!c.started) {
                     if (!key) continue;             // ny klient venter paa keyframe foer init+frame sendes
-                    c.out.write(initSeg); c.started = true;
+                    c.out.write(init); c.started = true;
                 }
                 c.out.write(frag); c.out.flush();
-            } catch (Throwable t) { clients.remove(i); }   // klient lukkede -> fjern
+            } catch (Throwable t) {
+                if (failed == null) failed = new ArrayList<Client>();
+                failed.add(c);                       // klient lukkede -> fjern (efter loopet, under laas)
+            }
         }
+        if (failed != null) synchronized (this) { clients.removeAll(failed); }
     }
 
     void stop() {

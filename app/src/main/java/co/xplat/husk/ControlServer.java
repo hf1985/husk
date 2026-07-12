@@ -77,8 +77,12 @@ public class ControlServer {
                 th.setDaemon(true);
                 th.start();
             } catch (Throwable t) {
-                if (running) Log.e(TAG, "accept(" + host + ")", t);
-                else break;
+                if (!running) break;
+                Log.e(TAG, "accept(" + host + ")", t);
+                // BACKOFF: uden en pause ville en vedvarende accept()-fejl (klassisk EMFILE "too many open
+                // files" ved fd-praes) spinne loopen ved 100% CPU paa en enhed der skal vaere idle. 200ms
+                // giver systemet luft til at komme sig uden at goere accept maerkbart langsommere.
+                try { Thread.sleep(200); } catch (InterruptedException ie) { break; }
             }
         }
     }
@@ -105,15 +109,34 @@ public class ControlServer {
         OutputStream out = c.getOutputStream();
         while (running) {
             String reqLine;
-            try { reqLine = r.readLine(); }
+            try { reqLine = readLineMax(r, MAX_LINE); }
             catch (java.net.SocketTimeoutException e) { return; }   // inaktiv keep-alive -> luk
             if (reqLine == null) return;                            // klient lukkede forbindelsen
-            String h; while ((h = r.readLine()) != null && h.length() > 0) { /* drain headers */ }
+            // Laes headers (cap laengde + antal -> ingen unbounded readLine-OOM); fang de faa vi bruger
+            // til anti-CSRF/-rebinding.
+            String host = null, origin = null, secFetch = null;
+            String h; int hc = 0;
+            while ((h = readLineMax(r, MAX_LINE)) != null && h.length() > 0) {
+                if (++hc > 100) return;   // absurd mange headers -> luk
+                int ci = h.indexOf(':');
+                if (ci > 0) {
+                    String name = h.substring(0, ci).trim();
+                    if (name.equalsIgnoreCase("host")) host = h.substring(ci + 1).trim();
+                    else if (name.equalsIgnoreCase("origin")) origin = h.substring(ci + 1).trim();
+                    else if (name.equalsIgnoreCase("sec-fetch-site")) secFetch = h.substring(ci + 1).trim();
+                }
+            }
             String[] parts = reqLine.split(" ");
             if (parts.length < 2) { writeText(out, 400, "bad request"); return; }
             String path = parts[1], query = "";
             int q = path.indexOf('?');
             if (q >= 0) { query = path.substring(q + 1); path = path.substring(0, q); }
+            // CSRF + DNS-rebinding-forsvar: en drive-by browser paa samme LAN kunne ellers (a) fyre
+            // GET-bivirkninger (/tap //launch //update ...) og (b) via DNS-rebinding LAESE svar (kamera/
+            // skaerm/GPS/skaerm-tekst). Sec-Fetch-Site fanger cross-site browser-requests (ogsaa <img>);
+            // Host-IP-literal-kravet fanger rebinding (hostnavn -> telefon-IP). curl/harness/ntfy-app
+            // (ingen Sec-Fetch, Host=IP) og /control's egne same-origin-fetch rammes ikke. Se docs/AUDIT.
+            if (!originOk(host, origin, secFetch)) { writeText(out, 403, "forbidden (cross-origin)"); return; }
             // Streaming beslaglaegger forbindelsen (uendelig multipart / fMP4) -> luk efter (return).
             if (path.equals("/stream")) { writeStream(c, out); return; }
             if (path.equals("/screen")) { writeScreenStream(c, out); return; }
@@ -187,7 +210,10 @@ public class ControlServer {
     private String configMotion(String query) {
         if (param(query, "on") != null)          Rig.motionEnabled = "1".equals(param(query, "on")) || "true".equals(param(query, "on"));
         if (dparam(query, "topic") != null)      Rig.ntfyTopic = dparam(query, "topic");
-        if (dparam(query, "server") != null)     { String s = dparam(query, "server"); if (s != null && !s.isEmpty()) Rig.ntfyServer = s; }
+        // SSRF-haerdning: kun https-ntfy-servere. Ellers kunne en peer pege enheden mod en intern http-tjeneste
+        // (SSRF-pivot fra telefonens netvaerksposition) eller downgrade alarm+snapshot-preview til klartekst.
+        // https-only bevarer baade ntfy.sh og en selvhostet https-ntfy.
+        if (dparam(query, "server") != null)     { String s = dparam(query, "server"); if (s != null && s.toLowerCase().startsWith("https://")) Rig.ntfyServer = s; }
         if (param(query, "sensitivity") != null) Rig.motionSensitivity = Math.max(1, Math.min(10, intp(query, "sensitivity", Rig.motionSensitivity)));
         try { Rig.saveMotionPrefs(Rig.ctx()); } catch (Throwable ignored) {}
         StringBuilder b = new StringBuilder();
@@ -289,6 +315,7 @@ public class ControlServer {
         String r = svc.startWdPairing();   // "ip:port kode"
         if (r == null) { writeText(out, 500, "{\"error\":\"pairing failed\"}", "application/json"); return; }
         int sp = r.lastIndexOf(' ');
+        if (sp < 0) { writeText(out, 500, "{\"error\":\"bad pairing format\"}", "application/json"); return; }   // guard: intet mellemrum
         String addr = r.substring(0, sp), code = r.substring(sp + 1);
         writeText(out, 200, "{\"addr\":\"" + addr + "\",\"code\":\"" + code + "\"}", "application/json");
     }
@@ -499,7 +526,9 @@ public class ControlServer {
                 out.write("\r\n".getBytes("UTF-8"));
                 out.flush();
             }
-            try { Thread.sleep(20); } catch (InterruptedException e) { break; }
+            // Poll i takt med produktionen (screenMinFrameMs) i stedet for fast 50Hz -> faerre spild-wakeups
+            // ved lav fps; min 20ms holder latensen lav ved hoej fps.
+            try { Thread.sleep(Math.max(20, Rig.screenMinFrameMs / 2)); } catch (InterruptedException e) { break; }
         }
     }
 
@@ -672,6 +701,56 @@ public class ControlServer {
         return null;
     }
 
+    // Laes en linje med HAARD laengde-graense (mod unbounded readLine-buffering = OOM fra en ACL-passeret peer).
+    static final int MAX_LINE = 16384;
+    private static String readLineMax(BufferedReader r, int max) throws IOException {
+        StringBuilder sb = new StringBuilder(128);
+        int c;
+        while ((c = r.read()) != -1) {
+            if (c == '\n') return sb.toString();
+            if (c == '\r') continue;
+            if (sb.length() >= max) throw new IOException("HTTP-linje for lang");
+            sb.append((char) c);
+        }
+        return sb.length() == 0 ? null : sb.toString();
+    }
+
+    // Anti-CSRF + anti-DNS-rebinding. Returnerer false (afvis) for browser-cross-site og rebinding-hostnavne.
+    private static boolean originOk(String host, String origin, String secFetch) {
+        // 1) Moderne browsere saetter Sec-Fetch-Site paa ALLE subressource-requests (ogsaa <img>/<script>).
+        //    En drive-by fra en fremmed side er "cross-site"/"same-site" -> afvis. curl/harness/ntfy-app
+        //    saetter den ikke (fravaer = tilladt); /control's egne fetch er "same-origin".
+        if (secFetch != null) {
+            if (secFetch.equalsIgnoreCase("cross-site") || secFetch.equalsIgnoreCase("same-site")) return false;
+        }
+        // 2) Anti-DNS-rebinding: legitim adgang sker ALTID via en IP-literal (100.100.x / 192.168.x / localhost).
+        //    En rebinding-angriber bruger et hostnavn der rebinder til telefonens IP -> Host = hostnavn. Afvis
+        //    Host der ikke er IP-literal/localhost. (Efter rebind er Sec-Fetch-Site "same-origin", saa #1 fanger
+        //    den ikke; Host-tjekket er forsvarslinjen mod rebinding.)
+        if (host != null && !host.isEmpty()) {
+            String hn = host;
+            if (hn.startsWith("[")) { int rb = hn.indexOf(']'); if (rb > 0) hn = hn.substring(1, rb); }   // [IPv6]:port
+            else { int colon = hn.indexOf(':'); if (colon >= 0) hn = hn.substring(0, colon); }            // host:port
+            if (!isIpLiteralOrLocalhost(hn)) return false;
+        }
+        // 3) Origin (fetch cross-origin saetter den): hvis sat, skal dens host vaere IP-literal/localhost.
+        if (origin != null && !origin.isEmpty() && !origin.equalsIgnoreCase("null")) {
+            try {
+                String oh = new java.net.URI(origin).getHost();
+                if (oh == null || !isIpLiteralOrLocalhost(oh)) return false;
+            } catch (Throwable t) { return false; }
+        }
+        return true;
+    }
+
+    private static boolean isIpLiteralOrLocalhost(String h) {
+        if (h == null) return false;
+        if (h.equalsIgnoreCase("localhost")) return true;
+        if (h.matches("\\d{1,3}(\\.\\d{1,3}){3}")) return true;   // IPv4-literal
+        if (h.indexOf(':') >= 0) return true;                     // IPv6-literal (raa, uden [] her)
+        return false;                                             // et hostnavn (rebinding) -> afvis
+    }
+
     private void writeText(OutputStream out, int code, String body) throws IOException {
         writeText(out, code, body, "text/plain; charset=utf-8");
     }
@@ -683,6 +762,7 @@ public class ControlServer {
            .append("Content-Type: ").append(ctype).append("\r\n")
            .append("Content-Length: ").append(b.length).append("\r\n")
            .append("Cache-Control: no-store\r\n")
+           .append("X-Content-Type-Options: nosniff\r\n")   // ingen MIME-sniffing (defense-in-depth for tekst-svar)
            .append("Connection: keep-alive\r\n\r\n");   // genbrug forbindelsen -> ingen handshake-RTT pr. tap
         out.write(hdr.toString().getBytes("UTF-8"));
         out.write(b);

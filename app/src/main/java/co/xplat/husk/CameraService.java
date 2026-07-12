@@ -73,17 +73,12 @@ public class CameraService extends Service {
         Rig.appContext = getApplicationContext();
         Rig.loadMotionPrefs(getApplicationContext());   // bevaegelses-alarm-config (motion + ntfy) fra prefs
         createChannel();
-        Notification n = new Notification.Builder(this, CHANNEL)
-                .setContentTitle("Husk")
-                .setContentText(getString(R.string.notif_text))
-                .setSmallIcon(android.R.drawable.presence_video_online)
-                .setOngoing(true)
-                .build();
-        if (Build.VERSION.SDK_INT >= 29) {
-            startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA);
-        } else {
-            startForeground(NOTIF_ID, n);
-        }
+        // FGS-type: paa Android 14 (targetSdk 34) MAA en camera-typet FGS IKKE startes fra baggrund
+        // (BOOT_COMPLETED/MY_PACKAGE_REPLACED) -> selv-heal ville doe efter reboot/self-update. Vi starter
+        // derfor som specialUse (servicen hoster reelt kun HTTP-serveren ved boot; kameraet er dovent) og
+        // eleveR foerst til camera-FGS naar kameraet FAKTISK aabnes (openCamera.onOpened). Paa <=A13 haandhaeves
+        // typen ikke fra baggrund -> vi bevarer den hidtidige camera-type dér (NUL aendring for den nuvaerende flaade).
+        startFg(false);
         // Partial wakelock: hold CPU'en vaagen saa capture+server koerer screen-off (Spike 1 (a)).
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "husk:camera");
@@ -120,6 +115,35 @@ public class CameraService extends Service {
         NotificationChannel ch = new NotificationChannel(CHANNEL, "Rig-kamera", NotificationManager.IMPORTANCE_LOW);
         ch.setShowBadge(false);
         nm.createNotificationChannel(ch);
+    }
+
+    private Notification buildNotif() {
+        return new Notification.Builder(this, CHANNEL)
+                .setContentTitle("Husk")
+                .setContentText(getString(R.string.notif_text))
+                .setSmallIcon(android.R.drawable.presence_video_online)
+                .setOngoing(true)
+                .build();
+    }
+
+    // cameraActive=false: boot/idle (paa A14 = specialUse, tilladt fra baggrund). cameraActive=true: kameraet er
+    // aabent (paa A14 = camera-FGS, kraevet for at bruge kameraet). Paa <=A13 er begge = camera-type (uaendret).
+    // Defensivt: falder tilbage til type-loes startForeground hvis en type afvises -> servicen dor ALDRIG paa
+    // startForeground (som ville tage 8090 med sig og gore selv-heal umulig).
+    private void startFg(boolean cameraActive) {
+        Notification n = buildNotif();
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                int type = cameraActive ? ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA : ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE;
+                startForeground(NOTIF_ID, n, type);
+            } else if (Build.VERSION.SDK_INT >= 29) {
+                startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA);   // <=A13: uaendret adfaerd
+            } else {
+                startForeground(NOTIF_ID, n);
+            }
+        } catch (Throwable t) {
+            try { startForeground(NOTIF_ID, n); } catch (Throwable t2) { Log.e(TAG, "startForeground fejlede", t2); }
+        }
     }
 
     private void startServer() {
@@ -214,6 +238,7 @@ public class CameraService extends Service {
         captureSession = null; cameraDevice = null; imageReader = null;
         Rig.cameraRunning = false;
         Rig.latestJpeg = null;   // ryd stale frame -> /snapshot venter paa en frisk efter genaabning
+        if (!destroyed) startFg(false);   // de-eleveR til specialUse (A14): kameraet er sluppet, servicen lever videre
     }
 
     private void openCamera() {
@@ -241,11 +266,15 @@ public class CameraService extends Service {
             }, camHandler);
 
             cameraManager.openCamera(camId, new CameraDevice.StateCallback() {
-                public void onOpened(CameraDevice device) { opening = false; cameraDevice = device; createSession(); }
+                public void onOpened(CameraDevice device) { opening = false; cameraDevice = device; startFg(true); createSession(); }   // eleveR til camera-FGS (A14: paakraevet mens kameraet er aabent)
                 // Mistede kameraet (taget af en anden app, fx Discord) -> markér optaget + genaabn ALDRIG af os selv;
                 // availability-callback'en rydder flaget naar kameraet bliver ledigt igen, og demandCheck aabner da (hvis efterspurgt).
                 public void onDisconnected(CameraDevice device) { Log.w(TAG, "kamera disconnected (taget af anden app)"); opening = false; Rig.cameraRunning = false; device.close(); cameraDevice = null; othersHaveCamera = true; }
-                public void onError(CameraDevice device, int error) { Log.e(TAG, "kamera-fejl " + error); opening = false; Rig.cameraRunning = false; device.close(); cameraDevice = null; othersHaveCamera = true; }
+                // onError = ofte en TRANSIENT HAL-fejl (ikke en anden app). Latch derfor IKKE othersHaveCamera=true
+                // (det ville holde kameraet lukket til en availability-callback der maaske aldrig fyrer for den aarsag);
+                // nulstil kun state, saa demandCheck proever igen om 1s. AvailabilityCallback saetter selv flaget hvis
+                // en ANDEN app reelt tager kameraet (onCameraUnavailable mens vi ikke har det).
+                public void onError(CameraDevice device, int error) { Log.e(TAG, "kamera-fejl " + error); opening = false; Rig.cameraRunning = false; device.close(); cameraDevice = null; }
             }, camHandler);
         } catch (CameraAccessException e) {
             opening = false;
@@ -253,6 +282,13 @@ public class CameraService extends Service {
         } catch (SecurityException e) {
             opening = false;
             Log.e(TAG, "openCamera security", e);
+        } catch (Throwable t) {
+            // KRITISK: enhver anden fejl (fx map==null -> NPE i getOutputSizes, IllegalArgumentException fra
+            // ImageReader/getCameraCharacteristics paa en billig HAL) MAA nulstille 'opening' - ellers laases
+            // flaget TRUE for altid og demandCheck (!opening) genaabner ALDRIG -> kameraet dor permanent for
+            // processens levetid (/stream+/snapshot=503, motion blind). demandCheck proever igen om 1s.
+            opening = false;
+            Log.e(TAG, "openCamera (uventet)", t);
         }
     }
 
@@ -301,7 +337,7 @@ public class CameraService extends Service {
             if (Rig.flip) data = flipJpeg(data);
             Rig.latestJpeg = data;
             Rig.latestSeq++;
-            if (Motion.shouldSample()) {                  // bevaegelses-alarm paa kamera-feed
+            if (Motion.shouldSample("camera")) {          // bevaegelses-alarm paa kamera-feed
                 BitmapFactory.Options o = new BitmapFactory.Options();
                 o.inSampleSize = 8;                       // afkod lille kun til analyse (billigt)
                 Bitmap small = BitmapFactory.decodeByteArray(data, 0, data.length, o);

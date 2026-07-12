@@ -63,8 +63,9 @@ public class AdbForward {
                 t.setDaemon(true);
                 t.start();
             } catch (Throwable t) {
-                if (running) Log.e(TAG, "adb-forward accept", t);
-                else break;
+                if (!running) break;
+                Log.e(TAG, "adb-forward accept", t);
+                try { Thread.sleep(200); } catch (InterruptedException ie) { break; }   // backoff: ingen 100% CPU-spin ved EMFILE
             }
         }
     }

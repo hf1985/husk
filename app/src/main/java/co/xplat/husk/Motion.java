@@ -20,11 +20,18 @@ public final class Motion {
 
     private static final HashMap<String, int[]> prev = new HashMap<String, int[]>();
     private static final HashMap<String, Long> lastTrigger = new HashMap<String, Long>();
-    private static volatile long lastSample = 0;
+    // PR-KILDE sample-tidsstempel (ikke ét globalt): ellers deler kamera- og skærm-feed det ene 500ms-slot,
+    // så hver kilde kun diffes mod en ~1s gammel frame og effektiv sample-rate halveres (skæv detektion).
+    private static final HashMap<String, Long> lastSample = new HashMap<String, Long>();
 
-    // Hurtig gate så kalderen kan springe dyr JPEG-afkodning over når der ikke skal samples.
-    public static boolean shouldSample() {
-        return Rig.motionEnabled && (System.currentTimeMillis() - lastSample) >= SAMPLE_MS;
+    // Hurtig gate så kalderen kan springe dyr JPEG-afkodning over når der ikke skal samples for DENNE kilde.
+    public static boolean shouldSample(String source) {
+        if (!Rig.motionEnabled) return false;
+        long now = System.currentTimeMillis();
+        synchronized (lastSample) {
+            Long ls = lastSample.get(source);
+            return ls == null || (now - ls) >= SAMPLE_MS;
+        }
     }
 
     // Kald fra onFrame med den seneste frame som Bitmap. source = "camera" eller "screen" (egen
@@ -32,8 +39,11 @@ public final class Motion {
     public static synchronized void feed(Bitmap bmp, String source) {
         if (!Rig.motionEnabled || bmp == null) return;
         long now = System.currentTimeMillis();
-        if (now - lastSample < SAMPLE_MS) return;
-        lastSample = now;
+        synchronized (lastSample) {
+            Long ls = lastSample.get(source);
+            if (ls != null && now - ls < SAMPLE_MS) return;
+            lastSample.put(source, now);
+        }
 
         int[] g = downGray(bmp);
         int[] p = prev.get(source);

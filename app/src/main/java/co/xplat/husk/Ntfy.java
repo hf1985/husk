@@ -27,6 +27,8 @@ public final class Ntfy {
                 String base = Rig.ntfyServer;
                 if (base == null || base.trim().isEmpty()) base = "https://ntfy.sh";
                 base = base.trim().replaceAll("/+$", "");
+                // Defense-in-depth (udover /motion-gaten): send ALDRIG til en ikke-https-server (SSRF/downgrade).
+                if (!base.toLowerCase().startsWith("https://")) { Rig.lastNtfy = "ntfy afvist: ikke-https server"; return; }
 
                 JSONObject j = new JSONObject();
                 j.put("topic", topic.trim());

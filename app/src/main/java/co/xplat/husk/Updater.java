@@ -97,23 +97,39 @@ public final class Updater {
             new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
         int sid = pi.createSession(params);
         PackageInstaller.Session session = pi.openSession(sid);
-        OutputStream out = session.openWrite("husk.apk", 0, apk.length);
-        out.write(apk);
-        session.fsync(out);
-        out.close();
-        Intent intent = new Intent(INSTALL_ACTION).setPackage(ctx.getPackageName());
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
-        PendingIntent pending = PendingIntent.getBroadcast(ctx, sid, intent, flags);
-        session.commit(pending.getIntentSender());   // -> systemets install-bekraeftelse (via InstallReceiver)
-        session.close();
+        boolean committed = false;
+        try {
+            OutputStream out = session.openWrite("husk.apk", 0, apk.length);
+            try { out.write(apk); session.fsync(out); } finally { out.close(); }
+            Intent intent = new Intent(INSTALL_ACTION).setPackage(ctx.getPackageName());
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+            PendingIntent pending = PendingIntent.getBroadcast(ctx, sid, intent, flags);
+            session.commit(pending.getIntentSender());   // -> systemets install-bekraeftelse (via InstallReceiver)
+            committed = true;
+        } finally {
+            // Fejler openWrite/write/fsync/commit (fx kort/tom download, I/O-fejl), er sessionen ellers
+            // efterladt aaben system-side; de hober sig op til per-UID-loftet -> DEREFTER fejler ALLE
+            // fremtidige opdateringer selv naar kilden er sund. abandon() frigiver den ubrugte session.
+            if (!committed) { try { session.abandon(); } catch (Throwable ignored) {} }
+            try { session.close(); } catch (Throwable ignored) {}
+        }
     }
 
     static String httpGet(String urlStr) throws Exception {
         return new String(httpGetBytes(urlStr), "UTF-8");
     }
 
-    static byte[] httpGetBytes(String urlStr) throws Exception {
-        HttpURLConnection c = (HttpURLConnection) new URL(urlStr).openConnection();
+    static byte[] httpGetBytes(String urlStr) throws Exception { return httpGetBytes(urlStr, 5); }
+
+    // hopsLeft: hard graense paa manuelle redirect-hop. UDEN den kunne en redirect-loop (fx https<->http)
+    // rekursere ubegraenset -> StackOverflowError. Vi haandhaever ogsaa https PAA HVERT HOP: et redirect til
+    // http:// blev foer hentet i KLARTEKST (downgrade -> on-path-manipulation af det ben). Alle vores kilder
+    // (xplat.co, raw/objects.githubusercontent.com) er https, saa dette braekker ikke den normale opdatering.
+    static byte[] httpGetBytes(String urlStr, int hopsLeft) throws Exception {
+        URL url = new URL(urlStr);
+        if (!"https".equalsIgnoreCase(url.getProtocol()))
+            throw new java.io.IOException("afviser ikke-https opdaterings-URL (" + url.getProtocol() + ")");
+        HttpURLConnection c = (HttpURLConnection) url.openConnection();
         c.setInstanceFollowRedirects(true);
         c.setConnectTimeout(15000);
         c.setReadTimeout(60000);
@@ -122,7 +138,11 @@ public final class Updater {
             int code = c.getResponseCode();
             if (code >= 300 && code < 400) {           // foelg cross-host redirect manuelt (GitHub-assets)
                 String loc = c.getHeaderField("Location");
-                if (loc != null) { c.disconnect(); return httpGetBytes(loc); }
+                if (loc != null) {
+                    c.disconnect();
+                    if (hopsLeft <= 0) throw new java.io.IOException("for mange redirects i opdaterings-download");
+                    return httpGetBytes(loc, hopsLeft - 1);
+                }
             }
             InputStream in = c.getInputStream();
             ByteArrayOutputStream bos = new ByteArrayOutputStream();

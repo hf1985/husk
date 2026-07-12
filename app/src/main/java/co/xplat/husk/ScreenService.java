@@ -51,6 +51,12 @@ public class ScreenService extends Service {
     private Handler handler;
     private volatile boolean started = false;
     private long lastFrameMs = 0;
+    // Genbrugte encode-buffere (dims er FASTE pr. capture-session) -> ingen 4.5MB Bitmap-alloc + BAOS pr. frame
+    // ved aktiv streaming. latestScreenJpeg forbliver en FRISK toByteArray() (publiceres by-reference til
+    // stream-traaden), men bitmap'et + BAOS'en er de reducerbare allokeringer. Kun paa screen-bg-traaden.
+    private Bitmap reuseBmp = null;
+    private int reuseW = 0, reuseH = 0;
+    private final ByteArrayOutputStream reuseBos = new ByteArrayOutputStream(64 * 1024);
 
     @Override public IBinder onBind(Intent i) { return null; }
 
@@ -134,27 +140,39 @@ public class ScreenService extends Service {
             if (img == null) return;
             long now = SystemClock.uptimeMillis();
             if (now - lastFrameMs < Rig.screenMinFrameMs) return;   // throttle (live-justerbar via /set?sfps=)
+            // DOVEN produktion, TO adskilte forbrugere:
+            //  - screenClient: en /screen(-snapshot)-klient ser med -> vi skal producere JPEG (invariant A).
+            //  - motionSample: bevaegelses-alarm er TIL og et ~2/sek-sample er forfaldent -> vi skal bruge et
+            //    Bitmap til diff (men IKKE en JPEG - ingen laeser latestScreenJpeg da).
+            // Er ingen af dem sande, drop framen billigt (img lukkes i finally). RETTELSE 0.9.28: foer koedede
+            // vi 16 fps FULDE JPEG'er hele tiden naar motion var TIL uden klient - ren spildt CPU (motion bruger
+            // kun Bitmap'et, 2/sek). Nu er JPEG-encode gated paa screenClient, og motion throttles til 2/sek.
+            boolean screenClient = now - Rig.lastScreenClientMs <= Rig.SCREEN_IDLE_MS;
+            boolean motionSample = Motion.shouldSample("screen");
+            if (!screenClient && !motionSample) return;
             lastFrameMs = now;
-            // DOVEN produktion: ingen /screen-klient inden for SCREEN_IDLE_MS OG bevaegelses-alarm FRA -> drop
-            // frame billigt (img lukkes i finally). VirtualDisplay spejler videre (billig compositor-vej), men vi
-            // undgaar Bitmap.createBitmap + copyPixelsFromBuffer + JPEG-compress, som ER screen-bg's hoved-CPU.
-            if (!Rig.motionEnabled && now - Rig.lastScreenClientMs > Rig.SCREEN_IDLE_MS) return;
             Image.Plane p = img.getPlanes()[0];
             ByteBuffer buf = p.getBuffer();
             int pixelStride = p.getPixelStride();
             int rowStride = p.getRowStride();
             int rowPadding = rowStride - pixelStride * sw;
             int bmpW = sw + (pixelStride > 0 ? rowPadding / pixelStride : 0);
-            Bitmap bmp = Bitmap.createBitmap(bmpW, sh, Bitmap.Config.ARGB_8888);
-            bmp.copyPixelsFromBuffer(buf);
-            Bitmap out = (bmpW == sw) ? bmp : Bitmap.createBitmap(bmp, 0, 0, sw, sh);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream(48 * 1024);
-            out.compress(Bitmap.CompressFormat.JPEG, Math.max(1, Math.min(100, Rig.screenQuality)), bos);
-            Rig.latestScreenJpeg = bos.toByteArray();
-            Rig.latestScreenSeq++;
-            if (Motion.shouldSample()) Motion.feed(out, "screen");   // bevaegelses-alarm paa skaerm-feed
-            if (out != bmp) out.recycle();
-            bmp.recycle();
+            if (reuseBmp == null || reuseW != bmpW || reuseH != sh) {   // (re)alloc kun ved dim-skift (1x pr. session)
+                if (reuseBmp != null) try { reuseBmp.recycle(); } catch (Throwable ignored) {}
+                reuseBmp = Bitmap.createBitmap(bmpW, sh, Bitmap.Config.ARGB_8888);
+                reuseW = bmpW; reuseH = sh;
+            }
+            reuseBmp.copyPixelsFromBuffer(buf);
+            // Beskaer padding-kolonner bort (rowStride > pixelStride*sw giver skraldkolonner i hoejre kant).
+            Bitmap out = (bmpW == sw) ? reuseBmp : Bitmap.createBitmap(reuseBmp, 0, 0, sw, sh);
+            if (screenClient) {
+                reuseBos.reset();
+                out.compress(Bitmap.CompressFormat.JPEG, Math.max(1, Math.min(100, Rig.screenQuality)), reuseBos);
+                Rig.latestScreenJpeg = reuseBos.toByteArray();   // frisk array -> sikker at publicere by-reference
+                Rig.latestScreenSeq++;
+            }
+            if (motionSample) Motion.feed(out, "screen");   // bevaegelses-alarm paa skaerm-feed (2/sek)
+            if (out != reuseBmp) out.recycle();              // beskaeret kopi er pr-frame; reuseBmp genbruges
         } catch (Throwable t) {
             Log.e(TAG, "screen onFrame", t);
         } finally {
@@ -172,7 +190,8 @@ public class ScreenService extends Service {
     @Override
     public void onDestroy() {
         try { if (vdisplay != null) vdisplay.release(); } catch (Throwable ignored) {}
-        try { if (reader != null) reader.close(); } catch (Throwable ignored) {}
+        try { if (reader != null) reader.close(); } catch (Throwable ignored) {}   // stopper onFrame -> reuseBmp fri
+        try { if (reuseBmp != null) { reuseBmp.recycle(); reuseBmp = null; } } catch (Throwable ignored) {}
         try { if (projection != null) projection.stop(); } catch (Throwable ignored) {}
         try { if (thread != null) thread.quitSafely(); } catch (Throwable ignored) {}
         try { Rig.stopH264(); } catch (Throwable ignored) {}
