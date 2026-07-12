@@ -80,7 +80,7 @@ alias `ad`, pass `android`) ligger i WSL `~/android-build/husk-signing/` + telef
 repoet/Drive (`.gitignore` dækker `*.keystore`). Per release: følg **⛔ RELEASE-PLIGT-blokken
 øverst i denne fil** (alle 7 trin, inkl. xplat.co-konstanter + DEPLOY + verifikation af begge
 `latest.json`-endpoints); detaljer i `docs/BUILD.md` §6–7.
-Nuværende: **0.9.25 / versionCode 44** (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090/ControlServer rejser sig selv efter in-app-opdatering, FGS-start-undtaget; udgivet fra hfs-dell via WSL 2/7, F-Droid-pipeline grøn). Tidligere: 0.9.24 = persistent token via `Settings.Global husk_token`. Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
+Nuværende: **0.9.26 / versionCode 45** (reflekteret-XSS-fix i token-query-param; udgivet, begge `latest.json`-endpoints grønne). Tidligere: 0.9.25/44 (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090/ControlServer rejser sig selv efter in-app-opdatering, FGS-start-undtaget) – J4 er bevist virksom ved self-update på spares 2026-07-12. Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
 
 ## Deploy til den KØRENDE rig (kamera-sameksistens) – se docs/YDELSE-OG-DRIFT.md §3
 - `adb install -r <apk>` (når adb/WD er sund) → a11y/8127 re-binder selv (~4s), kameraet røres ikke;
@@ -91,19 +91,23 @@ Nuværende: **0.9.25 / versionCode 44** (J4: `BootReceiver` håndterer `MY_PACKA
   `dumpsys media.camera`-ejer i stedet. `settings put secure accessibility_enabled 1` gen-binder IKKE
   a11y live (kun ved næste reboot).
 
-## Flåde + Termux-løs tailnet-transport (2026-07-02) – se docs/fleet-tailnet-transport.md
+## Flåde + Termux-løs tailnet-transport – se docs/fleet-tailnet-transport.md
 - **Husk er selv en tailnet-tjeneste:** 8090 (`ControlServer`) + 15557 (`AdbForward`) binder `0.0.0.0`
   bag kilde-IP-ACL (`Net.peerAllowed`: loopback/RFC1918/Tailscale) + valgfrit token. Enhver peer –
   også hfs-dell – styrer en enhed DIREKTE (`curl http://<ts-ip>:8090/…`, `/rpc?cmd=ping`→PONG a11y,
   `adb connect <ts-ip>:15557`) **uden Termux**. Termux var kun til overbygningens loopback-flader.
-- **Flåde (alle 0.9.25/44):** Note10 SM-N975U1 (A12, DeX, token, .103.102) + spare Sony **702SO**
+- **Flåde (alle 0.9.26/45):** Note10 SM-N975U1 (A12, DeX, token, .103.102) + spare Sony **702SO**
   (A9, tokenløs, .101.101) + spare Samsung **SM-A102U1**/A10e (A11, tokenløs, .101.102).
-- **Spares: health+kontrol bevist Termux-løst; reboot-benet blokeret headless.** adb kan ikke etableres
-  (A9/.101 mangler Wireless Debugging helt; A11/.102-a11y kan HVERKEN læse el. injicere UI: node-reads
-  =kun navbar, `tap`/`swipe`=`ERR cancelled`, `home`/`back`=no-op, enheden LÅST OP så INGEN keyguard →
-  både WD-recovery OG -pairing umulige; blind power-tap AFVISES). **`/screen` (MediaProjection) =
-  synskanal uafh. af a11y** (kan SE men ikke HANDLE). Éngangs fysisk USB→`adb tcpip 5555`/WD-pair
-  oplåser `adb reboot` headless. Fuld analyse: `docs/fleet-tailnet-transport.md` §4/§6.
+- **Spares KAN itereres fuldt (KORRIGERET 2026-07-12 – »umuligt« var en skærm-slukket-fejldiagnose).**
+  En idle spare SOVER skærmen → a11y ser kun navbar, gestus=`ERR cancelled`, home/back=no-op (blev
+  fejltolket som »motoren død«; `/screen` komponerer panelet selv når det er slukket → narrede diagnosen).
+  **Fix = `wake` FØRST.** Så virker fuld menneske-kontrol på begge: `wake`→`launch`→`tap`/`swipe`
+  (lander på app)→`home/back`→`text`→`/screen.jpg`. Node-læsning pålidelig på A11, flaky på A9 – begge
+  drives via **syn+koordinat-tap**. **Deploy PROVET headless:** `/update?force=1`→OS-install-dialog;
+  Play Protect gater friske sideloads (»More details«→»Install without scanning«)→commit→8090 falder→
+  **J4 self-healer** (ingen reboot). Harness: `pc/spare.ps1` / `pc/spare.sh`. Interaktivt:
+  `http://<ts-ip>:8090/control`. Rest-gap: ren `adb reboot` kræver stadig éngangs-USB (IKKE nødvendig
+  for iteration). Fuld analyse: `docs/fleet-tailnet-transport.md` §0/§4/§6/§7.
 
 ## Faste regler
 - **Dansk** i docs/kommentarer/commits; danske gåseøjne »...«; brug ÆGTE æ/ø/å (ALDRIG aa/oe/ae) – men
@@ -116,4 +120,5 @@ Nuværende: **0.9.25 / versionCode 44** (J4: `BootReceiver` håndterer `MY_PACKA
 ## Docs
 `README.md` (overblik), `docs/BUILD.md` (build/release), `docs/YDELSE-OG-DRIFT.md` (ydelses-invarianter +
 diagnostik + sikker rig-deploy), `docs/AUDIT-2026-06-21.md` + `CUTOVER-note10-engine-2026-06-18.md`
-(historik), `fdroid/` (F-Droid-metadata), `pc/husk-companion.ps1` (scrcpy-companion).
+(historik), `fdroid/` (F-Droid-metadata), `pc/husk-companion.ps1` (scrcpy-companion),
+`pc/spare.ps1` + `pc/spare.sh` (flåde-harness: wake+shot+launch+tap+swipe+update over 8090).

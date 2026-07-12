@@ -4,28 +4,44 @@ Dato: 2026-07-02. Kanonisk notat for hvordan Husk-enheder nås og styres **uden 
 flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-memory:
 `note10-meeting-camera`.
 
-## 0. STATUS + NÆSTE SKRIDT (sidst rørt 2026-07-02, klar til pickup)
+## 0. STATUS (KORREKTION 2026-07-12) – spares KAN itereres fuldt; »umuligt« var en fejldiagnose
 
-**AFKLARET denne runde:** Der findes INGEN headless software-vej til at genstarte de to spares
-(.101/.102). Bevist fra flere vinkler (se §4). To ting fastslået udover »blokeret«:
-1. **`/screen` (MediaProjection) er en SYNS-kanal uafhængig af a11y** – kan SE enhver Husk-enheds
-   skærm skarpt selv når a11y-node-læsning er død (§6). Nyttigt til fjern-diagnostik.
-2. **.102's a11y-motor kan HVERKEN læse ELLER injicere UI** (node-reads=kun navbar; `tap`/`swipe`=
-   `ERR cancelled`; `home`/`back`=no-op; enheden var LÅST OP → ingen keyguard). Så både WD-recovery
-   OG WD-pairing er umulige. .101 (A9) mangler WD helt. Tidligere »adbd binder loopback-only« var en
-   over-konklusion og er rettet (blokeringen ligger opstrøms: UI'et kan ikke drives).
+> **⚠️ Den 2026-07-02-konklusion længere nede (»der findes INGEN headless vej … a11y kan
+> HVERKEN læse el. injicere«) er FORKERT og er bevaret nedenfor kun som historik.** Rodårsagen
+> var triviel: **en idle, ladende spare SOVER skærmen.** Med slukket panel returnerer a11y kun
+> navbar-vinduet, `dispatchGesture` svarer `ERR cancelled`, og `global home/back` er no-ops –
+> præcis de tre symptomer der blev tolket som »motoren er død«. `/screen` (MediaProjection)
+> komponerer det logiske display selv når panelet fysisk er slukket, så et skarpt launcher-billede
+> narrede diagnosen til at tro enheden var vågen + oplåst. **Løsningen er ét ord: `wake` FØRST.**
 
-**ENESTE åbner = éngangs fysisk handling pr. telefon** (30 sek, når en spare er ved hånden):
-USB → godkend RSA-nøgle (»tillad altid«) → `adb tcpip 5555` → derefter virker `adb reboot` headless
-for altid, og hele recover-cyklussen kan PROVES som på Note10. Se §4 »Éngangs-oplåsning«.
+**Live-verificeret 2026-07-12 på BEGGE spares (Sony 702SO/A9 .101 og Samsung A10e/A11 .102), 0.9.26/45:**
 
-**Fleeten er IKKE skrøbelig:** begge spares selvhelbreder efter enhver strøm-/manuel-reboot
-(`BootReceiver` + a11y-auto-rebind overlever reboot); vi kan bare ikke fjern-TRIGGE beviset endnu.
+1. **Fuld menneske-ækvivalent kontrol virker på begge, når skærmen er vækket:** `wake` →
+   `launch` (åbn enhver app/intent) → `tap`/`swipe` (lander på app-vinduet; bevist ved at scrolle
+   Indstillinger) → `global home/back/recents` → `text` (tastatur) → `/screen.jpg` (syn). Alt
+   returnerer OK og gør synligt det rigtige (skærmbilleder gemt under bevis-runden).
+2. **a11y-node-læsning:** pålidelig på .102 (A11); **flaky på .101** (A9's `getWindows()`-vej –
+   finder nogle app-noder, misser andre i samme kald). Begge kan drives uanset via **syn + koordinat-tap**
+   (`/screen.jpg` som øjne, læs koordinater, `tap x y`). På system-DIALOGER (PackageInstaller/Play
+   Protect) er `find` upålidelig (substring rammer forkert knap) → brug altid koordinat-tap.
+3. **Deploy-benet er PROVET headless på .102:** `/update?force=1` henter + commit'er sessionen;
+   **Google Play Protect** gater friske sideloads (»App scan recommended« – kun *Scan app* / *Don't
+   install app*, men »More details« afslører **»Install without scanning«**). Tap den → installen
+   commit'er → app-processen dør (8090 falder kort) → **J4 (`MY_PACKAGE_REPLACED`) rejser
+   ControlServer igen på få sekunder** (self-heal, INGEN reboot). `lastUpdate` nulstilt til "" =
+   frisk proces = bevist reinstall.
+4. **Vin-kanalen** (`/screen.jpg`) skal bruge et `wake` hvis skærmen sov (ellers tom/50-byte JPEG).
 
-**Løs ende:** .102's skærm kan stå fast på QS-shaden efter denne runde (mine gestus kunne ikke lukke
-den, da injektion cancelleres) – harmløst på en ladende spare, nulstilles ved fysisk berøring/timeout.
+**Iterér i praksis:** brug harnessen `pc/spare.ps1` (Windows) / `pc/spare.sh` (Git Bash/WSL) –
+verber `shot|wake|launch|tap|swipe|home|back|find|text|update|control|health`. Eller åbn bare
+`http://<ts-ip>:8090/control` i en browser for en live skærm med klik/tastatur. Se §7.
 
-**Ingen state-ændring udført på spares.** Tasks #22/#23/#24 lukket med denne konklusion.
+**Rest-gap (IKKE nødvendig for iteration):** en ren ubemandet `adb reboot` kræver stadig adb, som
+ikke kan bootstrappes headless (se §4). MEN iteration behøver ikke reboot (J4 self-healer efter
+opdatering). En *seende* reboot via QS-strømmenu (træk QS ned → tap ⏻ → tap »Genstart«, alt synligt
+via `/screen` + tapbart via gestus nu hvor skærmen vækkes) er blevet plausibel, men er endnu utestet.
+
+**Fleeten er robust:** begge spares selvhelbreder efter enhver reboot (`BootReceiver` + a11y-rebind).
 
 ## 1. Nøgle-indsigt: Husk er selv en tailnet-tjeneste (Termux er IKKE nødvendig for Husk)
 
@@ -75,6 +91,13 @@ Dvs. hele **health- og kontrol-benet** af cyklussen virker identisk på to andre
 Android-versioner. Det eneste ben der IKKE kunne lukkes headless er **reboot** (§4).
 
 ## 4. Reboot-gap: hvorfor en sikker, ubemandet genstart ikke kunne trigges på spares (endnu)
+
+> **RETTELSE 2026-07-12 (se §0):** delkonklusionen i pkt. 1 nedenfor om at »a11y-motoren på .102
+> HVERKEN kan læse ELLER injicere UI« er FORKERT – skærmen var slukket under testen. Med `wake`
+> først læser og injicerer .102 fint (og .101 injicerer fint; node-læsning er flaky på A9). Selve
+> adb-bootstrap-gappet (adb kan ikke etableres headless uden éngangs-USB) står stadig – men det er
+> IKKE nødvendigt for at iterere (J4 self-healer efter self-update uden reboot). En SEENDE reboot via
+> QS-strømmenuen er nu plausibel (skærmen kan vækkes + gestus lander), men utestet.
 
 En reboot-selvhelbredelses-test (som på Note10) kræver en trigger. Alle veje for en **non-root**
 Android blev gennemgået:
@@ -141,11 +164,54 @@ og jeg kunne læse alt visuelt. Det er to helt adskilte rør: MediaProjection (p
 - **Fjern-syn af enhver Husk-enhed** uden Termux/adb: hent `/screen`, skær første JPEG ud
   (`FFD8…FFD9`), læs med vision. Nyttigt til diagnostik af rig'en (»hvad står der egentlig på
   skærmen?«) når a11y svigter.
-- **Men syn ≠ kontrol.** På .102 er `/screen` læsbar, men a11y-gestus-injektion (`tap/swipe`) svarer
-  `ERR cancelled` og `global home/back` er no-ops → jeg kan SE men ikke HANDLE. Derfor låser
-  syns-kanalen IKKE reboot-benet op; den bekræfter blot præcist, at UI'et ikke kan drives.
-- Carve-snippet (Git Bash + `py -3.11`): hent `/screen` → find `b'\xff\xd8'`..`b'\xff\xd9'` → skriv JPEG.
+- **~~Men syn ≠ kontrol.~~ RETTET 2026-07-12:** påstanden om at `tap/swipe`=`ERR cancelled` og
+  `home/back`=no-op på .102 var en **skærm-slukket-artefakt**. `/screen` viser et skarpt billede
+  fordi MediaProjection komponerer det logiske display selv med fysisk slukket panel – hvilket narrede
+  diagnosen. Med `wake` FØRST HANDLER a11y fint (syn OG kontrol). Se §0.
+- **Nemmere end at carve MJPEG:** brug `GET /screen.jpg` (ét enkelt JPEG-snapshot). Carve-snippet fra
+  `/screen`-MJPEG'en er stadig gyldig (`b'\xff\xd8'`..`b'\xff\xd9'`), men `/screen.jpg` er én curl.
 
 **Bivirkning observeret 2/7:** under forsøgene endte .102's skærm på en fastlåst QS-shade (mine
 gestus kunne ikke lukke den igen, da injektion cancelleres). Harmløst på en ladende spare – nulstilles
 ved næste fysiske berøring / skærm-timeout. Ingen state-ændring udført.
+
+## 7. Iterations-workflow (harness) – hvordan man i praksis arbejder på en spare
+
+Kernen: **væk skærmen, SE den, HANDL på koordinater.** En idle spare sover; alt kontrol-arbejde
+starter med et `wake`. Harnessen `pc/spare.ps1` (Windows/PowerShell) og `pc/spare.sh` (Git Bash/WSL)
+pakker 8090-fladen ind. Aliaser: `a9`/`sony` = .101, `a11`/`samsung` = .102, `note10`/`rig` = .103.102
+(sidstnævnte kræver token i `$env:HUSK_TOKEN`; spares er tokenløse).
+
+```
+spare.ps1 a11 health                          # /healthz + /flags + /info
+spare.ps1 a11 shot                            # vaek + gem + aabn skaermbillede (dine oejne)
+spare.ps1 a11 launch android.settings.SETTINGS
+spare.ps1 a11 tap 360 960                      # laes koordinater FRA skaermbilledet
+spare.ps1 a11 swipe 360 1000 360 500 300       # scroll
+spare.ps1 a11 home | back | recents
+spare.ps1 a11 text "hej"                        # skriv i fokuseret felt
+spare.ps1 a11 find Battery                      # a11y-node (paalidelig A11, flaky A9)
+spare.ps1 a11 update                            # self-update (se Play Protect nedenfor)
+spare.ps1 a11 control                           # aabn browser-viewer: live skaerm + klik/tastatur
+```
+
+**Deploy (ny Husk-build) headless – bevist loop:**
+1. Byg + signér + udgiv releasen normalt (RELEASE-PLIGT: begge `latest.json`-endpoints skal vise
+   den nye `versionCode`). Spares henter fra `xplat.co/husk/latest.json` ligesom Note10.
+2. `spare.ps1 <a9|a11> update` → foreground + download + commit.
+3. `spare.ps1 <..> shot` for at se OS-dialogen:
+   - **Play Protect »App scan recommended«** (fersk sideload): tap **More details**, `shot`, tap så
+     **»Install without scanning«**. (Ingen »install anyway«-knap på disse enheder.)
+   - **Standard »Do you want to install…«**: tap **Install**.
+   - `find` er UPÅLIDELIG på disse dialoger (substring rammer »Don't install app« osv.) → koordinat-tap.
+4. Installen commit'er → 8090 falder kort → **J4 self-healer** → `spare.ps1 <..> health` bekræfter.
+   Ingen reboot nødvendig.
+
+**Bemærk om Play Protect:** hver fersk sideload gates. Vil man have HELT ubemandet self-update på en
+spare, kan Play Protect-scanning slås fra (Play Store → Play Protect → tandhjul → »Scan apps«), hvorefter
+`/update`'s indbyggede `acceptInstallConsent` selv tapper standard-Install-knappen. Det er en
+sikkerhedsindstilling – tag stilling pr. enhed (spares er dedikerede single-purpose-noder). Alternativt:
+lær `acceptInstallConsent` »Install without scanning«-stien (kode-ændring → ny release).
+
+**Interaktivt:** `http://<ts-ip>:8090/control` i en browser giver en live skærm-stream med
+klik→a11y-tap + Tilbage/Hjem/Recents + tastatur – nul værktøj ud over browseren.
