@@ -80,7 +80,7 @@ alias `ad`, pass `android`) ligger i WSL `~/android-build/husk-signing/` + telef
 repoet/Drive (`.gitignore` dækker `*.keystore`). Per release: følg **⛔ RELEASE-PLIGT-blokken
 øverst i denne fil** (alle 7 trin, inkl. xplat.co-konstanter + DEPLOY + verifikation af begge
 `latest.json`-endpoints); detaljer i `docs/BUILD.md` §6–7.
-Nuværende: **0.9.26 / versionCode 45** (reflekteret-XSS-fix i token-query-param; udgivet, begge `latest.json`-endpoints grønne). Tidligere: 0.9.25/44 (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090/ControlServer rejser sig selv efter in-app-opdatering, FGS-start-undtaget) – J4 er bevist virksom ved self-update på spares 2026-07-12. Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
+Nuværende: **0.9.27 / versionCode 46** (`acceptInstallConsent` lærte Play Protects »Install without scanning«-sti; udgivet 2026-07-12, begge `latest.json`-endpoints=46, F-Droid grøn. NB: on-device auto-accept af Play Protect-gaten er kun DELVIST pålidelig på spares pga. flaky a11y-`getWindows()` på GMS-overlayet → pålidelig ubemandet self-update = enten Play Protect-scanning fra ELLER PC-harness vision+tap; se docs/fleet-tailnet-transport.md §7). Tidligere: 0.9.26/45 (reflekteret-XSS-fix); 0.9.25/44 (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090 rejser sig efter in-app-opdatering – bevist virksom på spares 2026-07-12). Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
 
 ## Deploy til den KØRENDE rig (kamera-sameksistens) – se docs/YDELSE-OG-DRIFT.md §3
 - `adb install -r <apk>` (når adb/WD er sund) → a11y/8127 re-binder selv (~4s), kameraet røres ikke;

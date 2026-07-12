@@ -207,11 +207,25 @@ spare.ps1 a11 control                           # aabn browser-viewer: live skae
 4. Installen commit'er → 8090 falder kort → **J4 self-healer** → `spare.ps1 <..> health` bekræfter.
    Ingen reboot nødvendig.
 
-**Bemærk om Play Protect:** hver fersk sideload gates. Vil man have HELT ubemandet self-update på en
-spare, kan Play Protect-scanning slås fra (Play Store → Play Protect → tandhjul → »Scan apps«), hvorefter
-`/update`'s indbyggede `acceptInstallConsent` selv tapper standard-Install-knappen. Det er en
-sikkerhedsindstilling – tag stilling pr. enhed (spares er dedikerede single-purpose-noder). Alternativt:
-lær `acceptInstallConsent` »Install without scanning«-stien (kode-ændring → ny release).
+**Bemærk om Play Protect (opdateret 2026-07-12, v0.9.27):** hver fersk sideload gates af Play Protects
+»App scan recommended« (kun *Scan app* / *Don't install app*; »More details« → »Install without scanning«).
+**0.9.27 lærte `acceptInstallConsent` denne sti** (tap »More details« → »Install without scanning«, ankrede
+moenstre). Men på DISSE spares er den on-device auto-accept **kun delvist pålidelig**: Play Protect-dialogen
+er et GMS-overlay-vindue som spares' flaky a11y-`getWindows()` kun sporadisk enumererer, så `findNode`
+rammer »More details« (bevist) men ikke altid »Install without scanning«. Standard-Install-dialogen (uden
+Play Protect) håndteres derimod pålideligt af den on-device kode.
+
+**To pålidelige veje til HELT ubemandet self-update på en spare:**
+1. **Slå Play Protect-scanning fra** (Play Store → profil → Play Protect → tandhjul → »Scan apps«) på den
+   dedikerede spare → kun standard-Install-dialogen vises → 0.9.27's `acceptInstallConsent` klarer den selv.
+2. **PC-drevet vision+koordinat-tap** (100 % pålidelig, bevist): `spare update` → `spare shot` →
+   koordinat-tap »More details« + »Install without scanning«. Fungerer uanset a11y-flakiness (bruger
+   MediaProjection-syn, ikke a11y-noder). En harness-`update`-verb der selv vision-driver gaten kan
+   tilføjes uden ny release.
+
+Note: en spares FØRSTE opgradering TIL 0.9.27 køres af den GAMLE (0.9.26) kode, som ikke kender Play
+Protect-stien → driv den ene gang via vej 2. Derefter er 0.9.27-koden i drift. (.102 på 0.9.27 bevist
+2026-07-12; .101/A9 forblev på 0.9.26 pga. A9-gestus-flakiness – uændret iterbar via harness.)
 
 **Interaktivt:** `http://<ts-ip>:8090/control` i en browser giver en live skærm-stream med
 klik→a11y-tap + Tilbage/Hjem/Recents + tastatur – nul værktøj ud over browseren.
