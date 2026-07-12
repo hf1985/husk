@@ -42,6 +42,12 @@ public class InstallReceiver extends BroadcastReceiver {
                 Intent svc = new Intent(ctx, CameraService.class);
                 if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(svc); else ctx.startService(svc);
             } catch (Throwable ignored) {}
+        } else if (status != -1) {
+            // Enhver FEJL-status (FAILURE/BLOCKED/CONFLICT/INCOMPATIBLE/INVALID/STORAGE) blev foer slugt lydloest
+            // -> en fjern-operator kunne ikke skelne succes fra fejl (lastUpdate stod paa "install requested ...").
+            // Eksponér den via Rig.lastUpdate (-> /flags) saa headless self-update er observerbar remote.
+            String msg = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
+            Rig.lastUpdate = "install FAILED (status " + status + (msg != null ? ": " + msg : "") + ")";
         }
     }
 }

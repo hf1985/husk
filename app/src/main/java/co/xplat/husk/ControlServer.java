@@ -351,6 +351,11 @@ public class ControlServer {
         final RigAccessibilityService svc = Rig.a11y;
         if (svc == null) return "ERR a11y ikke oppe (kan ikke forgrunde + samtykke)";
         final boolean force = boolp(query, "force");
+        // VIGTIGT: nulstil lastUpdate SYNKRONT foer accept-traaden starter. Ellers laeser acceptInstallConsent
+        // den STALE terminale vaerdi fra FORRIGE koersel ("latest ..."/"ERR ...", der overlever i den 24/7-proces)
+        // -> dens latest/ERR-gate ville bailu straks, foer Updater (der koerer 1500ms forsinket) overhovedet
+        // begynder -> intet auto-tap af install-dialogen. (Regression fanget i 0.9.28-selv-review.)
+        Rig.lastUpdate = "checking";
         svc.foregroundSelf();
         new Thread(new Runnable() { public void run() { svc.acceptInstallConsent(); } }, "husk-accept").start();
         new Thread(new Runnable() { public void run() {

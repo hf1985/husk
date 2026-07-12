@@ -52,6 +52,11 @@ public final class Hardware {
         return b.toString();
     }
 
+    // Finite-guard for JSON-float: NaN/Infinity er IKKE gyldig JSON og faar en streng JSON.parse (i /control-
+    // vieweren) el. jq (i spare.sh) til at kaste paa hele svaret. En sensor/HAL kan rapportere ikke-endelige
+    // vaerdier -> emit "null" i stedet.
+    private static String fj(float v) { return Float.isFinite(v) ? Float.toString(v) : "null"; }
+
     private static boolean granted(Context c, String perm) {
         try { return c.checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED; } catch (Throwable t) { return false; }
     }
@@ -87,8 +92,8 @@ public final class Hardware {
             if (!first) b.append(",");
             first = false;
             b.append("{\"name\":\"").append(esc(s.getName())).append("\",\"type\":").append(s.getType())
-             .append(",\"vendor\":\"").append(esc(s.getVendor())).append("\",\"power\":").append(s.getPower())
-             .append(",\"max\":").append(s.getMaximumRange()).append("}");
+             .append(",\"vendor\":\"").append(esc(s.getVendor())).append("\",\"power\":").append(fj(s.getPower()))
+             .append(",\"max\":").append(fj(s.getMaximumRange())).append("}");
         }
         b.append("]");
         return b.toString();
@@ -112,7 +117,7 @@ public final class Hardware {
         sm.unregisterListener(l);
         if (box[0] == null) return "ERR no-reading (sensor gav ikke en vaerdi)";
         StringBuilder vb = new StringBuilder("[");
-        for (int i = 0; i < box[0].length; i++) { if (i > 0) vb.append(","); vb.append(box[0][i]); }
+        for (int i = 0; i < box[0].length; i++) { if (i > 0) vb.append(","); vb.append(fj(box[0][i])); }
         vb.append("]");
         return "{\"sensor\":\"" + esc(s.getName()) + "\",\"type\":" + type + ",\"values\":" + vb + "}";
     }
@@ -160,6 +165,7 @@ public final class Hardware {
         Vibrator v = (Vibrator) c.getSystemService(Context.VIBRATOR_SERVICE);
         if (v == null || !v.hasVibrator()) return "ERR no-vibrator";
         if (ms <= 0) ms = 300;
+        ms = Math.min(ms, 10000);   // OEVRE loft: uden det kunne /vibrate?ms=2000000000 koere motoren i dagevis (batteri/gene)
         try {
             if (Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE));
             else v.vibrate(ms);

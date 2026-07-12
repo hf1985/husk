@@ -348,12 +348,14 @@ public class RigAccessibilityService extends AccessibilityService {
         // find knappens koordinater + GESTURE-tap dem i stedet. Eksakt tekst-match (^...$) saa broedteksten
         // ("Do you want to install an update...") IKKE rammes (en bred "install" ramte den foer). Loeber laenge nok
         // til at daekke download + commit; naar installen commit'er, draebes appen (denne traad med) -> loop ender.
+        boolean sawProgress = false;
         for (int i = 0; i < 80; i++) {
             // Tap KUN naar Updater faktisk installerer (lastUpdate = "downloading"/"install requested"). Foer
             // tappede vi blindt Husks EGEN foregrund-UI i 80s selv naar der IKKE var en opdatering (latest/ERR)
             // -> kunne ramme appens egne knapper ("Opdater"/toggles). Vent under "checking"; stop ved latest/ERR.
             String st = Rig.lastUpdate;
             boolean installing = st != null && (st.startsWith("downloading") || st.startsWith("install requested"));
+            if (st != null && (st.startsWith("checking") || installing)) sawProgress = true;   // DENNE koersel er i gang
             if (installing) {
                 // Google Play Protect "App scan recommended" (fersk sideload UDEN "install anyway"-knap - kun
                 // "Scan app" / "Don't install app"): udvid "More details" -> tap "Install without scanning".
@@ -365,8 +367,10 @@ public class RigAccessibilityService extends AccessibilityService {
                 tapMatch("(?i)install anyway|installer alligevel|send anyway");   // Play Protect (aeldre variant m. knap)
                 tapMatch("(?i)^\\s*(install|update|opdater|installer|geninstaller|ok)\\s*$");  // hoved-knap (INSTALL/Opdater)
                 tapMatch("(?i)^\\s*(open|åbn|aabn|done|f(ae|æ)rdig|udf(oe|ø)rt)\\s*$");        // afslut
-            } else if (st != null && (st.startsWith("latest") || st.startsWith("ERR"))) {
-                return "OK (ingen opdatering at installere - ingen tap)";   // Updater afgjorde: intet at goere
+            } else if (sawProgress && st != null && (st.startsWith("latest") || st.startsWith("ERR"))) {
+                // Kun bail hvis DENNE koersel foerst blev set i gang (sawProgress) og SAA endte latest/ERR - ellers
+                // ville en STALE terminal-vaerdi fra forrige koersel afbryde os foer Updater begyndte.
+                return "OK (ingen opdatering at installere - ingen tap)";
             }
             sleep(1000);   // ellers "checking..." -> vent paa Updater's afgoerelse
         }
