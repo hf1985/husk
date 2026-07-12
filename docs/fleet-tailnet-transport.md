@@ -4,6 +4,29 @@ Dato: 2026-07-02. Kanonisk notat for hvordan Husk-enheder nås og styres **uden 
 flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-memory:
 `note10-meeting-camera`.
 
+> ## SENESTE STATUS (2026-07-12, handoff til enhver session/bruger)
+> - **Begge spares kører 0.9.28** (.101 Sony 702SO/A9 = `100.100.101.101`; .102 Samsung A10e/A11 =
+>   `100.100.101.102`; begge **tokenløse**). **Play Protect-scanning er slået FRA på begge** (brugeren,
+>   fysisk) → in-app self-update er nu **HELT ubemandet**: `spare.ps1 <a9|a11> update` (eller
+>   `spare.sh`) kører hele vejen selv (kun standard-Install-dialogen, som on-device
+>   `acceptInstallConsent` tapper). Verificeret hands-off 2026-07-12.
+> - **Stor sikkerheds+korrektheds+ydelses-audit → 0.9.28** (versionCode 47), udgivet + F-Droid grøn +
+>   begge `latest.json`-endpoints=47. **Beslutnings-log: `docs/AUDIT-2026-07-12.md`** (implementeret +
+>   bevidste fravalg m. begrundelse). Ingen invariant A-D svækket.
+> - **Note10 (SM-N975U1/A12, DeX, TOKEN, `100.100.103.102`) er OGSÅ på 0.9.28** (opdateret rig-sikkert
+>   2026-07-12 – a11y re-bandt, DeX + kamera urørt). Token ligger i overbygningens `~/husk-overbygning/
+>   config.sh` (`HUSK_TOKEN=…`), IKKE i `Settings.Global`. **Opdatér den ALDRIG via `/update`**
+>   (foregrunder MainActivity → Samsung »restart on another display«-churn på DeX → a11y/scrcpy/Discord-
+>   crash; docs/YDELSE-OG-DRIFT.md §3). **Rig-sikker vej (virkede):** `/wd?token=…` (cacher WD-porten
+>   for adb-broen) → `adb connect <ts-ip>:15557` → `adb push <apk> /data/local/tmp/` → `adb shell pm
+>   install -r /data/local/tmp/<apk>`. **Gotchas:** WD på A11+ er TLS → `adb install`-STREAMING over
+>   broen giver `protocol fault (17 03 03)`; brug push+`pm install` (kun en lille kommando krydser broen).
+>   Sæt `MSYS_NO_PATHCONV=1` (Git Bash mangler ellers `/data/local/tmp`). adb-nøglen er allerede parret.
+> - **Drift-gotcha:** ssh-agenten dør ved PC-genstart (Windows Update); Asura-deploy kræver da
+>   `source ~/Tools/vault-bot/vault-ssh-load.sh` én gang (henter nøgler fra vaulten).
+> - **F-Droid-pipeline-poll-gotcha:** `pipelines?ref=…&per_page=1` returnerer tit den FORRIGE (grønne)
+>   pipeline lige efter et commit → poll på commit-SHA (branch-HEAD), ikke bare seneste.
+
 ## 0. STATUS (KORREKTION 2026-07-12) – spares KAN itereres fuldt; »umuligt« var en fejldiagnose
 
 > **⚠️ Den 2026-07-02-konklusion længere nede (»der findes INGEN headless vej … a11y kan
