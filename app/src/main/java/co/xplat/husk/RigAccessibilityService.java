@@ -339,7 +339,14 @@ public class RigAccessibilityService extends AccessibilityService {
         // ("Do you want to install an update...") IKKE rammes (en bred "install" ramte den foer). Loeber laenge nok
         // til at daekke download + commit; naar installen commit'er, draebes appen (denne traad med) -> loop ender.
         for (int i = 0; i < 80; i++) {
-            tapMatch("(?i)install anyway|installer alligevel|send anyway");   // Play Protect (hvis den kommer)
+            // Google Play Protect "App scan recommended" (fersk sideload UDEN "install anyway"-knap - kun
+            // "Scan app" / "Don't install app"): udvid "More details" -> tap "Install without scanning".
+            // ANKREDE moenstre (^...$) saa "Don't install app" (indeholder "install") og "Scan app" ALDRIG rammes.
+            // Loopet klarer sekvensen: iteration N udvider, iteration N+1 tapper den nu-synlige knap.
+            // Bevist paa Samsung A10e/A11-spare 2026-07-12 (docs/fleet-tailnet-transport.md §0/§7).
+            tapMatch("(?i)^\\s*(more details|flere oplysninger|flere detaljer)\\s*$");
+            tapMatch("(?i)^\\s*(install without scanning|installer uden (at )?scann?ing?|installer uden at scanne)\\s*$");
+            tapMatch("(?i)install anyway|installer alligevel|send anyway");   // Play Protect (aeldre variant m. knap)
             tapMatch("(?i)^\\s*(install|update|opdater|installer|geninstaller|ok)\\s*$");  // hoved-knap (INSTALL/Opdater)
             tapMatch("(?i)^\\s*(open|åbn|aabn|done|f(ae|æ)rdig|udf(oe|ø)rt)\\s*$");        // afslut
             sleep(1000);
