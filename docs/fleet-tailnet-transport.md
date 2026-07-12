@@ -5,14 +5,18 @@ flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-mem
 `note10-meeting-camera`.
 
 > ## SENESTE STATUS (2026-07-12, handoff til enhver session/bruger)
-> - **Begge spares kører 0.9.28** (.101 Sony 702SO/A9 = `100.100.101.101`; .102 Samsung A10e/A11 =
->   `100.100.101.102`; begge **tokenløse**). **Play Protect-scanning er slået FRA på begge** (brugeren,
->   fysisk) → in-app self-update er nu **HELT ubemandet**: `spare.ps1 <a9|a11> update` (eller
->   `spare.sh`) kører hele vejen selv (kun standard-Install-dialogen, som on-device
->   `acceptInstallConsent` tapper). Verificeret hands-off 2026-07-12.
-> - **Stor sikkerheds+korrektheds+ydelses-audit → 0.9.28** (versionCode 47), udgivet + F-Droid grøn +
->   begge `latest.json`-endpoints=47. **Beslutnings-log: `docs/AUDIT-2026-07-12.md`** (implementeret +
->   bevidste fravalg m. begrundelse). Ingen invariant A-D svækket.
+> - **Flåden kører 0.9.29** (audit-runde 2). .102/A11 + Note10/A12 = 0.9.29 med a11y. **Play Protect
+>   FRA på begge spares** → in-app self-update helt ubemandet: `spare.ps1 <a9|a11> update`.
+> - **⚠️ .101 (Sony 702SO/A9, `100.100.101.101`): a11y ER AFBUNDET efter 0.9.29-opdateringen** (control-
+>   server/8090 + kamera kører, men `/rpc`/8127 er nede, a11y=false, /info-version tom). **En app-
+>   opdatering kan afbinde en aktiveret a11y-service på ældre Android (A9); spares har IKKE overbygningens
+>   a11y-vagthund** (som re-enabler a11y via adb på Note10). **Recovery: POWER-CYCLE .101** (a11y re-binder
+>   ved boot hvis stadig i `enabled_accessibility_services`); ellers re-enable Husk under Indstillinger →
+>   Tilgængelighed. Kan IKKE fixes remote uden adb (A9 mangler WD). **Lære: opdatér A9-spare når den kan
+>   genstartes; overvej éngangs-USB → adb → a11y-vagthund som spares mangler.**
+> - **To audit-runder → 0.9.29** (versionCode 48), udgivet + F-Droid grøn + begge `latest.json`-endpoints=48.
+>   **Beslutnings-logs: `docs/AUDIT-2026-07-12.md` (runde 1) + `docs/AUDIT-2026-07-12-runde2.md` (runde 2:
+>   fangede en HIGH-regression jeg indførte i 0.9.28 + 3 LOW)**. Ingen invariant A-D svækket.
 > - **Note10 (SM-N975U1/A12, DeX, TOKEN, `100.100.103.102`) er OGSÅ på 0.9.28** (opdateret rig-sikkert
 >   2026-07-12 – a11y re-bandt, DeX + kamera urørt). Token ligger i overbygningens `~/husk-overbygning/
 >   config.sh` (`HUSK_TOKEN=…`), IKKE i `Settings.Global`. **Opdatér den ALDRIG via `/update`**

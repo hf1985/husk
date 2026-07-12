@@ -54,6 +54,18 @@ samme adfærd som gammel kode).
 
 ## Verifikation + udrulning
 Build grøn (WSL/JDK21), signeret (SHA-256 `1b89a920…62af59`), begge `latest.json`-endpoints + F-Droid +
-GitHub-release + xplat. Rullet ud på HELE flåden: spares hands-off (Play Protect fra), Note10 rig-sikkert
-via adb-broen (push + `pm install`). **Special-test: den rettede self-update-gate verificeret ved et
-GENTAGET `/update` efter en `"latest"`-kørsel** (præcis det tilfælde regressionen brød).
+GitHub-release + xplat. **Special-test bestået: den rettede self-update-gate verificeret ved et GENTAGET
+`/update` efter en `"latest"`-kørsel** – non-force → `"latest"` (intet tap), derefter force → hands-off
+reinstall (8090 faldt + kom igen); præcis det tilfælde regressionen brød.
+
+Udrulning: .102/A11 + Note10/A12 → 0.9.29 med a11y intakt (spare hands-off; Note10 rig-sikkert via adb).
+
+### ⚠️ Kendt problem efter udrulning: .101 (A9) a11y afbundet
+.101 (Sony 702SO/A9) endte efter 0.9.29-installen med **a11y afbundet** (8090/kamera kører, men 8127/`/rpc`
+er nede). **En app-opdatering kan afbinde en aktiveret a11y-service på ældre Android** – A9 er udsat; A11
+(.102) og A12 (Note10) re-bandt fint. **Spares mangler overbygningens a11y-vagthund** (som på Note10 re-
+enabler a11y via adb efter opdatering). **Recovery = POWER-CYCLE .101** (a11y re-binder ved boot hvis stadig
+i `enabled_accessibility_services`; ellers manuel re-enable under Tilgængelighed). Kan ikke fixes remote
+uden adb (A9 mangler WD). **Fremtidig hærdning:** éngangs-fysisk-USB på A9-spare → adb → tilføj samme a11y-
+vagthund, ELLER opdatér kun A9-spare når den kan genstartes bagefter. Ikke en kode-fejl i Husk – Android/
+OEM-adfærd – men en reel drifts-konsekvens af at opdatere en a11y-app.
