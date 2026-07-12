@@ -73,6 +73,11 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
 6. Opdatér `HUSK_VERSION_NAME`/`HUSK_VERSION_CODE` i `P_xplat/hosting/app.py`, kør
    `bash scripts/check-local.sh` (grøn), og **deploy xplat.co** med agenten loaded:
    `eval "$(cat ~/.ssh/agent.env)"; bash scripts/hosting-deploy.sh --apply` (fra `P_xplat`).
+6b. **API-DOK-GATE (obligatorisk, ellers driver `/husk/api` fra virkeligheden):** ændrer releasen
+   endpoints/params/respons/adgangsmodel? Ajourfør `HUSK_API`-kataloget + OpenAPI-beskrivelsen i samme
+   `P_xplat/hosting/app.py` (driver BÅDE `/husk/api` OG `/husk/openapi.json`) og re-deploy. Kør
+   **`bash pc/check-api-parity.sh`** (fra `P_app_husk`) → **skal være GRØN** (fejler ved
+   udokumenterede/stale endpoints + versionCode-drift). Verificér `/husk/api` live.
 7. Commit (brug `git commit -F <fil>` med dansk besked, så æøå ikke mangler) + `git tag vX.Y.Z` +
    `git push origin main` + `git push origin vX.Y.Z`.
 8. **F-Droid-fork uden clone** (fdroiddata er for stor at klone): opdatér `metadata/co.xplat.husk.yml`
@@ -81,7 +86,9 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
    `success`. Kør med `py -3.11` + `urllib` (mønster: denne release-sessions `fdroid-update.py`).
 9. **Definition af færdig:** `curl https://xplat.co/husk/latest.json` OG
    `curl https://raw.githubusercontent.com/hf1985/husk/main/latest.json` viser BEGGE den nye
-   `versionCode`, og F-Droid/GitLab-pipelinen er grøn.
+   `versionCode`, F-Droid/GitLab-pipelinen er grøn, **OG API-dok-gaten (trin 6b) er grøn +
+   `/husk/api` er ajour**. (Erfaring 2026-07-12: en release bumpede versionen men glemte 5 nye
+   endpoints + CSRF-adgangsmodellen i `/husk/api`; `pc/check-api-parity.sh` fanger netop dét.)
 
 ---
 
@@ -252,7 +259,9 @@ F-Droid-CI):
    **+ verificér live**: `curl https://xplat.co/husk/latest.json` skal vise den nye `versionCode`.
    KRITISK: appens updater spørger xplat.co FØRST (GitHub-raw er kun fallback) – glemmer man at
    deploye xplat, siger enheder der nåer xplat "allerede nyeste" (set 0.9.18–0.9.21). Begge endpoints
-   skal vise samme version. (+ `HUSK_API` ved nye endpoints.)
+   skal vise samme version.
+4b. **API-dok-gate:** ajourfør `HUSK_API`-kataloget ved nye/ændrede endpoints/params/adgangsmodel, og
+   kør `bash pc/check-api-parity.sh` (skal være grøn) – se §0b trin 6b. Opgaven er IKKE færdig før den.
 5. GitHub-release med den signerede APK.
 6. F-Droid-fork: opdater `fdroid/co.xplat.husk.yml` (MR !40810).
    - **Quote-regel for `CurrentVersion`/`versionName`:** numerisk-udseende (fx `0.9`, `0.2`)

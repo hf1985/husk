@@ -4,19 +4,21 @@ Dato: 2026-07-02. Kanonisk notat for hvordan Husk-enheder nås og styres **uden 
 flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-memory:
 `note10-meeting-camera`.
 
-> ## SENESTE STATUS (2026-07-12, handoff til enhver session/bruger)
-> - **Flåden kører 0.9.29** (audit-runde 2). .102/A11 + Note10/A12 = 0.9.29 med a11y. **Play Protect
->   FRA på begge spares** → in-app self-update helt ubemandet: `spare.ps1 <a9|a11> update`.
-> - **⚠️ .101 (Sony 702SO/A9, `100.100.101.101`): a11y ER AFBUNDET efter 0.9.29-opdateringen** (control-
->   server/8090 + kamera kører, men `/rpc`/8127 er nede, a11y=false, /info-version tom). **En app-
->   opdatering kan afbinde en aktiveret a11y-service på ældre Android (A9); spares har IKKE overbygningens
->   a11y-vagthund** (som re-enabler a11y via adb på Note10). **Recovery: POWER-CYCLE .101** (a11y re-binder
->   ved boot hvis stadig i `enabled_accessibility_services`); ellers re-enable Husk under Indstillinger →
->   Tilgængelighed. Kan IKKE fixes remote uden adb (A9 mangler WD). **Lære: opdatér A9-spare når den kan
->   genstartes; overvej éngangs-USB → adb → a11y-vagthund som spares mangler.**
+> ## SENESTE STATUS (2026-07-13, handoff til enhver session/bruger)
+> - **HELE flåden på 0.9.29 med a11y** (.101 Sony/A9, .102 Samsung/A11, Note10/A12 – alle vc=48, a11y OK).
+>   **Play Protect FRA på begge spares** → in-app self-update helt ubemandet: `spare.ps1 <a9|a11> update`.
+> - **⚠️ Lære (A9): en app-opdatering kan AFBINDE a11y-servicen på ældre Android.** .101 endte efter
+>   0.9.29-installen med a11y=false (8090+kamera kørte, `/rpc`/8127 nede); **løst ved POWER-CYCLE** (a11y
+>   re-bandt ved boot). A11/A12 re-bandt selv. Spares mangler Note10's a11y-vagthund (adb-re-enable). **Ved
+>   opdatering af A9-spare: forvent evt. en genstart bagefter; kan ikke fixes remote uden adb (A9 mangler WD).**
 > - **To audit-runder → 0.9.29** (versionCode 48), udgivet + F-Droid grøn + begge `latest.json`-endpoints=48.
 >   **Beslutnings-logs: `docs/AUDIT-2026-07-12.md` (runde 1) + `docs/AUDIT-2026-07-12-runde2.md` (runde 2:
 >   fangede en HIGH-regression jeg indførte i 0.9.28 + 3 LOW)**. Ingen invariant A-D svækket.
+> - **API-DOK-GATE (ny):** `/husk/api` + `/husk/openapi.json` (xplat) genereres fra `HUSK_API` i
+>   `P_xplat/hosting/app.py` og kan drive fra virkeligheden. **En release er ikke færdig før
+>   `bash pc/check-api-parity.sh` er GRØN** (fanger udokumenterede/stale endpoints + versionCode-drift).
+>   Wired ind i RELEASE-PLIGT (CLAUDE.md) + docs/BUILD.md. (0.9.28/29 tilføjede endpoints som var
+>   udokumenterede indtil 2026-07-13.)
 > - **Note10 (SM-N975U1/A12, DeX, TOKEN, `100.100.103.102`) er OGSÅ på 0.9.28** (opdateret rig-sikkert
 >   2026-07-12 – a11y re-bandt, DeX + kamera urørt). Token ligger i overbygningens `~/husk-overbygning/
 >   config.sh` (`HUSK_TOKEN=…`), IKKE i `Settings.Global`. **Opdatér den ALDRIG via `/update`**

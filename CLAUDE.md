@@ -17,14 +17,20 @@
 > 2. Byg `assembleRelease` i WSL + signér med den faste keystore (alias `ad`).
 > 3. Opdatér repo'ets `latest.json` + `husk-latest.apk` (den signerede APK).
 > 4. Opdatér `fdroid/co.xplat.husk.yml` (+ fork-metadata, MR !40810).
-> 5. Opdatér HUSK-konstanterne i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
-> 6. Commit + tag `vX.Y.Z` + push; GitHub-release med den signerede APK.
-> 7. Verificér: BÅDE `https://xplat.co/husk/latest.json` OG
+> 5. Opdatér HUSK-konstanterne (`HUSK_VERSION_*`) i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
+> 6. **API-DOK-GATE (obligatorisk):** ændrer releasen endpoints/params/respons/adgangsmodel? Ajourfør
+>    `HUSK_API`-kataloget (+ OpenAPI-beskrivelsen) i `P_xplat/hosting/app.py` (driver BÅDE `/husk/api`
+>    OG `/husk/openapi.json`), deploy xplat, og kør **`bash pc/check-api-parity.sh` → skal være GRØN**
+>    (fejler ved udokumenterede/stale endpoints + versionCode-drift). Verificér `/husk/api` live.
+> 7. Commit + tag `vX.Y.Z` + push; GitHub-release med den signerede APK.
+> 8. Verificér: BÅDE `https://xplat.co/husk/latest.json` OG
 >    `https://raw.githubusercontent.com/hf1985/husk/main/latest.json` viser den nye
 >    `versionCode`, og F-Droid/GitLab-pipelinen er GRØN.
 >
-> **Definition af færdig:** begge `latest.json`-endpoints viser den nye version, og
-> F-Droid-pipelinen er grøn. Før det er opgaven ÅBEN – uanset hvor grøn builden er lokalt.
+> **Definition af færdig:** begge `latest.json`-endpoints viser den nye version, F-Droid-pipelinen er
+> grøn, **OG `pc/check-api-parity.sh` er grøn + `/husk/api` er ajour** (trin 6). Før ALT dette er
+> opgaven ÅBEN – uanset hvor grøn builden er lokalt. (Erfaring 2026-07-12: en release bumpede versionen
+> men glemte 5 nye endpoints + CSRF-modellen i `/husk/api`; gaten fanger netop dét.)
 > (Flåden opdateres derefter via in-app Updater – aldrig on-phone build/adb install.)
 
 > **Miljø-regel (Windows/PowerShell→ssh):** sender du en `ssh`/`scp`/`mysql -e`-kommando med `(` `)` `$()` backtick, linjeskift eller `"`? Inline den IKKE – PowerShell spiser embedded quotes, så metakarakterer brækker remote-bash (`syntax error near '('`). Skriv til lokal fil (LF), `scp`, kør `ssh host "bash /sti.sh"`. Fuld regel: `10_PROJEKTER/CLAUDE.md`.
@@ -121,4 +127,5 @@ Nuværende: **0.9.29 / versionCode 48** (audit-runde 2 via Note10, log `docs/AUD
 `README.md` (overblik), `docs/BUILD.md` (build/release), `docs/YDELSE-OG-DRIFT.md` (ydelses-invarianter +
 diagnostik + sikker rig-deploy), `docs/AUDIT-2026-06-21.md` + `CUTOVER-note10-engine-2026-06-18.md`
 (historik), `fdroid/` (F-Droid-metadata), `pc/husk-companion.ps1` (scrcpy-companion),
-`pc/spare.ps1` + `pc/spare.sh` (flåde-harness: wake+shot+launch+tap+swipe+update over 8090).
+`pc/spare.ps1` + `pc/spare.sh` (flåde-harness: wake+shot+launch+tap+swipe+update over 8090),
+`pc/check-api-parity.sh` (release-gate: HUSK_API-katalog vs appens endpoints + versionCode).
