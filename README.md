@@ -60,5 +60,21 @@ INTERNET (local HTTP + adb bridge, loopback/Tailscale only), CAMERA, FOREGROUND_
 RECEIVE_BOOT_COMPLETED, WAKE_LOCK, POST_NOTIFICATIONS, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, and the
 AccessibilityService binding. These are the core of the app and are documented for transparency.
 
+## Security
+Husk's accepted-risk model, in one place:
+- **8090 (HTTP)** binds all interfaces but is gated by a source-IP allowlist (loopback,
+  RFC1918/LAN, Tailscale `100.64.0.0/10`) and an optional shared `?token=`. When no token is
+  set, the IP allowlist is the only gate -- keep it tight (Tailscale ACL) on untrusted LANs.
+  CSRF and DNS-rebinding defenses are applied to state-changing endpoints.
+- **8127 (automation RPC)** binds **only** `127.0.0.1` -- never a network address -- so it is
+  unreachable from other devices. It has no token or app-level auth: any other app installed
+  on the same phone with `INTERNET` permission can reach it and tap/swipe/read all displays.
+  This is accepted on a single-purpose rig with a controlled app set, where the remote attack
+  surface is covered by the Tailscale ACL on 8090/15557. If the on-device app set becomes
+  less trusted, add a shared token to the 8127 protocol before relying on it.
+- **15557 (adb bridge)** requires one-time pairing via `/pair` and otherwise follows the same
+  source-IP allowlist as 8090.
+- Nothing leaves the device except the motion push you configure (your own ntfy topic).
+
 ## License
 GPL-3.0-or-later. See `LICENSE`.
