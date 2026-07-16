@@ -138,9 +138,15 @@ public class ControlServer {
             // (ingen Sec-Fetch, Host=IP) og /control's egne same-origin-fetch rammes ikke. Se docs/AUDIT.
             if (!originOk(host, origin, secFetch)) { writeText(out, 403, "forbidden (cross-origin)"); return; }
             // Streaming beslaglaegger forbindelsen (uendelig multipart / fMP4) -> luk efter (return).
-            if (path.equals("/stream")) { writeStream(c, out); return; }
-            if (path.equals("/screen")) { writeScreenStream(c, out); return; }
-            if (path.equals("/screen.mp4")) { writeH264Stream(c, out); return; }   // hardware-H.264 -> MSE
+            // Samme token-gate som dispatch() (nedenfor) - ellers omgaas et saet token for netop de
+            // mest foelsomme flader (kontinuerlig live kamera/skaerm); tokenOk() returnerer stadig true
+            // naar Rig.token er tomt, saa den tokenloese flaade (spares) er upaavirket.
+            if (path.equals("/stream") || path.equals("/screen") || path.equals("/screen.mp4")) {
+                if (!tokenOk(query)) { writeText(out, 401, "unauthorized"); return; }
+                if (path.equals("/stream")) { writeStream(c, out); return; }
+                if (path.equals("/screen")) { writeScreenStream(c, out); return; }
+                writeH264Stream(c, out); return;   // /screen.mp4 - hardware-H.264 -> MSE
+            }
             dispatch(out, path, query);   // alt andet svares keep-alive; loopen laeser naeste request
         }
     }
