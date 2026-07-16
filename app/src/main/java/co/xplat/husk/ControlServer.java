@@ -215,7 +215,7 @@ public class ControlServer {
     // parametre returneres blot den nuvaerende config. ntfy-topic tom = detektér + log (/events), men ingen push.
     private String configMotion(String query) {
         if (param(query, "on") != null)          Rig.motionEnabled = "1".equals(param(query, "on")) || "true".equals(param(query, "on"));
-        if (dparam(query, "topic") != null)      Rig.ntfyTopic = dparam(query, "topic");
+        if (param(query, "topic") != null)       Rig.ntfyTopic = dparam(query, "topic");
         // SSRF-haerdning: kun https-ntfy-servere. Ellers kunne en peer pege enheden mod en intern http-tjeneste
         // (SSRF-pivot fra telefonens netvaerksposition) eller downgrade alarm+snapshot-preview til klartekst.
         // https-only bevarer baade ntfy.sh og en selvhostet https-ntfy.
