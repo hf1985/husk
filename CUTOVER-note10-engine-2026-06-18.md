@@ -10,13 +10,13 @@ Kørt autonomt mod den live rig (SM-N975U1) over Tailscale, off-hours efter 18:0
    (robust dextap->note10-handoff). Build on-phone (ecj/dx/aapt2), BUILD-OK.
 2. **Funktion bekræftet live** (camera frit efter 18:00):
    - M1 kamera `/snapshot` -> 200; `/healthz` ok.
-   - 8127 PONG som note10 (efter motorskifte); node-læsning paa DeX display 2 (`state 2 .`=1, `dump 2`).
-   - **Fuld daglig cyklus paa note10-motoren:** `meeting-camera/join.sh` -> Discord launch display 2 ->
-     Join Voice -> kamera-til -> `setMode(MODE_IN_COMMUNICATION)`; `leave.sh` -> Disconnect. UAENDRET shell.
+   - 8127 PONG som note10 (efter motorskifte); node-læsning på DeX display 2 (`state 2 .`=1, `dump 2`).
+   - **Fuld daglig cyklus på note10-motoren:** `meeting-camera/join.sh` -> Discord launch display 2 ->
+     Join Voice -> kamera-til -> `setMode(MODE_IN_COMMUNICATION)`; `leave.sh` -> Disconnect. UÆNDRET shell.
    - **Kamera-kontention afklaret:** Discord (foreground) **evicter** appens baggrunds-kamera -> appen
      blokerer IKKE mødet. Discord vinder kameraet som hidtil.
 3. **Reboot-validering (hands-off):** `adb reboot` -> WD-port skiftede 35953->42047 (ægte reboot) ->
-   note10-a11y bandt paa boot (8127 op) -> BootReceiver startede CameraService (HTTP+kamera, SAMME proces)
+   note10-a11y bandt på boot (8127 op) -> BootReceiver startede CameraService (HTTP+kamera, SAMME proces)
    -> `boot-start.sh`/`wd-up.sh` drev note10's 8127 til at tænde WD + adb reconnect. `/wd` -> ip:port. Alt hands-off.
 4. **Cutover:** `dextap` afinstalleret (`pm uninstall com.khfrb.dextap`). note10 = eneste a11y/motor.
    Meeting-camera-overbygning + crontab (join 9 / self-check 9:05·12·14 / leave 18) + Termux:Boot UÆNDRET
@@ -25,7 +25,7 @@ Kørt autonomt mod den live rig (SM-N975U1) over Tailscale, off-hours efter 18:0
 ## Arkitektur efter cutover
 - **note10-app** (een APK, een proces): engine.rpc 8127 (a11y) + CameraService (HTTP 8090: /snapshot /stream
   /wd /set /) + BootReceiver. = det generiske produkt-fundament.
-- **Overbygning** = `~/meeting-camera` shell (join/leave/self-check/wd-up/boot-start), uændret, paa 8127.
+- **Overbygning** = `~/meeting-camera` shell (join/leave/self-check/wd-up/boot-start), uændret, på 8127.
 - **PC-companion** (M5, scrcpy): **app-native + Termux-uafhængig** (se nedenfor).
 
 ## scrcpy: app-native adb-bro (TILFØJET 2026-06-18, efter cutover)
