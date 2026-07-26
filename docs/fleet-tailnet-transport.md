@@ -239,7 +239,7 @@ spare.ps1 a11 control                           # aabn browser-viewer: live skae
 **Bemærk om Play Protect (opdateret 2026-07-12, v0.9.27):** hver fersk sideload gates af Play Protects
 »App scan recommended« (kun *Scan app* / *Don't install app*; »More details« → »Install without scanning«).
 **0.9.27 lærte `acceptInstallConsent` denne sti** (tap »More details« → »Install without scanning«, ankrede
-moenstre). Men på DISSE spares er den on-device auto-accept **kun delvist pålidelig**: Play Protect-dialogen
+mønstre). Men på DISSE spares er den on-device auto-accept **kun delvist pålidelig**: Play Protect-dialogen
 er et GMS-overlay-vindue som spares' flaky a11y-`getWindows()` kun sporadisk enumererer, så `findNode`
 rammer »More details« (bevist) men ikke altid »Install without scanning«. Standard-Install-dialogen (uden
 Play Protect) håndteres derimod pålideligt af den on-device kode.
