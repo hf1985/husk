@@ -37,12 +37,14 @@ brød ved reboot (hooken pegede på den nedlagte `~/discord-bot`-sti efter split
   broen henter den fra appens in-process WD-recovery (`Rig.lastWdIpPort`).
 - `/pair`-endpoint: a11y åbner WD "Pair device with pairing code"-dialogen + læser kode+port, så en
   frisk PC kan parres hovedløst (Android 12 WD = TLS → engangs-parring pr. PC; persisterer over reboot).
-- `pc/note10-companion.ps1`: fresh-Win11 PowerShell-companion. Bootstrapper scrcpy via winget, parrer via
+- `pc/husk-companion.ps1` (hed note10-companion.ps1 dengang, omdøbt med resten af de gamle navne):
+  fresh-Win11 PowerShell-companion. Bootstrapper scrcpy via winget, parrer via
   `/pair`, `adb connect <ts>:5557`, laver de to skrivebordsgenveje (skærm + DeX/TV). Ingen WSL/ssh/socat.
 - **Bevist live + reboot-fast:** efter `adb reboot` kom broen op hands-off (ny WD-port 36609 auto-fundet),
   PC'en `adb connect`ede UDEN gen-parring, og scrcpy spejlede. Ingen socat-forwardere kørte. Den gamle
   Termux:Boot-hook `30-adb-tailscale-forward.sh` er pensioneret (→ `~/.retired-boot-hooks/`).
-- Udfaset: `pc/note10-connect.sh` (WSL-vej) + `remote-control`'s socat-forward + dens scrcpy-genveje.
+- Udfaset ved cutoveren og siden slettet: WSL-vejen pc/note10-connect.sh (findes ikke længere i
+  noget repo) + `remote-control`'s socat-forward + dens scrcpy-genveje.
 
 ## Rollback (hvis morgendagens 09:00-møde fejler)
 dextap-kilden er bevaret: telefonens `~/dexrpc` (+ `~/dextap-dev`, `~/discord-bot.manual-bak-20260605`),

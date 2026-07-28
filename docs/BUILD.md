@@ -80,8 +80,9 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
    udokumenterede/stale endpoints + versionCode-drift). Verificér `/husk/api` live.
 7. Commit (brug `git commit -F <fil>` med dansk besked, så æøå ikke mangler) + `git tag vX.Y.Z` +
    `git push origin main` + `git push origin vX.Y.Z`.
-8. **F-Droid-fork uden clone** (fdroiddata er for stor at klone): opdatér `metadata/co.xplat.husk.yml`
-   på forken `hf16/f-droid` branch `co.xplat.husk` via GitLab **commits-API**
+8. **F-Droid-fork uden clone** (fdroiddata er for stor at klone): opdatér
+   `hf16/f-droid:metadata/co.xplat.husk.yml` (notationen er `repo:sti-i-det-repo` – filen ligger
+   IKKE i dette repo, kun i fdroiddata-forken) på branch `co.xplat.husk` via GitLab **commits-API**
    (`POST /projects/hf16%2Ff-droid/repository/commits`, `action: update`), og poll pipelinen til
    `success`. Kør med `py -3.11` + `urllib` (mønster: denne release-sessions `fdroid-update.py`).
 9. **Definition af færdig:** `curl https://xplat.co/husk/latest.json` OG
@@ -280,7 +281,8 @@ failed pipeline. Stående regel: erklær aldrig "færdig" før pipelinen er grø
 
 **Kontekst.** F-Droid-indsendelsen er MR **!40810** fra forken **hf16/f-droid** (branch
 `co.xplat.husk`) ind i `fdroid/fdroiddata`. Repo'ets `fdroid/co.xplat.husk.yml` er KILDEN
-som kopieres til `metadata/co.xplat.husk.yml` på forken. GitLab kører F-Droids CI (bl.a.
+som kopieres til `hf16/f-droid:metadata/co.xplat.husk.yml` på forken (notationen er
+`repo:sti-i-det-repo`; den sti findes kun i forken, ikke i dette repo). GitLab kører F-Droids CI (bl.a.
 `fdroid lint` + `fdroid rewritemeta`/checkupdates + build-recipe-checks) på hver push til
 fork-branchen. Publiceringen køres via GitLab-API'et med curl (telefonen har hverken `glab`
 eller `gh`; al publicering sker fra sessionen). **Token (persistent):** GitLab-PAT'et ligger efter
@@ -291,7 +293,7 @@ tilsvarende i ssh-agenten/vaulten.) Det er bevidst persistent, så både denne o
 session/bruger kan køre verifikationen uden at bede om et nyt token hver gang.
 
 **Fork-opdatering uden lokal clone (verificeret 2026-07-11):** fdroiddata-forken er for stor at klone;
-opdatér `metadata/co.xplat.husk.yml` direkte via GitLab commits-API
+opdatér `hf16/f-droid:metadata/co.xplat.husk.yml` direkte via GitLab commits-API
 (`POST /projects/hf16%2Ff-droid/repository/commits` med `actions:[{action:update, file_path, content}]`,
 branch `co.xplat.husk`), og poll `GET /projects/.../pipelines?ref=co.xplat.husk` til `success`. Kør
 via `py -3.11` + `urllib` (git-bash `python3` er Store-stubben).
@@ -324,7 +326,8 @@ curl -s --header "$H" "https://gitlab.com/api/v4/projects/$FORK/jobs/<JOB_ID>/tr
 **Når metadata ændres, hold disse i sync** (ellers fejler CI eller in-app-update):
 1. `fdroid/co.xplat.husk.yml` i repo'et: tilføj `Builds`-entry (versionName/versionCode/`commit: vX`)
    og bump `CurrentVersion` + `CurrentVersionCode`.
-2. Kopiér samme indhold til `metadata/co.xplat.husk.yml` på forken og push til `co.xplat.husk`.
+2. Kopiér samme indhold til `hf16/f-droid:metadata/co.xplat.husk.yml` på forken og push til
+   `co.xplat.husk`.
 3. Opdater MR !40810 (note/beskrivelse) så maintaineren ser den nye version.
 4. Poll pipelinen til **success**.
 
