@@ -29,7 +29,7 @@ flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-mem
 >   broen giver `protocol fault (17 03 03)`; brug push+`pm install` (kun en lille kommando krydser broen).
 >   Sæt `MSYS_NO_PATHCONV=1` (Git Bash mangler ellers `/data/local/tmp`). adb-nøglen er allerede parret.
 > - **Drift-gotcha:** ssh-agenten dør ved PC-genstart (Windows Update); Asura-deploy kræver da
->   `source ~/Tools/vault-bot/vault-ssh-load.sh` én gang (henter nøgler fra vaulten).
+>   `source ~/Tools/vault2/vault2-ssh-load.sh` én gang (henter nøgler fra vaulten).
 > - **F-Droid-pipeline-poll-gotcha:** `pipelines?ref=…&per_page=1` returnerer tit den FORRIGE (grønne)
 >   pipeline lige efter et commit → poll på commit-SHA (branch-HEAD), ikke bare seneste.
 

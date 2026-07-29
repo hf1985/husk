@@ -57,7 +57,7 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
   `eval "$(cat ~/.ssh/agent.env)"`. Advarslen `Identity file ...khfrb_asura_openssh not accessible`
   er FORVENTET og harmløs - agenten leverer nøglen.
 - **GitLab-PAT ligger nu i vaulten**, ikke `Tools/gitlab/token.txt` (tom). Hent:
-  `bash ~/Tools/vault-bot/vault.sh get 'tool: gitlab/token.txt'` (grep `glpat-...` ud; hardcode aldrig).
+  `bash ~/Tools/vault2/vault2.sh get 'tool: gitlab/token.txt'` (grep `glpat-...` ud; hardcode aldrig).
 
 **Recepten (hver linje verificeret 2026-07-11):**
 1. Bump `versionCode` + `versionName` i `app/build.gradle` (ÉT sted).
@@ -287,7 +287,7 @@ som kopieres til `hf16/f-droid:metadata/co.xplat.husk.yml` på forken (notatione
 fork-branchen. Publiceringen køres via GitLab-API'et med curl (telefonen har hverken `glab`
 eller `gh`; al publicering sker fra sessionen). **Token (persistent):** GitLab-PAT'et ligger efter
 secrets-off-computer (2026-07-10) i **vaulten**, ikke længere i `C:\Users\hf198\Tools\gitlab\token.txt`
-(mappen er tom). Hent det ved runtime: `bash ~/Tools/vault-bot/vault.sh get 'tool: gitlab/token.txt'`
+(mappen er tom). Hent det ved runtime: `bash ~/Tools/vault2/vault2.sh get 'tool: gitlab/token.txt'`
 og grep `glpat-...` ud – hardcode aldrig værdien. (GitLab-SSH-nøglen `gitlab_husk_ed25519` ligger
 tilsvarende i ssh-agenten/vaulten.) Det er bevidst persistent, så både denne og en anden
 session/bruger kan køre verifikationen uden at bede om et nyt token hver gang.
