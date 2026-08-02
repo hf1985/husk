@@ -64,8 +64,4 @@ derefter `adb reboot` for en ren fuld tilstand. **Launch aldrig `MainActivity`
 via `am start` på den kørende rig** – det forgrunder Husk nær DeX og slår a11y
 midlertidigt fra. Verificér i stedet via `/flags`.
 
-## Åbne spor fra runde-planer
 
-<!-- SPOR-POINTERE: genereret af check-plan-pointers.sh - rediger ikke her -->
-- [ ] SPOR: `2026-08-01-deploy-og-restfund-plan.md` S5 – Klon `husk-overbygning` så `restore-tools.ps1` kan blive grøn her
-<!-- /SPOR-POINTERE -->
