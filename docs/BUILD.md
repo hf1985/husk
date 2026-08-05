@@ -300,7 +300,7 @@ via `py -3.11` + `urllib` (git-bash `python3` er Store-stubben).
 
 **Sådan verificeres pipelinen (det jeg gjorde hver gang):**
 ```bash
-TOKEN="$(grep -oE '^glpat-[A-Za-z0-9_.-]+' /c/Users/hf198/Tools/gitlab/token.txt | head -1)"
+TOKEN="$(grep -oE '^glpat-[A-Za-z0-9_.-]+' $HOME/Tools/gitlab/token.txt | head -1)"
 FORK="hf16%2Ff-droid"        # url-encoded projekt-sti (eller brug det numeriske projekt-id)
 BR="co.xplat.husk"
 H="PRIVATE-TOKEN: $TOKEN"
