@@ -44,7 +44,7 @@ AndroidX, ingen deps) → nem F-Droid-build. 18 Java-kilder i `app/src/main/java
 ## Rolle i økosystemet (Husk er MOTOREN, de andre bygger ovenpå)
 - **`P_add-on_phone-transport`** – delt transport (SSH+Termux+Tailscale + boot). Husk er uafhængig af
   den (ingen imports); transporten er hvordan man NÅR telefonen.
-- **`husk-overbygning`** (privat, klon `C:\Users\hf198\repos\husk-overbygning`) – tynd office-overbygning:
+- **`husk-overbygning`** (privat, klon `$env:USERPROFILE\repos\husk-overbygning`) – tynd office-overbygning:
   ubemandet Discord-mødekamera. Bruger Husks 8127-RPC + kamera; indeholder INGEN motor-/kamera-/WD-logik.
 - **`P_app_phone-devbox`** – 24/7 code-server + Claude Code i proot. Bruger Husks 8127 passivt.
 - **`P_kontor`** – office-consumer (Medlyt/EPOS/SMTP/RB5009).
