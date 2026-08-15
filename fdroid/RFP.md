@@ -1,7 +1,7 @@
 <!-- RFP (Request For Packaging) til F-Droid. Reference/skabelon til indsendelse på
      https://gitlab.com/fdroid/rfp/-/issues/new (vælg RFP-templaten).
      STATUS: pakningen er ALLEREDE i gang via fdroiddata-MR !40810 (se docs/BUILD.md afsnit 7);
-     denne fil holdes blot ajour som menneskelaesbar reference. Den kanoniske build-metadata er
+     denne fil holdes blot ajour som menneskelæsbar reference. Den kanoniske build-metadata er
      fdroid/co.xplat.husk.yml. -->
 
 ### App information
