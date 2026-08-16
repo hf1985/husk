@@ -65,3 +65,9 @@ via `am start` på den kørende rig** – det forgrunder Husk nær DeX og slår 
 midlertidigt fra. Verificér i stedet via `/flags`.
 
 
+
+## Åbne spor fra runde-planer
+
+<!-- SPOR-POINTERE: genereret af check-plan-pointers.sh - rediger ikke her -->
+- [ ] SPOR: `2026-08-16-lenovo-restfund-plan.md` S1 – Windows-blokken mangler i tre repoer hvor RIGTIGE filer berøres
+<!-- /SPOR-POINTERE -->
