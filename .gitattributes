@@ -1,5 +1,14 @@
 * text=auto eol=lf
-*.bat text eol=crlf
+
+# Windows-native scripts: behold CRLF (00_TEMPLATE's seks endelser). Blokken bar indtil
+# 2026-08-16 kun *.bat, saa repoets to sporede .ps1-filer i pc/ blev erklaeret LF.
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.psd1  text eol=crlf
+*.vbs   text eol=crlf
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+
 gradlew text eol=lf
 *.jar binary
 *.png binary
