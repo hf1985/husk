@@ -14,8 +14,9 @@ Funktioner:
 
 Privatliv og netværk: netværks-tjenesterne lytter på alle interfaces, men er beskyttet af en
 kilde-IP-tilladelsesliste, så kun loopback, dit lokale netværk og dit Tailscale-net kan nå dem
-(en valgfri token er et ekstra lag). Intet sendes til en ekstern server ud over den bevægelses-
-push du selv vælger (dit eget ntfy-emne). Appen er 100% open source (GPLv3) og bruger kun
+(en valgfri token er et ekstra lag). Intet sendes til en ekstern server ud over to ting du selv
+tænder eller beder om: bevægelses-pushen (til dit eget ntfy-emne), og opdateringstjekket, der
+læser versionsinfo fra xplat.co og henter APK'en fra GitHub når du starter en opdatering. Appen er 100% open source (GPLv3) og bruger kun
 AOSP-framework-API'er (ingen trackere, ingen reklamer).
 
 Bemærk: Husk bruger AccessibilityService-API'et til at automatisere skærm-handlinger og

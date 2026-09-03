@@ -15,7 +15,9 @@ Features:
 Privacy and network: the network services listen on all interfaces but are protected by a
 source-IP allowlist, so only loopback, your local network and your Tailscale network can
 reach them (an optional token adds a second layer). Nothing is sent to any external server
-except the motion push you configure (your own ntfy topic). The app is 100% open source
+except two things you turn on or ask for yourself: the motion push (to your own ntfy topic),
+and the update check, which reads version information from xplat.co and downloads the APK
+from GitHub when you start an update. The app is 100% open source
 (GPLv3) and uses only AOSP framework APIs (no trackers, no ads, no proprietary dependencies).
 
 Note: Husk uses the AccessibilityService API to automate on-screen actions, and exposes an

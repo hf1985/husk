@@ -8,10 +8,19 @@ root. Overblik: `README.md`. Agent-kontekst, invarianter og release-pligten:
 
 ## Status
 
-**Udgivet og i drift.** Nuværende version **0.9.30 / versionCode 49** (release af
-token-gate-fixet, 2026-07-16). Udgives på F-Droid (fdroiddata-MR !40810),
-GitHub-releases (`hf1985/husk`) og `xplat.co/husk`. Pure framework, ingen
-AndroidX, ingen afhængigheder.
+**Udgivet og i drift.** Nuværende version **0.9.31 / versionCode 50**
+(2026-09-03: ny release-signeringsnøgle + `vcsInfo { include false }`; ingen
+adfærdsændring). Udgives på F-Droid (fdroiddata-MR !40810), GitHub-releases
+(`hf1985/husk`) og `xplat.co/husk`. Pure framework, ingen AndroidX, ingen
+afhængigheder.
+
+**Signeringsnøglen blev skiftet i 0.9.31.** Den gamle var en genbrugt
+debug-keystore hvis kodeord stod i klartekst i `docs/BUILD.md` i dette
+OFFENTLIGE repo; F-Droid pinner nøglen permanent, så vinduet var FØR første
+publicering. Ny nøgle: `CN=xplat`, RSA 4096, SHA-256 `96195cfd…c17d`, i
+vaulten (se `docs/BUILD.md` §5). **Følgen er at in-app-updateren IKKE kan bære
+springet fra 0.9.30 til 0.9.31** – Android afviser en signaturændring. Hver
+enhed skal afinstalleres og geninstalleres via adb.
 
 Flåden er tre fysiske enheder: Note10+ SM-N975U1 (Android 12, DeX, token,
 `.103.102`) plus to spares, Sony 702SO (A9, tokenløs, `.101.101`) og Samsung
@@ -56,8 +65,32 @@ ajourført.
 
 ## Næste skridt
 
-Ingen bunden kodeopgave. Sporet nedenfor er den eneste åbne adressering af
-projektet lige nu.
+**1. De to spares skal på 0.9.31** (Hans tager dem; Note10 er gjort 2026-09-03).
+Opskriften der virkede på Note10, i rækkefølge, alt via `adb` fra Termux:
+afinstaller, installer, og **genskab så det afinstallationen tager med sig** –
+det er mere end man tror:
+- **Køretids-tilladelser nulstilles.** `/snapshot` svarede 503 »no frame yet«
+  indtil `pm grant co.xplat.husk android.permission.CAMERA` (samt
+  `RECORD_AUDIO`, de to `*_LOCATION`, `POST_NOTIFICATIONS`).
+- **a11y-registreringen ryddes.** `settings put secure
+  enabled_accessibility_services co.xplat.husk/co.xplat.husk.RigAccessibilityService`
+  + `accessibility_enabled 1`, og **den binder først ved næste reboot**.
+- **Batteri-undtagelsen ryddes.** `dumpsys deviceidle whitelist +co.xplat.husk`.
+- **`dex_reconnect` og `screen_share` ryddes.** Den første kan sættes hovedløst
+  (`am start -n co.xplat.husk/.MainActivity --ez dexreconnect true --ez finish true`);
+  den anden kan IKKE, fordi `ScreenConsentActivity` er `exported="false"` – den
+  kræver ét tryk på skærm-toggle i appens UI.
+- **Tokenet overlever** (det bor i `Settings.Global husk_token`, ikke i app-prefs).
+- **adb skal gå DIREKTE til adbd**, ikke gennem Husks bro på 15557: broen er en
+  del af appen og dør i det sekund man afinstallerer. Find porten med
+  `adb connect 127.0.0.1:15557` FØR afinstallationen, eller efter reboot når
+  a11y har genrejst WD.
+
+**2. `screen_share` mangler på Note10.** Skærmdeling var slået til før
+udskiftningen og er det ikke nu. Ét tryk i appens UI.
+
+**3. xplat.co er ikke deployet.** `P_xplat/hosting/app.py` har konstanterne på
+0.9.31 (committet), men `xplat.co/husk/latest.json` viser stadig 0.9.30.
 
 **Deploy til den kørende rig:** `adb install -r <apk>` når adb eller WD er sund,
 derefter `adb reboot` for en ren fuld tilstand. **Launch aldrig `MainActivity`

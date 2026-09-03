@@ -17,7 +17,9 @@ Android app (no AndroidX, no trackers, no ads) published as FOSS.
 
 Network services listen on all interfaces but are gated by a source-IP allowlist (only
 loopback, RFC1918/LAN and Tailscale `100.64.0.0/10` peers; an optional token adds a second
-layer). Nothing leaves your device except the motion push you configure (your own ntfy topic).
+layer). Nothing leaves your device except two things you turn on or ask for yourself: the motion push
+(to your own ntfy topic), and the update check, which reads version information from xplat.co
+and downloads the APK from GitHub when you start an update.
 Restrict remote access further with a Tailscale ACL.
 
 ## Simple UI
@@ -74,7 +76,9 @@ Husk's accepted-risk model, in one place:
   less trusted, add a shared token to the 8127 protocol before relying on it.
 - **15557 (adb bridge)** requires one-time pairing via `/pair` and otherwise follows the same
   source-IP allowlist as 8090.
-- Nothing leaves the device except the motion push you configure (your own ntfy topic).
+- Nothing leaves the device except the motion push you configure (your own ntfy topic) and the
+  in-app update check (xplat.co for the version, GitHub for the APK), which only runs when you
+  start it or a permitted peer calls `/update`.
 
 ## License
 GPL-3.0-or-later. See `LICENSE`.
