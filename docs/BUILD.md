@@ -205,39 +205,57 @@ Til **GitHub-releases** og repo'ets `husk-latest.apk` (det in-app-updateren hent
 vi med `apksigner`. **Alle versioner SKAL signeres med samme nøgle**, ellers afviser Android
 opdateringen (signaturskift = "app not installed").
 
-### Den kanoniske signeringsnøgle (LOKALISERET + SIKRET 2026-06-23)
+### Den kanoniske signeringsnøgle (UDSKIFTET 2026-09-03)
 
 ```
-Alias:    ad
-Owner:    CN=Debug, O=KHFRB, C=DK
-SHA-256:  1B:89:A9:20:16:C0:45:DC:2F:EB:3E:D6:08:D2:12:02:13:E6:1D:BA:F8:38:F3:5E:EA:25:1D:79:2E:62:AF:59
-storepass / keypass: android
+Alias:    husk
+Owner:    CN=xplat, O=xplat, C=DK
+Type:     PKCS12, RSA 4096, gyldig til 2056-08-26
+SHA-256:  96:19:5C:FD:54:0E:75:F8:A3:4D:FC:08:76:44:38:76:9D:4B:C3:E5:D7:97:0A:95:27:D9:70:04:D4:F2:C1:7D
 ```
-Det er den genbrugte debug-keystore fra note10/DexRPC-byggeinputtene. Den **var oprindeligt
-kun på telefonen** (single point of failure). Den findes nu tre steder (alle byte-identiske,
-filhash `ce17e543…`, verificeret med `keytool`):
 
-| Placering | Sti | Rolle |
-|-----------|-----|-------|
-| Telefon (kanon) | `~/husk/debug.keystore` (Termux: `/data/data/com.termux/files/home/husk/`) | original; også on-phone `build.sh` bruger den |
-| WSL | `~/android-build/husk-signing/debug.keystore` | signering i build-miljøet |
-| Windows | `C:\Users\hf198\repos\husk-signing\debug.keystore` | offline backup (uden for repo + Drive) |
+**Adgangskoden står IKKE her.** Den ligger i vaulten sammen med selve keystoren:
 
-Søsterkopi (samme nøgle, oprindelse): telefonens `~/khfrb-kontor/discord-note10/dextap/debug.keystore`.
+```
+bash ~/Tools/vault2/vault2.sh get-password "Husk release-signeringsnoegle (keystore husk-release.jks, base64)"
+bash ~/Tools/vault2/vault2.sh get          "Husk release-signeringsnoegle (keystore husk-release.jks, base64)"   # base64 af .jks
+```
 
-> ⚠️ **MÅ ALDRIG committes** (`.gitignore` ekskluderer `*.keystore`; backuppene ligger med vilje
-> uden for både repo'et og Drive-mappen). Mistes nøglen, kan ingen eksisterende installation
-> opdateres in-app igen (signaturskift → "app not installed") – kun afinstaller + nyinstaller.
-> Backup'en hentet fra telefonen med:
-> `scp -i ~/.ssh/note10 -P 8022 u0_a303@100.100.103.102:husk/debug.keystore <mål>`.
+Noten er base64 af `husk-release.jks`; dekod med `base64 -d` for at genskabe filen på en frisk
+maskine. Round-trip er verificeret 2026-09-03: `sha256` af vault-kopien er identisk med den
+lokale keystore (`11ff89eb…c554`, 4276 bytes). Nøglen opfylder dermed
+maskin-uafhængigheds-invarianten: den kan genskabes fra vaulten alene.
 
-Signér en build:
+Lokal arbejdskopi: `~/android-build/husk-signing/husk-release.jks` (mode 600, mappe 700).
+
+> **Hvorfor den blev skiftet.** Den gamle nøgle var en genbrugt **debug**-keystore
+> (`CN=Debug, O=KHFRB, C=DK`, alias `ad`) hvis kodeord stod i klartekst netop i denne fil, i et
+> OFFENTLIGT repo. F-Droid-indsendelsen (MR !40810) pinner certifikatet permanent via
+> `AllowedAPKSigningKeys`, og at skifte nøgle EFTER publicering brækker opdateringer for alle
+> installationer. Vinduet var derfor før første publicering, ikke efter.
+>
+> Den gamle nøgle er pensioneret, men **ikke værdiløs**: alt der er installeret fra og med
+> 0.9.30 og nedefter bærer den. Kopierne (telefonens `~/husk/debug.keystore` og
+> `~/android-build/husk-signing/debug.keystore`) skal blive liggende, indtil hver enhed er
+> geninstalleret på den nye nøgle.
+
+> ⚠️ **MÅ ALDRIG committes** (`.gitignore` ekskluderer `*.keystore` og `*.jks`). Mistes nøglen,
+> kan ingen eksisterende installation opdateres in-app igen (signaturskift →
+> »app not installed«), og F-Droid-builden fejler, fordi den udgivne APK så ikke længere bærer
+> den pinnede signatur.
+
+Signér en build (adgangskoden hentes fra vaulten og makuleres bagefter; `--key-pass` udelades,
+fordi PKCS12 bruger samme kodeord til store og nøgle, og apksigners `file:`-læser kun giver ÉN
+linje pr. forespørgsel):
 ```bash
 source ~/android-build/env21.sh
+PWF=~/android-build/husk-signing/.pw
+bash ~/Tools/vault2/vault2.sh get-password "Husk release-signeringsnoegle (keystore husk-release.jks, base64)" | tr -d '
+' > "$PWF"
+chmod 600 "$PWF"
 APK=~/android-build/husk-build/app/build/outputs/apk/release/app-release-unsigned.apk
-$ANDROID_HOME/build-tools/34.0.0/apksigner sign \
-  --ks ~/android-build/husk-signing/debug.keystore --ks-pass pass:android --key-pass pass:android \
-  --out ~/android-build/husk-build/husk-vX.apk "$APK"
+$ANDROID_HOME/build-tools/34.0.0/apksigner sign   --ks ~/android-build/husk-signing/husk-release.jks --ks-key-alias husk   --ks-pass "file:$PWF" --out ~/android-build/husk-build/husk-vX.apk "$APK"
+shred -u "$PWF"
 $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs ~/android-build/husk-build/husk-vX.apk
 ```
 eller via helper-scriptet:
@@ -336,6 +354,38 @@ curl -s --header "$H" "https://gitlab.com/api/v4/projects/$FORK/jobs/<JOB_ID>/tr
 - In-app-update: `https://raw.githubusercontent.com/hf1985/husk/main/latest.json` +
   `husk-latest.apk` skal være live og matche den nye `versionCode` (ISRG-cert → Android-9-OK).
 - xplat: `https://xplat.co/husk/latest.json` opdateret (HUSK-konstanter i `P_xplat`).
+
+## 7b. Reproducerbar build mod F-Droid (indført 2026-09-03, MR !40810)
+
+`metadata/co.xplat.husk.yml` bærer nu `Binaries` + `AllowedAPKSigningKeys`. F-Droid bygger derfor
+fra kilden, sammenligner med VORES udgivne APK, og distribuerer **vores egen signerede fil** i
+stedet for at signere med deres nøgle. Det er hele grunden til at en F-Droid-installeret Husk kan
+tage en in-app-opdatering: signaturerne matcher.
+
+Det koster tre HÅRDE krav pr. release. Brækker et af dem, fejler F-Droids build:
+
+1. **GitHub-releasen SKAL findes, og assetet SKAL hedde `husk-v<versionName>.apk`.**
+   `Binaries: https://github.com/hf1985/husk/releases/download/v%v/husk-v%v.apk`; `%v` er
+   versionName (fdroidserver `build.py`: `url.replace('%v', build.versionName)`).
+   0.9.30 blev tagget UDEN GitHub-release, og `Binaries` havde derfor intet at hente, før det
+   blev rettet 2026-09-03.
+2. **Signeringsnøglen skal matche `AllowedAPKSigningKeys`.** Feltet er en LISTE
+   (`build.py`: `used_key not in expected_keys`), så et nøgleskifte kan i princippet rummes ved
+   at tilføje det nye fingeraftryk. Men Android accepterer stadig ikke en opdatering med skiftet
+   signatur, så et skifte koster en afinstallation på hver enhed uanset hvad F-Droid gør.
+3. **Byg release-APK'en med `assembleRelease` fra en ren kilde.** Kontrolmålingen er:
+   klon taggen, byg, pak begge APK'er ud, og `diff -r` alt undtagen `META-INF/*.SF`, `*.RSA` og
+   `MANIFEST.MF`. Er den tom, vil F-Droids verifikation også lykkes. Målt grøn på HFs-lenovo
+   2026-09-03 mod den udgivne 0.9.30.
+
+**Den fælde der kostede en runde:** AGP 8.5.2 skrev `META-INF/version-control-info.textproto` ind
+i release-APK'en, og filens indhold afhænger af OM builden kørte i et git-checkout. Vores release
+bygges i en trækopi uden `.git` og fik `generate_error_reason: NO_SUPPORTED_VCS_FOUND`; F-Droids
+builder bygger I et checkout og fik en `repositories { system: GIT, revision: ... }`-blok. Det var
+den ENESTE forskel mellem de to APK'er (GitLab-job 16290645645). Midlertidigt løst med
+`rm: [.git]` i opskriften (job 16290790703 blev grøn); **permanent løst i 0.9.31** med
+`vcsInfo { include false }` på release-buildTypen, hvorefter filen slet ikke findes og `rm`-linjen
+er unødvendig.
 
 ## 8. Gotchas (lært undervejs)
 

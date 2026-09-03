@@ -14,7 +14,7 @@
 >
 > **Release-huskeliste** (fuld procedure: `docs/BUILD.md` §4–7):
 > 1. Bump `versionCode` + `versionName` – ÉT sted: `app/build.gradle`.
-> 2. Byg `assembleRelease` i WSL + signér med den faste keystore (alias `ad`).
+> 2. Byg `assembleRelease` i WSL + signér med release-keystoren (alias `husk`; adgangskode fra vaulten).
 > 3. Opdatér repo'ets `latest.json` + `husk-latest.apk` (den signerede APK).
 > 4. Opdatér `fdroid/co.xplat.husk.yml` (+ fork-metadata, MR !40810).
 > 5. Opdatér HUSK-konstanterne (`HUSK_VERSION_*`) i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
@@ -81,12 +81,15 @@ efter konkrete CPU-/frys-regressioner – rul dem ALDRIG tilbage):
 Kanonisk build = Gradle `assembleRelease` i WSL (`~/android-build`, env21.sh = JDK21+SDK). **Se
 `docs/BUILD.md`** (fuld procedure, G:→WSL-synk, signering, per-release-checkliste, F-Droid-CI-tjek).
 Een-kommando: `gradle-build.sh`. **Byg IKKE via `/mnt/g`** (Drive i WSL flaky) – synk fra git-bash til
-`//wsl.localhost/...` ELLER kald med `MSYS_NO_PATHCONV=1`. **Signeringsnøgle** (CN=Debug, O=KHFRB, C=DK,
-alias `ad`, pass `android`) ligger i WSL `~/android-build/husk-signing/` + telefon-backup – ALDRIG i
-repoet/Drive (`.gitignore` dækker `*.keystore`). Per release: følg **⛔ RELEASE-PLIGT-blokken
+`//wsl.localhost/...` ELLER kald med `MSYS_NO_PATHCONV=1`. **Signeringsnøgle** (UDSKIFTET 2026-09-03: `CN=xplat, O=xplat, C=DK`, alias `husk`, RSA 4096,
+SHA-256 `96195cfd…c17d`). Keystore OG adgangskode ligger i **vaulten** som login-item
+»Husk release-signeringsnoegle (keystore husk-release.jks, base64)«; arbejdskopi i WSL
+`~/android-build/husk-signing/husk-release.jks`. Adgangskoden står ALDRIG i en fil i repoet –
+den gamle debug-nøgles kodeord gjorde, i et offentligt repo, og det var grunden til skiftet.
+Se `docs/BUILD.md` §5. ALDRIG i repoet/Drive (`.gitignore` dækker `*.keystore`). Per release: følg **⛔ RELEASE-PLIGT-blokken
 øverst i denne fil** (alle 7 trin, inkl. xplat.co-konstanter + DEPLOY + verifikation af begge
 `latest.json`-endpoints); detaljer i `docs/BUILD.md` §6–7.
-Nuværende: **0.9.29 / versionCode 48** (audit-runde 2 via Note10, log `docs/AUDIT-2026-07-12-runde2.md`: selv-review fangede en HIGH-regression jeg indførte i 0.9.28 – `acceptInstallConsent` læste stale `lastUpdate` → gentaget `/update` efter »latest« stallede; rettet m. synkron »checking«-reset + `sawProgress`-gate. Plus 3 LOW: /vibrate-loft, sensor-NaN-guard, InstallReceiver-fejl-synlighed. Note10-rig live-verificeret sund på 0.9.28: kamera/H.264/hardware/DeX/CSRF). Tidligere: 0.9.28/47 (stor sikkerheds+korrektheds+ydelses-audit 2026-07-12 – 3 parallelle review-agenter + manuel verifikation; beslutnings-log i `docs/AUDIT-2026-07-12.md`. Højdepunkter: CSRF/DNS-rebinding-forsvar i ControlServer; kamera-permanent-død + H.264-ANR + PackageInstaller-session-læk fikset; A14-sikker specialUse→camera-FGS selv-heal (uændret på ≤A13); motion-på-skærm-CPU-spild fjernet + Bitmap/BAOS genbrug. Ingen invariant A-D svækket). Tidligere: 0.9.27/46 (`acceptInstallConsent` lærte Play Protects »Install without scanning«-sti; on-device auto-accept KUN delvist pålidelig på spares pga. flaky a11y-`getWindows()` → pålidelig ubemandet self-update = Play Protect-scanning FRA ELLER PC-harness vision+tap; docs/fleet-tailnet-transport.md §7). Tidligere: 0.9.26/45 (reflekteret-XSS-fix); 0.9.25/44 (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090 rejser sig efter in-app-opdatering – bevist virksom på spares 2026-07-12). Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
+Nuværende: **0.9.31 / versionCode 50** (ny release-nøgle + `vcsInfo { include false }` for reproducerbar F-Droid-build; ingen adfærdsændring. Signaturskiftet betyder at in-app-updateren IKKE kan bære springet – hver enhed skal afinstalleres og geninstalleres). Tidligere: 0.9.30/49 (token-gate for `/stream`, `/screen`, `/screen.mp4`). Tidligere: 0.9.29/48 (audit-runde 2 via Note10, log `docs/AUDIT-2026-07-12-runde2.md`: selv-review fangede en HIGH-regression jeg indførte i 0.9.28 – `acceptInstallConsent` læste stale `lastUpdate` → gentaget `/update` efter »latest« stallede; rettet m. synkron »checking«-reset + `sawProgress`-gate. Plus 3 LOW: /vibrate-loft, sensor-NaN-guard, InstallReceiver-fejl-synlighed. Note10-rig live-verificeret sund på 0.9.28: kamera/H.264/hardware/DeX/CSRF). Tidligere: 0.9.28/47 (stor sikkerheds+korrektheds+ydelses-audit 2026-07-12 – 3 parallelle review-agenter + manuel verifikation; beslutnings-log i `docs/AUDIT-2026-07-12.md`. Højdepunkter: CSRF/DNS-rebinding-forsvar i ControlServer; kamera-permanent-død + H.264-ANR + PackageInstaller-session-læk fikset; A14-sikker specialUse→camera-FGS selv-heal (uændret på ≤A13); motion-på-skærm-CPU-spild fjernet + Bitmap/BAOS genbrug. Ingen invariant A-D svækket). Tidligere: 0.9.27/46 (`acceptInstallConsent` lærte Play Protects »Install without scanning«-sti; on-device auto-accept KUN delvist pålidelig på spares pga. flaky a11y-`getWindows()` → pålidelig ubemandet self-update = Play Protect-scanning FRA ELLER PC-harness vision+tap; docs/fleet-tailnet-transport.md §7). Tidligere: 0.9.26/45 (reflekteret-XSS-fix); 0.9.25/44 (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090 rejser sig efter in-app-opdatering – bevist virksom på spares 2026-07-12). Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
 
 ## Deploy til den KØRENDE rig (kamera-sameksistens) – se docs/YDELSE-OG-DRIFT.md §3
 - `adb install -r <apk>` (når adb/WD er sund) → a11y/8127 re-binder selv (~4s), kameraet røres ikke;
