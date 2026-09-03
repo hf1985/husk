@@ -11,13 +11,20 @@ android {
         applicationId "co.xplat.husk"
         minSdk 26
         targetSdk 34
-        versionCode 49
-        versionName "0.9.30"
+        versionCode 50
+        versionName "0.9.31"
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            // Reproducerbare builds (F-Droid): uden denne linje skriver AGP
+            // META-INF/version-control-info.textproto ind i APK'en, og filens indhold
+            // afhænger af OM builden kørte i et git-checkout. Vores release bygges i en
+            // trækopi uden .git og får NO_SUPPORTED_VCS_FOUND; F-Droids builder bygger I
+            // et checkout og får en repositories-blok. Det var den ENESTE forskel mellem
+            // de to APK'er i 0.9.30 (målt 2026-09-03). include false fjerner filen helt.
+            vcsInfo { include false }
         }
     }
 
