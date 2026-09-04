@@ -132,13 +132,8 @@ switch ($Verb.ToLower()) {
     }
 
     'update' {
-        # SPAERRE 2026-09-04: se pc/spare.sh - noegleskiftet kan ikke krydses in-app.
-        if ($env:HUSK_TILLAD_UPDATE -ne "1") {
-            Write-Host "STOP: in-app-opdatering kan ikke krydse noegleskiftet (0.9.30 gammel" -ForegroundColor Red
-            Write-Host "  noegle -> 0.9.31 ny). Afinstaller + geninstaller via adb; se FORTSAET-HER.md." -ForegroundColor Red
-            Write-Host "  Saet HUSK_TILLAD_UPDATE=1 for bevidst at forsoege alligevel." -ForegroundColor Red
-            exit 3
-        }
+        # Spaerren fra 2026-09-04 er LOEFTET samme dag - se pc/spare.sh for begrundelsen.
+        # Hele flaaden staar paa 0.9.31 med samme noegle, saa in-app-opdatering virker igen.
         Wake
         Write-Host (Get-Text '/update?force=1')
         Write-Host ""

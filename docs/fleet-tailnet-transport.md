@@ -5,12 +5,17 @@ flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-mem
 `note10-meeting-camera`.
 
 > ## SENESTE STATUS (2026-07-13, handoff til enhver session/bruger)
-> - **FORÆLDET 2026-09-04: flåden er IKKE længere ensartet.** Note10 er på 0.9.31/50 med en NY
->   signeringsnøgle; begge spares står på 0.9.30/49 med den gamle. **`spare.ps1 <a9|a11> update`
->   kan derfor IKKE bringe dem over** - Android afviser et signaturskifte, uanset Play Protect.
->   De kræver afinstallation + geninstallation via adb; opskrift i `FORTSÆT-HER.md`.
->   Historisk stod her: »HELE flåden på 0.9.29 med a11y (alle vc=48), Play Protect FRA på begge
->   spares -> in-app self-update helt ubemandet«.
+> - **HELE flåden på 0.9.31/50 med den NYE signeringsnøgle** (målt 2026-09-04 via `/info`):
+>   Note10 SM-N975U1 (A12), Sony 702SO (A9, sdk 28) og Samsung SM-A102U1 (A11, sdk 30). Alle tre
+>   har a11y oppe, skærmdeling til, batteri-undtagelsen på, og `/snapshot` svarer 200 med et
+>   rigtigt JPEG.
+>   **Nøgleskiftet krævede afinstallation + geninstallation på hver enhed** - Android afviser et
+>   signaturskifte, uanset Play Protect, så `spare.* update` kunne ikke bruges til springet.
+>   Opskriften står i `FORTSÆT-HER.md` og gælder ethvert fremtidigt nøgleskifte.
+>   **A9-noten:** `.101`s updater logger `xplat=SSLHandshakeException` og falder tilbage til
+>   GitHub-raw. Det er den DESIGNEDE adfærd, ikke en fejl: xplat.co's cert kæder til Google Trust
+>   Services, mens raw/objects.githubusercontent.com bruger ISRG Root X1, der er betroet ned til
+>   Android 7.1.1. Fallbacken virkede: `latest via github (have 50, remote 50)`.
 > - **⚠️ Lære (A9): en app-opdatering kan AFBINDE a11y-servicen på ældre Android.** .101 endte efter
 >   0.9.29-installen med a11y=false (8090+kamera kørte, `/rpc`/8127 nede); **løst ved POWER-CYCLE** (a11y
 >   re-bandt ved boot). A11/A12 re-bandt selv. Spares mangler Note10's a11y-vagthund (adb-re-enable). **Ved

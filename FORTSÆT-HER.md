@@ -65,29 +65,31 @@ ajourført.
 
 ## Næste skridt
 
-**1. De to spares skal på 0.9.31** (Hans tager dem; Note10 er gjort 2026-09-03).
-Opskriften der virkede på Note10, i rækkefølge, alt via `adb` fra Termux:
-afinstaller, installer, og **genskab så det afinstallationen tager med sig** –
-det er mere end man tror:
-- **Køretids-tilladelser nulstilles.** `/snapshot` svarede 503 »no frame yet«
-  indtil `pm grant co.xplat.husk android.permission.CAMERA` (samt
-  `RECORD_AUDIO`, de to `*_LOCATION`, `POST_NOTIFICATIONS`).
-- **a11y-registreringen ryddes.** `settings put secure
-  enabled_accessibility_services co.xplat.husk/co.xplat.husk.RigAccessibilityService`
-  + `accessibility_enabled 1`, og **den binder først ved næste reboot**.
-- **Batteri-undtagelsen ryddes.** `dumpsys deviceidle whitelist +co.xplat.husk`.
-- **`dex_reconnect` og `screen_share` ryddes.** Den første sættes hovedløst
-  (`am start -n co.xplat.husk/.MainActivity --ez dexreconnect true --ez finish true`).
-  Den anden kan IKKE sættes gennem `ScreenConsentActivity` (`exported="false"`),
-  men den kræver **ikke** et menneske: `am start` på `MainActivity`, `adb exec-out
-  screencap -p` som ØJNE, og `adb shell input tap` som FINGER. Toggle'en »Screen
-  sharing (keep on)« ligger på `953,1222` i 1080x2280. Husks egen a11y-motor
-  accepterer derefter MediaProjection-dialogen selv. Målt virksom 2026-09-04.
-- **Tokenet overlever** (det bor i `Settings.Global husk_token`, ikke i app-prefs).
-- **adb skal gå DIREKTE til adbd**, ikke gennem Husks bro på 15557: broen er en
-  del af appen og dør i det sekund man afinstallerer. Find porten med
-  `adb connect 127.0.0.1:15557` FØR afinstallationen, eller efter reboot når
-  a11y har genrejst WD.
+**1. Flåden er FÆRDIG (2026-09-04): alle tre enheder på 0.9.31/50 med den nye nøgle.**
+Note10 blev geninstalleret af sessionen, de to spares af ejeren. Målt via `/info` bagefter:
+Sony 702SO (A9, sdk 28) og Samsung SM-A102U1 (A11, sdk 30), begge `versionName 0.9.31`,
+`versionCode 50`, `a11y: true`, `screen: true`, `batteryOptIgnored: true`, og `/snapshot` 200
+med et rigtigt JPEG (83-97 kB på A9, 380-405 kB på A11).
+
+> **Opskriften er BEVARET her, fordi den gælder ethvert fremtidigt nøgleskifte** - ikke kun dette.
+> Afinstallationen tager mere med sig end app-data:
+> - **Køretids-tilladelser nulstilles.** `/snapshot` svarer 503 »no frame yet« indtil
+>   `pm grant co.xplat.husk android.permission.CAMERA` (samt `RECORD_AUDIO`, de to `*_LOCATION`,
+>   `POST_NOTIFICATIONS`). **Bemærk at 503 også er den DOVNE kameras normale første svar** - kald
+>   `/snapshot` to-tre gange før du dømmer, og se på `camera`-flaget i `/flags`.
+> - **a11y-registreringen ryddes.** `settings put secure enabled_accessibility_services
+>   co.xplat.husk/co.xplat.husk.RigAccessibilityService` + `accessibility_enabled 1`, og **den
+>   binder først ved næste reboot**.
+> - **Batteri-undtagelsen ryddes.** `dumpsys deviceidle whitelist +co.xplat.husk`.
+> - **`dex_reconnect` og `screen_share` ryddes.** Den første sættes hovedløst
+>   (`am start -n co.xplat.husk/.MainActivity --ez dexreconnect true --ez finish true`).
+>   Den anden kan ikke sættes gennem `ScreenConsentActivity` (`exported="false"`), men kræver
+>   **ikke** et menneske: `am start` på `MainActivity`, `adb exec-out screencap -p` som ØJNE, og
+>   `adb shell input tap` som FINGER. Toggle'en »Screen sharing (keep on)« lå på `953,1222` i
+>   1080x2280 på Note10. Husks egen a11y-motor accepterer derefter MediaProjection-dialogen selv.
+> - **Tokenet overlever** (det bor i `Settings.Global husk_token`, ikke i app-prefs).
+> - **adb skal gå DIREKTE til adbd**, ikke gennem Husks bro på 15557: broen er en del af appen og
+>   dør i det sekund man afinstallerer.
 
 **2. xplat.co ER deployet** (2026-09-04). Begge `latest.json`-endpoints viser
 `versionCode 50`, `/husk/openapi.json` melder 0.9.31 med 44 paths, og
