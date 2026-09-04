@@ -89,8 +89,16 @@ det er mere end man tror:
 **2. `screen_share` mangler på Note10.** Skærmdeling var slået til før
 udskiftningen og er det ikke nu. Ét tryk i appens UI.
 
-**3. xplat.co er ikke deployet.** `P_xplat/hosting/app.py` har konstanterne på
-0.9.31 (committet), men `xplat.co/husk/latest.json` viser stadig 0.9.30.
+**3. xplat.co ER deployet** (2026-09-04). Begge `latest.json`-endpoints viser
+`versionCode 50`, `/husk/openapi.json` melder 0.9.31 med 44 paths, og
+`pc/check-api-parity.sh` er grøn. Release-pligtens trin 8 er dermed opfyldt.
+
+> **Fælde værd at huske:** deployet blev først fejlagtigt meldt umuligt, fordi
+> `~/.ssh/agent.env` ikke fandtes i WSL. Det er den forkerte prøve.
+> `hosting-deploy.sh` skal køres fra **Git Bash** (vault2 virker kun dér) og
+> bruger selv `scripts/deploy-asura/wsl-transport.sh` som bro til den private
+> Asura-nøgle, der kun ligger i WSL (`~/.ssh/khfrb_asura_openssh`).
+> Én negativ prøve på ét sted er ikke et bevis for manglende adgang.
 
 **Deploy til den kørende rig:** `adb install -r <apk>` når adb eller WD er sund,
 derefter `adb reboot` for en ren fuld tilstand. **Launch aldrig `MainActivity`
