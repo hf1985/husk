@@ -76,20 +76,20 @@ det er mere end man tror:
   enabled_accessibility_services co.xplat.husk/co.xplat.husk.RigAccessibilityService`
   + `accessibility_enabled 1`, og **den binder først ved næste reboot**.
 - **Batteri-undtagelsen ryddes.** `dumpsys deviceidle whitelist +co.xplat.husk`.
-- **`dex_reconnect` og `screen_share` ryddes.** Den første kan sættes hovedløst
-  (`am start -n co.xplat.husk/.MainActivity --ez dexreconnect true --ez finish true`);
-  den anden kan IKKE, fordi `ScreenConsentActivity` er `exported="false"` – den
-  kræver ét tryk på skærm-toggle i appens UI.
+- **`dex_reconnect` og `screen_share` ryddes.** Den første sættes hovedløst
+  (`am start -n co.xplat.husk/.MainActivity --ez dexreconnect true --ez finish true`).
+  Den anden kan IKKE sættes gennem `ScreenConsentActivity` (`exported="false"`),
+  men den kræver **ikke** et menneske: `am start` på `MainActivity`, `adb exec-out
+  screencap -p` som ØJNE, og `adb shell input tap` som FINGER. Toggle'en »Screen
+  sharing (keep on)« ligger på `953,1222` i 1080x2280. Husks egen a11y-motor
+  accepterer derefter MediaProjection-dialogen selv. Målt virksom 2026-09-04.
 - **Tokenet overlever** (det bor i `Settings.Global husk_token`, ikke i app-prefs).
 - **adb skal gå DIREKTE til adbd**, ikke gennem Husks bro på 15557: broen er en
   del af appen og dør i det sekund man afinstallerer. Find porten med
   `adb connect 127.0.0.1:15557` FØR afinstallationen, eller efter reboot når
   a11y har genrejst WD.
 
-**2. `screen_share` mangler på Note10.** Skærmdeling var slået til før
-udskiftningen og er det ikke nu. Ét tryk i appens UI.
-
-**3. xplat.co ER deployet** (2026-09-04). Begge `latest.json`-endpoints viser
+**2. xplat.co ER deployet** (2026-09-04). Begge `latest.json`-endpoints viser
 `versionCode 50`, `/husk/openapi.json` melder 0.9.31 med 44 paths, og
 `pc/check-api-parity.sh` er grøn. Release-pligtens trin 8 er dermed opfyldt.
 
@@ -99,6 +99,15 @@ udskiftningen og er det ikke nu. Ét tryk i appens UI.
 > bruger selv `scripts/deploy-asura/wsl-transport.sh` som bro til den private
 > Asura-nøgle, der kun ligger i WSL (`~/.ssh/khfrb_asura_openssh`).
 > Én negativ prøve på ét sted er ikke et bevis for manglende adgang.
+
+> **Samme fælde en gang til, samme dag:** `screen_share` blev meldt som »kræver
+> et menneske«, fordi `ScreenConsentActivity` ikke er exported. Men adb giver
+> både syn (`screencap`) og berøring (`input tap`), så appens egen UI kan betjenes
+> uden a11y og uden en person. CLAUDE.mds advarsel mod at forgrunde `MainActivity`
+> på den kørende rig holdt IKKE her: efter tryk + `KEYCODE_HOME` var a11y stadig
+> PONG, `/snapshot` gav 200 (230 kB), `/screen.jpg` 200 (82 kB) og adb-broen levede.
+> Advarslen gælder DeX-churn, og det er uvist om DeX var tilsluttet under målingen,
+> så den er ikke modbevist - kun konstateret uskadelig i dette tilfælde.
 
 **Deploy til den kørende rig:** `adb install -r <apk>` når adb eller WD er sund,
 derefter `adb reboot` for en ren fuld tilstand. **Launch aldrig `MainActivity`
