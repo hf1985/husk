@@ -29,9 +29,10 @@
 #   HUSK_WORK=~/android-build/husk-build  # WSL-arbejdsbibliotek (gradle-cache genbruges)
 #   HUSK_SRC="/mnt/g/My Drive/10_PROJEKTER/P_app_husk"  # kilde til auto-synk
 #   HUSK_NOSYNC=1                         # spring synk over (kilden er allerede i HUSK_WORK)
-#   HUSK_KEYSTORE=~/android-build/husk-signing/debug.keystore  # signér output (kanonisk
+#   HUSK_KEYSTORE=~/android-build/husk-signing/husk-release.jks  # signér output (kanonisk
 #                                          # noegle CN=Debug,O=KHFRB; ellers kun unsigned APK)
-#   HUSK_KS_PASS=android  HUSK_KEY_PASS=android
+#   HUSK_KEY_ALIAS=husk                     # default: husk
+#   HUSK_KS_PASS=<kodeord> ELLER HUSK_KS_PASS_FILE=<sti>   # INGEN default (2026-09-04)
 set -euo pipefail
 
 ENVF="${HUSK_ENV:-$HOME/android-build/env21.sh}"
@@ -88,12 +89,23 @@ if [ -n "$KS" ] && [ -f "$KS" ]; then
   AS="$ANDROID_HOME/build-tools/34.0.0/apksigner"
   OUT="$WORK/husk-v${VN//./}.apk"
   echo "== signér -> $OUT =="
-  "$AS" sign --ks "$KS" --ks-pass "pass:${HUSK_KS_PASS:-android}" \
-    --key-pass "pass:${HUSK_KEY_PASS:-android}" --out "$OUT" "$UNSIGNED"
+  ALIAS="${HUSK_KEY_ALIAS:-husk}"
+  # INGEN default paa kodeordet laengere. Den gamle default var "android", altsaa den
+  # PENSIONEREDE debug-keystores kodeord, saa scriptet ville have signeret tavst forkert
+  # mod release-noeglen. Hentes fra vaulten; se docs/BUILD.md afsnit 5.
+  if [ -z "${HUSK_KS_PASS:-}" ] && [ -z "${HUSK_KS_PASS_FILE:-}" ]; then
+    echo "FEJL: saet HUSK_KS_PASS eller HUSK_KS_PASS_FILE - der er ingen default." >&2
+    exit 1
+  fi
+  if [ -n "${HUSK_KS_PASS_FILE:-}" ]; then PASSARG="file:$HUSK_KS_PASS_FILE"
+  else PASSARG="pass:$HUSK_KS_PASS"; fi
+  # --key-pass UDELADES med vilje: PKCS12 bruger samme kodeord til store og noegle, og
+  # apksigners file:-laeser giver kun EEN linje pr. forespoergsel (maalt 2026-09-03).
+  "$AS" sign --ks "$KS" --ks-key-alias "$ALIAS" --ks-pass "$PASSARG" --out "$OUT" "$UNSIGNED"
   "$AS" verify --print-certs "$OUT" | grep -i "certificate DN" || true
   echo "SIGNED: $OUT"
   echo "ADVARSEL: GitHub-release + repo'ets husk-latest.apk SKAL signeres med SAMME noegle"
-  echo "          (CN=Debug, O=KHFRB, C=DK) ellers afvises in-app-opdateringer. Se docs/BUILD.md."
+  echo "          (CN=xplat, O=xplat, C=DK; SHA-256 96195cfd...c17d) ellers afvises opdateringer."
 else
   echo "Ikke signeret (HUSK_KEYSTORE ikke sat). F-Droid behoever ingen signering;"
   echo "GitHub/in-app-update SKAL bruge den kanoniske keystore - se docs/BUILD.md afsnit 5."

@@ -5,8 +5,12 @@ flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-mem
 `note10-meeting-camera`.
 
 > ## SENESTE STATUS (2026-07-13, handoff til enhver session/bruger)
-> - **HELE flåden på 0.9.29 med a11y** (.101 Sony/A9, .102 Samsung/A11, Note10/A12 – alle vc=48, a11y OK).
->   **Play Protect FRA på begge spares** → in-app self-update helt ubemandet: `spare.ps1 <a9|a11> update`.
+> - **FORÆLDET 2026-09-04: flåden er IKKE længere ensartet.** Note10 er på 0.9.31/50 med en NY
+>   signeringsnøgle; begge spares står på 0.9.30/49 med den gamle. **`spare.ps1 <a9|a11> update`
+>   kan derfor IKKE bringe dem over** - Android afviser et signaturskifte, uanset Play Protect.
+>   De kræver afinstallation + geninstallation via adb; opskrift i `FORTSÆT-HER.md`.
+>   Historisk stod her: »HELE flåden på 0.9.29 med a11y (alle vc=48), Play Protect FRA på begge
+>   spares -> in-app self-update helt ubemandet«.
 > - **⚠️ Lære (A9): en app-opdatering kan AFBINDE a11y-servicen på ældre Android.** .101 endte efter
 >   0.9.29-installen med a11y=false (8090+kamera kørte, `/rpc`/8127 nede); **løst ved POWER-CYCLE** (a11y
 >   re-bandt ved boot). A11/A12 re-bandt selv. Spares mangler Note10's a11y-vagthund (adb-re-enable). **Ved
@@ -19,9 +23,12 @@ flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-mem
 >   `bash pc/check-api-parity.sh` er GRØN** (fanger udokumenterede/stale endpoints + versionCode-drift).
 >   Wired ind i RELEASE-PLIGT (CLAUDE.md) + docs/BUILD.md. (0.9.28/29 tilføjede endpoints som var
 >   udokumenterede indtil 2026-07-13.)
-> - **Note10 (SM-N975U1/A12, DeX, TOKEN, `100.100.103.102`) er OGSÅ på 0.9.28** (opdateret rig-sikkert
->   2026-07-12 – a11y re-bandt, DeX + kamera urørt). Token ligger i overbygningens `~/husk-overbygning/
->   config.sh` (`HUSK_TOKEN=…`), IKKE i `Settings.Global`. **Opdatér den ALDRIG via `/update`**
+> - **Note10 (SM-N975U1/A12, DeX, TOKEN, `100.100.103.102`) står nu på 0.9.31/50** (geninstalleret
+>   2026-09-04 pga. nøgleskiftet; a11y, DeX, kamera og skærmdeling verificeret bagefter).
+>   Token findes BÅDE i overbygningens `~/husk-overbygning/config.sh` (`HUSK_TOKEN=…`) **og i
+>   `Settings.Global husk_token`** - påstanden »IKKE i `Settings.Global`« var falsk og er rettet
+>   2026-09-04: `Rig.java` har læst det derfra siden 0.9.24, det blev målt til stede med 48 tegn,
+>   og det **overlever en afinstallation**, hvilket er grunden til at geninstallationen ikke tabte det. **Opdatér den ALDRIG via `/update`**
 >   (foregrunder MainActivity → Samsung »restart on another display«-churn på DeX → a11y/scrcpy/Discord-
 >   crash; docs/YDELSE-OG-DRIFT.md §3). **Rig-sikker vej (virkede):** `/wd?token=…` (cacher WD-porten
 >   for adb-broen) → `adb connect <ts-ip>:15557` → `adb push <apk> /data/local/tmp/` → `adb shell pm

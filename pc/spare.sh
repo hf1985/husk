@@ -171,6 +171,13 @@ case "${VERB,,}" in
         ;;
 
     update)
+        # SPAERRE 2026-09-04: Note10 gik til 0.9.31 med en NY signeringsnoegle.
+        # De to spares staar paa 0.9.30 med den GAMLE. Android afviser et signaturskifte,
+        # saa in-app-opdatering kan IKKE bringe dem over - uanset Play Protect.
+        echo 'STOP: in-app-opdatering kan ikke krydse noegleskiftet (0.9.30 gammel noegle
+  -> 0.9.31 ny). Spare'"'"'en skal afinstalleres og geninstalleres via adb; opskriften staar
+  i FORTSAET-HER.md. Saet HUSK_TILLAD_UPDATE=1 hvis du bevidst vil forsoege alligevel.' >&2
+        [ "${HUSK_TILLAD_UPDATE:-0}" = "1" ] || exit 3
         wake
         get_text '/update?force=1'
         echo ""

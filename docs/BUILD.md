@@ -52,10 +52,13 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
    (Windows-launcher) til alt Python på PC-siden (fx F-Droid-API-scriptet).
 
 **Adgange (flyttede efter secrets-off-computer 2026-07-10):**
-- **Signeringsnøgle:** WSL `~/android-build/husk-signing/debug.keystore` (pass `android`) - uændret.
-- **Asura-SSH-nøglen ligger nu KUN i ssh-agenten** (ikke på disk). Load først:
-  `eval "$(cat ~/.ssh/agent.env)"`. Advarslen `Identity file ...khfrb_asura_openssh not accessible`
-  er FORVENTET og harmløs - agenten leverer nøglen.
+- **Signeringsnøgle:** release-keystoren `~/android-build/husk-signing/husk-release.jks`
+  (alias `husk`). **Kodeordet står ikke i denne fil** - hverken det eller keystoren; begge hentes
+  fra vaulten. Se afsnit 5. Den pensionerede debug-keystore er beskrevet samme sted.
+- **Asura-SSH-nøglen findes TRE steder** (rettet 2026-09-04; her stod »ligger nu KUN i
+  ssh-agenten«, hvilket er falsk og kostede en fejlmelding): i WSL
+  `~/.ssh/khfrb_asura_openssh`, i vault-item `ssh: khfrb_asura_openssh`, og som DPAPI-blob
+  `$HOME/Tools/vault2/asura-ssh.dpapi`. Kanonisk: `_styresystem/infra/asura.md`.
 - **GitLab-PAT ligger nu i vaulten**, ikke `Tools/gitlab/token.txt` (tom). Hent:
   `bash ~/Tools/vault2/vault2.sh get 'tool: gitlab/token.txt'` (grep `glpat-...` ud; hardcode aldrig).
 
@@ -64,7 +67,8 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
 2. Kopiér kilde G:->WSL + byg (afsnit 3-4): `assembleRelease` -> unsigned APK.
 3. **Signér via et WSL-script** (IKKE inline, jf. gotcha 1): skriv `sign-verify.sh` til `~` i WSL og
    kør `wsl.exe --cd '~' -- bash -lc 'bash ~/sign-verify.sh'`. Verificér cert-digest =
-   `1b89a920...62af59` (ellers afviser Android opdateringen).
+   `96195cfd...c17d` (release-noeglen; ellers afviser Android opdateringen). Det gamle
+   `1b89a920...62af59` er den PENSIONEREDE debug-noegle - se afsnit 5.
 4. Kopiér den signerede APK til repoets `husk-latest.apk`:
    `cp "//wsl.localhost/Ubuntu/home/hf198/android-build/husk-build/husk-vX.apk" "/g/My Drive/10_PROJEKTER/P_app_husk/husk-latest.apk"`.
 5. Opdatér `latest.json` (ny versionCode) + `fdroid/co.xplat.husk.yml` (ny Builds-entry
@@ -259,7 +263,8 @@ shred -u "$PWF"
 $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs ~/android-build/husk-build/husk-vX.apk
 ```
 eller via helper-scriptet:
-`HUSK_KEYSTORE=~/android-build/husk-signing/debug.keystore bash gradle-build.sh`.
+`HUSK_KEYSTORE=~/android-build/husk-signing/husk-release.jks HUSK_KEY_ALIAS=husk bash gradle-build.sh`
+(kodeordet gives via `HUSK_KS_PASS`, hentet fra vaulten - aldrig som literal).
 
 ---
 
@@ -274,7 +279,10 @@ F-Droid-CI):
    raw.githubusercontent / ISRG-cert – se [[husk-app]] for cert-historikken).
 4. Opdater xplat HUSK-konstanter i `P_xplat/hosting/app.py` (`HUSK_VERSION_NAME`,
    `HUSK_VERSION_CODE`, `HUSK_APK` = raw `husk-latest.apk`) **OG DEPLOY xplat.co** (`P_xplat`:
-   `check-local.sh` grøn → `wsl.exe -- bash -c "cd .../P_xplat && bash scripts/hosting-deploy.sh --apply"`)
+   `check-local.sh` grøn → kør fra **Git Bash**: `bash scripts/hosting-deploy.sh --apply`.
+   IKKE via `wsl.exe`: `vault2` kan kun køre i Git Bash, og scriptet henter selv
+   Asura-nøglen gennem `scripts/deploy-asura/wsl-transport.sh`. Rettet 2026-09-04 efter at
+   den gamle ordlyd fik en runde til at melde deployet umuligt)
    **+ verificér live**: `curl https://xplat.co/husk/latest.json` skal vise den nye `versionCode`.
    KRITISK: appens updater spørger xplat.co FØRST (GitHub-raw er kun fallback) – glemmer man at
    deploye xplat, siger enheder der nåer xplat "allerede nyeste" (set 0.9.18–0.9.21). Begge endpoints
@@ -414,6 +422,7 @@ er unødvendig.
 - `gradle/wrapper/*` – committet wrapper (Gradle 8.7).
 - `fdroid/co.xplat.husk.yml` – F-Droid-metadata (KILDE for fork-metadata, MR !40810).
 - WSL: `~/android-build/` (miljø), `~/android-build/hb*.log` (historiske build-logs).
-- **Signeringsnøgle (IKKE i git):** telefonens `~/husk/debug.keystore` (kanon) +
-  backups `~/android-build/husk-signing/debug.keystore` (WSL) og
-  `C:\Users\hf198\repos\husk-signing\debug.keystore` (Windows). Se afsnit 5.
+- **Signeringsnøgle (IKKE i git):** kanon er `husk-release.jks` i **vaulten** (login-item
+  »Husk release-signeringsnoegle«), arbejdskopi `~/android-build/husk-signing/husk-release.jks`.
+  Den PENSIONEREDE debug-keystore ligger stadig på telefonen (`~/husk/debug.keystore`) og i
+  WSL, og skal blive der indtil hver enhed er geninstalleret på den nye nøgle. Se afsnit 5.

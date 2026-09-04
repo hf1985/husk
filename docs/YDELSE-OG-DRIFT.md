@@ -138,7 +138,7 @@ På en rig hvor Husk deler enheden med en anden kamera-app (Discord), gælder:
   rigtigt, ikke en fejl.
 
 Byg/signér: se [`BUILD.md`](BUILD.md). Kort: i WSL `MSYS_NO_PATHCONV=1 wsl.exe --cd '~' -- bash -lc
-'HUSK_KEYSTORE=$HOME/android-build/husk-signing/debug.keystore bash ".../gradle-build.sh"'`, så
+'HUSK_KEYSTORE=$HOME/android-build/husk-signing/husk-release.jks HUSK_KEY_ALIAS=husk bash ".../gradle-build.sh"'`, så
 `scp` APK'en til telefonen og `adb install -r`.
 
 ---

@@ -2,6 +2,7 @@
 android.jar
 debug.keystore
 *.keystore
+*.jks
 # Byggeoutput
 obj/
 bin/
