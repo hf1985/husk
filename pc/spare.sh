@@ -171,11 +171,29 @@ case "${VERB,,}" in
         ;;
 
     update)
-        # Spaerren fra 2026-09-04 er LOEFTET samme dag: hele flaaden staar nu paa 0.9.31 med
-        # den nye noegle, saa in-app-opdatering virker igen. Viden bevaret, fordi den gaelder
-        # ethvert FREMTIDIGT noegleskifte: Android afviser en opdatering hvis signaturen
-        # aendrer sig, uanset Play Protect, og springet kraever da afinstaller + geninstaller
-        # via adb (opskrift i FORTSAET-HER.md). Genindfoer spaerren hvis noeglen skiftes igen.
+        # VAERN, genindfoert 2026-09-04 EFTER at en adversarisk verifikation fandt at
+        # ophaevelsen af noegleskifte-spaerren utilsigtet genaabnede en handling husets egne
+        # docs FORBYDER. Grunden er en HELT anden end noeglen, og den udloeb ikke med den:
+        #
+        #  * note10/rig: docs/fleet-tailnet-transport.md siger 'Opdater den ALDRIG via /update'.
+        #    /update forgrunder MainActivity -> Samsungs 'restart on another display'-churn paa
+        #    DeX -> a11y, scrcpy og Discord falder. Det er kontor-moedekameraet.
+        #  * a9: en opdatering kan afbinde a11y, og A9 mangler Wireless Debugging, saa den
+        #    KAN IKKE fikses remote uden et USB-kabel.
+        #
+        # force=1 er ikke en no-op paa en enhed der allerede er paa nyeste version: Updater.java
+        # gater kun med 'if (!force && latest <= cur)', saa kaldet geninstallerer samme version.
+        case "${TARGET,,}" in
+            note10|rig)
+                echo 'STOP: /update er FORBUDT paa note10 (DeX-churn slaar a11y, scrcpy og' >&2
+                echo '  Discord ned). Se docs/fleet-tailnet-transport.md. Saet HUSK_TILLAD_UPDATE=1'  >&2
+                echo '  hvis du bevidst vil goere det alligevel.' >&2
+                [ "${HUSK_TILLAD_UPDATE:-0}" = "1" ] || exit 3 ;;
+            a9|sony|702so)
+                echo 'ADVARSEL: A9 kan afbinde a11y ved en opdatering og har INGEN Wireless' >&2
+                echo '  Debugging - en fejl kraever et USB-kabel paa stedet.' >&2
+                [ "${HUSK_TILLAD_UPDATE:-0}" = "1" ] || { echo "  Saet HUSK_TILLAD_UPDATE=1 for at fortsaette." >&2; exit 3; } ;;
+        esac
         wake
         get_text '/update?force=1'
         echo ""

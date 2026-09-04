@@ -132,8 +132,24 @@ switch ($Verb.ToLower()) {
     }
 
     'update' {
-        # Spaerren fra 2026-09-04 er LOEFTET samme dag - se pc/spare.sh for begrundelsen.
-        # Hele flaaden staar paa 0.9.31 med samme noegle, saa in-app-opdatering virker igen.
+        # VAERN, genindfoert 2026-09-04 - se pc/spare.sh for den fulde begrundelse.
+        # Kort: /update er FORBUDT paa note10 (DeX-churn), og A9 kan afbinde a11y uden at
+        # kunne fikses remote (ingen Wireless Debugging). Grunden er en anden end noegleskiftet.
+        $lav = $Target.ToLower()
+        if ($env:HUSK_TILLAD_UPDATE -ne "1") {
+            if ($lav -in @('note10','rig')) {
+                Write-Host "STOP: /update er FORBUDT paa note10 (DeX-churn slaar a11y, scrcpy og" -ForegroundColor Red
+                Write-Host "  Discord ned). Se docs/fleet-tailnet-transport.md." -ForegroundColor Red
+                Write-Host "  Saet HUSK_TILLAD_UPDATE=1 for bevidst at goere det alligevel." -ForegroundColor Red
+                exit 3
+            }
+            if ($lav -in @('a9','sony','702so')) {
+                Write-Host "STOP: A9 kan afbinde a11y ved en opdatering og har INGEN Wireless" -ForegroundColor Red
+                Write-Host "  Debugging - en fejl kraever et USB-kabel paa stedet." -ForegroundColor Red
+                Write-Host "  Saet HUSK_TILLAD_UPDATE=1 for at fortsaette." -ForegroundColor Red
+                exit 3
+            }
+        }
         Wake
         Write-Host (Get-Text '/update?force=1')
         Write-Host ""

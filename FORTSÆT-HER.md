@@ -18,9 +18,9 @@ afhængigheder.
 debug-keystore hvis kodeord stod i klartekst i `docs/BUILD.md` i dette
 OFFENTLIGE repo; F-Droid pinner nøglen permanent, så vinduet var FØR første
 publicering. Ny nøgle: `CN=xplat`, RSA 4096, SHA-256 `96195cfd…c17d`, i
-vaulten (se `docs/BUILD.md` §5). **Følgen er at in-app-updateren IKKE kan bære
-springet fra 0.9.30 til 0.9.31** – Android afviser en signaturændring. Hver
-enhed skal afinstalleres og geninstalleres via adb.
+vaulten (se `docs/BUILD.md` §5). **Springet fra 0.9.30 til 0.9.31 kunne
+ikke bæres af in-app-updateren** – Android afviser en signaturændring – så alle tre enheder blev
+afinstalleret og geninstalleret via adb. **Det er gjort (2026-09-04); flåden er ensartet.**
 
 Flåden er tre fysiske enheder: Note10+ SM-N975U1 (Android 12, DeX, token,
 `.103.102`) plus to spares, Sony 702SO (A9, tokenløs, `.101.101`) og Samsung
@@ -75,8 +75,16 @@ med et rigtigt JPEG (83-97 kB på A9, 380-405 kB på A11).
 > Afinstallationen tager mere med sig end app-data:
 > - **Køretids-tilladelser nulstilles.** `/snapshot` svarer 503 »no frame yet« indtil
 >   `pm grant co.xplat.husk android.permission.CAMERA` (samt `RECORD_AUDIO`, de to `*_LOCATION`,
->   `POST_NOTIFICATIONS`). **Bemærk at 503 også er den DOVNE kameras normale første svar** - kald
->   `/snapshot` to-tre gange før du dømmer, og se på `camera`-flaget i `/flags`.
+>   `POST_NOTIFICATIONS`).
+>   **⛔ `camera`-flaget i `/flags` kan IKKE bruges som diagnose - det er MÅLT forkert 2026-09-04.**
+>   Flaget er `Rig.cameraRunning`, som først sættes når capture reelt kører
+>   (`CameraService.java:320`). Mangler tilladelsen, fejler `openCamera`, flaget bliver aldrig
+>   sandt, og `/snapshot` svarer 503 fordi `latestJpeg` er null (`ControlServer.java:263`).
+>   **`camera:false` + 503 er derfor byte-identisk i »dovent, endnu ikke åbnet« og i »tilladelsen
+>   mangler«.** Her stod indtil 2026-09-04 at man skulle kalde to-tre gange og se på flaget; det
+>   er en diagnose der ikke kan fejle, altså ingen diagnose (måleregel 8).
+>   **Spørg i stedet det lag der VED det:** `adb shell dumpsys package co.xplat.husk | grep -i CAMERA`
+>   viser `granted=true|false` direkte. Alternativt: se om flaget SKIFTER til sandt efter et kald.
 > - **a11y-registreringen ryddes.** `settings put secure enabled_accessibility_services
 >   co.xplat.husk/co.xplat.husk.RigAccessibilityService` + `accessibility_enabled 1`, og **den
 >   binder først ved næste reboot**.
@@ -89,7 +97,10 @@ med et rigtigt JPEG (83-97 kB på A9, 380-405 kB på A11).
 >   1080x2280 på Note10. Husks egen a11y-motor accepterer derefter MediaProjection-dialogen selv.
 > - **Tokenet overlever** (det bor i `Settings.Global husk_token`, ikke i app-prefs).
 > - **adb skal gå DIREKTE til adbd**, ikke gennem Husks bro på 15557: broen er en del af appen og
->   dør i det sekund man afinstallerer.
+>   dør i det sekund man afinstallerer. **Find derfor WD-porten FØR afinstallationen** med
+>   `adb connect 127.0.0.1:15557` og `adb devices` (den direkte `127.0.0.1:<wd>` står da på listen),
+>   eller efter en reboot når a11y har genrejst WD. Uden den sætning er punktet en advarsel uden
+>   kur, og netop den kur er det der gør et nøgleskifte kørbart uden et USB-kabel.
 
 **2. xplat.co ER deployet** (2026-09-04). Begge `latest.json`-endpoints viser
 `versionCode 50`, `/husk/openapi.json` melder 0.9.31 med 44 paths, og

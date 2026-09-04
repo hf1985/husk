@@ -10,7 +10,7 @@
 - **Application ID:** `co.xplat.husk`
 - **Source code:** https://github.com/hf1985/husk
 - **License:** GPL-3.0-or-later
-- **Latest version:** 0.9.30 (git tag `v0.9.30`)
+- **Latest version:** 0.9.31 (git tag `v0.9.31`)
 - **Website:** https://xplat.co/husk
 
 ### Summary

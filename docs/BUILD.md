@@ -238,10 +238,13 @@ Lokal arbejdskopi: `~/android-build/husk-signing/husk-release.jks` (mode 600, ma
 > `AllowedAPKSigningKeys`, og at skifte nøgle EFTER publicering brækker opdateringer for alle
 > installationer. Vinduet var derfor før første publicering, ikke efter.
 >
-> Den gamle nøgle er pensioneret, men **ikke værdiløs**: alt der er installeret fra og med
-> 0.9.30 og nedefter bærer den. Kopierne (telefonens `~/husk/debug.keystore` og
-> `~/android-build/husk-signing/debug.keystore`) skal blive liggende, indtil hver enhed er
-> geninstalleret på den nye nøgle.
+> **Betingelsen er UDLØBET 2026-09-04: alle tre enheder er geninstalleret på den nye nøgle**, så
+> ingen installation bærer længere den gamle. Her stod at kopierne »skal blive liggende, indtil
+> hver enhed er geninstalleret«. Kopiernes placering er IKKE målt herfra: på `HFs-lenovo` findes
+> hverken `~/android-build/husk-signing/debug.keystore` eller `~/husk/debug.keystore` på Note10,
+> så de ligger enten kun på `hfs-dell` eller er allerede væk. **Mål det dér før du sletter noget**
+> (måleregel 65: skriv maskinen med). Den eneste tilbageværende grund til at beholde nøglen er en
+> rollback til 0.9.30 eller derunder.
 
 > ⚠️ **MÅ ALDRIG committes** (`.gitignore` ekskluderer `*.keystore` og `*.jks`). Mistes nøglen,
 > kan ingen eksisterende installation opdateres in-app igen (signaturskift →

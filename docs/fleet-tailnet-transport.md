@@ -4,7 +4,7 @@ Dato: 2026-07-02. Kanonisk notat for hvordan Husk-enheder nås og styres **uden 
 flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-memory:
 `note10-meeting-camera`.
 
-> ## SENESTE STATUS (2026-07-13, handoff til enhver session/bruger)
+> ## SENESTE STATUS (2026-09-04, handoff til enhver session/bruger)
 > - **HELE flåden på 0.9.31/50 med den NYE signeringsnøgle** (målt 2026-09-04 via `/info`):
 >   Note10 SM-N975U1 (A12), Sony 702SO (A9, sdk 28) og Samsung SM-A102U1 (A11, sdk 30). Alle tre
 >   har a11y oppe, skærmdeling til, batteri-undtagelsen på, og `/snapshot` svarer 200 med et
@@ -16,6 +16,11 @@ flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-mem
 >   GitHub-raw. Det er den DESIGNEDE adfærd, ikke en fejl: xplat.co's cert kæder til Google Trust
 >   Services, mens raw/objects.githubusercontent.com bruger ISRG Root X1, der er betroet ned til
 >   Android 7.1.1. Fallbacken virkede: `latest via github (have 50, remote 50)`.
+>   **Følgen er en enkeltfejlskilde:** A9'ens ENESTE fungerende opdateringsvej er
+>   `raw.githubusercontent.com`, og `Updater.java` har kun de to kilder. Går repoet privat eller
+>   flytter, mister enheden self-update lydløst.
+> - **Play Protect er FRA på begge spares**, og det rører en geninstallation ikke. Oplysningen
+>   stod i den gamle statusblok og gælder stadig; §7 nedenfor bygger på den.
 > - **⚠️ Lære (A9): en app-opdatering kan AFBINDE a11y-servicen på ældre Android.** .101 endte efter
 >   0.9.29-installen med a11y=false (8090+kamera kørte, `/rpc`/8127 nede); **løst ved POWER-CYCLE** (a11y
 >   re-bandt ved boot). A11/A12 re-bandt selv. Spares mangler Note10's a11y-vagthund (adb-re-enable). **Ved
