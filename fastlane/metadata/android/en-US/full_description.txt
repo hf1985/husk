@@ -22,8 +22,11 @@ let F-Droid handle updates. It exists because Husk is normally installed on head
 that have no app store on them.
 
 Privacy and network: the network services listen on all interfaces but are protected by a
-source-IP allowlist, so only loopback, your local network and your Tailscale network can
-reach them (an optional token adds a second layer). Nothing is sent to any external server
+source-IP allowlist that admits loopback, private LAN ranges, and the 100.64.0.0/10 range
+Tailscale uses. Be aware that some mobile carriers also hand out addresses from that same
+range, so on mobile data the allowlist is wider than your Tailscale network alone. IPv6 ULA
+addresses (fc00::/7, which Tailscale also uses) are admitted the same way. An optional token
+adds a second layer, and it is off by default. Nothing is sent to any external server
 except two things you turn on or ask for yourself: the motion push (to your own ntfy topic),
 and the update check described above. The app is 100% open source
 (GPLv3) and uses only AOSP framework APIs (no trackers, no ads, no proprietary dependencies).

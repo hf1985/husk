@@ -76,8 +76,11 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
    versionName. Uden den viser F-Droid et tomt »What's New« for udgivelsen, fordi
    `AutoUpdateMode: Version` ikke selv skriver en changelog.
 5. Opdatér `latest.json` (ny versionCode) + `fdroid/co.xplat.husk.yml` (ny Builds-entry
-   `commit: vX.Y.Z` + `CurrentVersion`/`CurrentVersionCode`; **quoting:** to-punktums-version som
-   `0.9.26` er UNQUOTED).
+   `commit: <fuld 40-tegns sha>` + `CurrentVersion`/`CurrentVersionCode`; **quoting:**
+   to-punktums-version som `0.9.26` er UNQUOTED).
+   **Aldrig et tag eller et grennavn i `commit:`** - linsui bad udtrykkeligt om den fulde hash
+   i MR !40810 (»Please don't use tag or branch in commit. Use the full commit hash instead«,
+   2026-09-02). Her stod `commit: vX.Y.Z` indtil 2026-09-06.
 6. Opdatér `HUSK_VERSION_NAME`/`HUSK_VERSION_CODE` i `P_xplat/hosting/app.py`, kør
    `bash scripts/check-local.sh` (grøn), og **deploy xplat.co** med agenten loaded:
    `eval "$(cat ~/.ssh/agent.env)"; bash scripts/hosting-deploy.sh --apply` (fra `P_xplat`).
@@ -333,7 +336,7 @@ via `py -3.11` + `urllib` (git-bash `python3` er Store-stubben).
 
 **Sådan verificeres pipelinen (det jeg gjorde hver gang):**
 ```bash
-TOKEN="$(grep -oE '^glpat-[A-Za-z0-9_.-]+' $HOME/Tools/gitlab/token.txt | head -1)"
+TOKEN="$(bash ~/Tools/vault2/vault2.sh get 'tool: gitlab/token.txt' | grep -oE 'glpat-[A-Za-z0-9_.-]+' | head -1)"
 FORK="hf16%2Ff-droid"        # url-encoded projekt-sti (eller brug det numeriske projekt-id)
 BR="co.xplat.husk"
 H="PRIVATE-TOKEN: $TOKEN"
@@ -430,6 +433,7 @@ er unødvendig.
 - `fdroid/co.xplat.husk.yml` – F-Droid-metadata (KILDE for fork-metadata, MR !40810).
 - WSL: `~/android-build/` (miljø), `~/android-build/hb*.log` (historiske build-logs).
 - **Signeringsnøgle (IKKE i git):** kanon er `husk-release.jks` i **vaulten** (login-item
-  »Husk release-signeringsnøgle«), arbejdskopi `~/android-build/husk-signing/husk-release.jks`.
+  `Husk release-signeringsnoegle (keystore husk-release.jks, base64)`), arbejdskopi
+  `~/android-build/husk-signing/husk-release.jks`.
   Den PENSIONEREDE debug-keystore ligger stadig på telefonen (`~/husk/debug.keystore`) og i
   WSL, og skal blive der indtil hver enhed er geninstalleret på den nye nøgle. Se afsnit 5.

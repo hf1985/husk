@@ -86,7 +86,7 @@ Kanonisk build = Gradle `assembleRelease` i WSL (`~/android-build`, env21.sh = J
 Een-kommando: `gradle-build.sh`. **Byg IKKE via `/mnt/g`** (Drive i WSL flaky) – synk fra git-bash til
 `//wsl.localhost/...` ELLER kald med `MSYS_NO_PATHCONV=1`. **Signeringsnøgle** (UDSKIFTET 2026-09-03: `CN=xplat, O=xplat, C=DK`, alias `husk`, RSA 4096,
 SHA-256 `96195cfd…c17d`). Keystore OG adgangskode ligger i **vaulten** som login-item
-»Husk release-signeringsnøgle (keystore husk-release.jks, base64)«; arbejdskopi i WSL
+`Husk release-signeringsnoegle (keystore husk-release.jks, base64)`; arbejdskopi i WSL
 `~/android-build/husk-signing/husk-release.jks`. Adgangskoden står ALDRIG i en fil i repoet –
 den gamle debug-nøgles kodeord gjorde, i et offentligt repo, og det var grunden til skiftet.
 Se `docs/BUILD.md` §5. ALDRIG i repoet/Drive (`.gitignore` dækker `*.keystore` OG `*.jks` - sidstnævnte manglede indtil 2026-09-04, hvor den nye nøgle var ubeskyttet). Per release: følg **⛔ RELEASE-PLIGT-blokken

@@ -1,2 +1,3 @@
-New release signing key (CN=xplat, RSA 4096). Reproducible F-Droid build: the APK no
-longer embeds Git version info. No functional changes.
+Fixes motion alerts: calling /motion without a topic parameter silently cleared the
+saved ntfy topic, so push alerts stopped until it was set again. New release signing key
+(CN=xplat, RSA 4096). Reproducible F-Droid build: the APK no longer embeds Git version info.

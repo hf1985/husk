@@ -22,8 +22,12 @@ F-Droid stå for opdateringerne. Knappen findes, fordi Husk normalt installeres 
 telefoner uden en app-butik på sig.
 
 Privatliv og netværk: netværks-tjenesterne lytter på alle interfaces, men er beskyttet af en
-kilde-IP-tilladelsesliste, så kun loopback, dit lokale netværk og dit Tailscale-net kan nå dem
-(en valgfri token er et ekstra lag). Intet sendes til en ekstern server ud over to ting du selv
+kilde-IP-tilladelsesliste, der lukker loopback, private LAN-adresser og hele det
+100.64.0.0/10-område ind, som Tailscale bruger. Vær opmærksom på at nogle mobiloperatører også
+uddeler adresser fra netop det område, så på mobildata er listen bredere end dit Tailscale-net
+alene, og IPv6-ULA (fc00::/7, som Tailscale også bruger) lukkes ind på samme måde. En valgfri
+token er et ekstra lag, og den er slået fra som standard. Intet sendes til en ekstern server ud
+over to ting du selv
 tænder eller beder om: bevægelses-pushen (til dit eget ntfy-emne), og opdateringstjekket
 beskrevet ovenfor. Appen er 100% open source (GPLv3) og bruger kun
 AOSP-framework-API'er (ingen trackere, ingen reklamer).

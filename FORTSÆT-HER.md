@@ -9,10 +9,19 @@ root. Overblik: `README.md`. Agent-kontekst, invarianter og release-pligten:
 ## Status
 
 **Udgivet og i drift.** Nuværende version **0.9.31 / versionCode 50**
-(2026-09-03: ny release-signeringsnøgle + `vcsInfo { include false }`; ingen
-adfærdsændring). Udgives på F-Droid (fdroiddata-MR !40810), GitHub-releases
-(`hf1985/husk`) og `xplat.co/husk`. Pure framework, ingen AndroidX, ingen
+(2026-09-03: ny release-signeringsnøgle + `vcsInfo { include false }`). Udgives på
+GitHub-releases (`hf1985/husk`) og `xplat.co/husk`; **F-Droid er endnu IKKE udgivet** -
+fdroiddata-MR !40810 er ÅBEN og afventer anmelderne. Pure framework, ingen AndroidX, ingen
 afhængigheder.
+
+> ⚠️ **»Ingen adfærdsændring« om 0.9.31 var FORKERT, og stod her indtil 2026-09-06.**
+> `git diff v0.9.30 v0.9.31 -- app/` bærer også `ControlServer.java:218`:
+> `dparam(query,"topic") != null` → `param(query,"topic") != null`. `dparam` returnerer `""`
+> og aldrig `null` (linje 441-442), så guarden var ALTID sand: ethvert `/motion`-kald uden
+> `topic` nulstillede `Rig.ntfyTopic` og persisterede det, så bevægelses-alarmen tavst holdt
+> op med at sende push. Fixet er `6a07d64`, forfader til `v0.9.31` men ikke til `v0.9.30`.
+> **GitHub-release-teksten for v0.9.31 bærer stadig den falske sætning** - se sporet i
+> rundens lukkeplan.
 
 **Signeringsnøglen blev skiftet i 0.9.31.** Den gamle var en genbrugt
 debug-keystore hvis kodeord stod i klartekst i `docs/BUILD.md` i dette
