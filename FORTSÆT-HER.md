@@ -128,3 +128,45 @@ via `am start` på den kørende rig** – det forgrunder Husk nær DeX og slår 
 midlertidigt fra. Verificér i stedet via `/flags`.
 
 
+
+## F-Droid MR !40810: svaret er afgivet 06-09-2026, bolden ligger hos F-Droid
+
+Testeren `gitubpatrice` kørte 06-09 en fuld gennemgang (Galaxy S9, API 29, ingen tilladelser
+givet) og bestod: install, koldstart, reproducerbarhed og en netværks-måling. `linsui` svarede
+samme aften med **den eneste tilbageværende betingelse**: »please make it clear that the update
+is not from F-Droid«.
+
+**Det er gjort METADATA-ONLY, med vilje.** Butiksteksten (en-US + da) har nu et
+Opdaterings-afsnit, og der er changelogs for versionCode 50. Recipe'ens build-entry peger på
+`dde86ba`; spejlet til `hf16/f-droid@435f265`, pipeline **2824652495 grøn**, og job
+**16333989229** loggede »compared built binary to supplied reference binary successfully«.
+**Ingen ændring under `app/`** – APK'en for versionCode 50 er den samme bytes som den testede,
+så testkørslen og reproducerbarheden står. Et versionsbump ville have kasseret en netop
+bestået test og sendt MR'en bagerst i en lang kø.
+
+> **Fælden der blev fanget FØR den nåede F-Droid.** Min første butikstekst sagde »It only ever
+> runs when you press it«. Det er FALSK: `Updater.checkAndUpdate` har to indgange, knappen
+> (`MainActivity.java:110`) OG `GET /update` (`ControlServer.java:369`), og sidstnævnte lader
+> a11y kvittere for install-dialogen selv. Den adversariske gennemgang af svar-udkastet fandt
+> det; teksten er rettet i `dde86ba`. **Ingen automatik findes dog:** ingen `AlarmManager`,
+> `JobScheduler` eller `WorkManager`, og `BootReceiver` kalder den ikke.
+
+**Køen til NÆSTE release (ikke til denne MR – de kræver alle et versionsbump):**
+- **`Net.tailscaleIp()` mislabeler carrier-CGNAT som Tailscale-IP.** Den returnerer den første
+  100.64/10-adresse på et vilkårligt interface, så på LTE bliver teleselskabets adresse vist som
+  »Tailscale IP« i `/info` og på hovedskærmen. Kuren: kræv at SAMME `NetworkInterface` også
+  bærer en adresse i `fd7a:115c:a1e0::/48`. **`localIp()` er allerede konservativ** (den
+  udelukker 100.64/10) – ret den ikke.
+- **`peerAllowed()`/token:** tokenet gater hele API'et via `dispatch()` (kun `/healthz` og `/`
+  er fri), men `tokenOk()` returnerer true når tokenet er tomt. Obligatorisk token + en
+  skarpere `peerAllowed` hører sammen i én release, fordi det bryder hver eksisterende enhed
+  indtil den er re-paret.
+- **Danske strenge i HTTP-svar** på et API dokumenteret på engelsk (fx `ERR a11y (8127) ikke oppe`).
+
+## Åbne spor fra runde-planer
+
+<!-- SPOR-POINTERE: genereret af check-plan-pointers.sh - rediger ikke her -->
+- [ ] SPOR: `2026-08-19-infra-docs-d04-plan.md` margen-S2 – Synk-gaten standser fem portefølje-tjek, fordi tre repoer er bagud
+- [ ] SPOR: `2026-08-19-infra-docs-d06-plan.md` HF6 – Bring `gradle-build.sh` tilbage til ren ASCII
+- [ ] SPOR: `2026-08-19-infra-docs-d07-plan.md` HF8 – Efterprøv F-Droids publicerede beskrivelse efter merge
+<!-- /SPOR-POINTERE -->
