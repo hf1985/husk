@@ -16,7 +16,7 @@ Binaries: https://github.com/hf1985/husk/releases/download/v%v/husk-v%v.apk
 Builds:
   - versionName: 0.9.31
     versionCode: 50
-    commit: dde86bad88bd2829e0b7d76af214c0a54987372e
+    commit: 3e3ce525a6ad2de3f74ba8c86dfe40bed28afe1b
     subdir: app
     gradle:
       - yes
