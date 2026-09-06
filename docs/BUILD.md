@@ -67,10 +67,14 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
 2. Kopiér kilde G:->WSL + byg (afsnit 3-4): `assembleRelease` -> unsigned APK.
 3. **Signér via et WSL-script** (IKKE inline, jf. gotcha 1): skriv `sign-verify.sh` til `~` i WSL og
    kør `wsl.exe --cd '~' -- bash -lc 'bash ~/sign-verify.sh'`. Verificér cert-digest =
-   `96195cfd...c17d` (release-noeglen; ellers afviser Android opdateringen). Det gamle
-   `1b89a920...62af59` er den PENSIONEREDE debug-noegle - se afsnit 5.
+   `96195cfd...c17d` (release-nøglen; ellers afviser Android opdateringen). Det gamle
+   `1b89a920...62af59` er den PENSIONEREDE debug-nøgle - se afsnit 5.
 4. Kopiér den signerede APK til repoets `husk-latest.apk`:
    `cp "//wsl.localhost/Ubuntu/home/hf198/android-build/husk-build/husk-vX.apk" "/g/My Drive/10_PROJEKTER/P_app_husk/husk-latest.apk"`.
+4b. **Skriv changelog'en:** `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` OG
+   `.../da/changelogs/<versionCode>.txt` (maks 500 tegn hver). Filnavnet er versionCode, ikke
+   versionName. Uden den viser F-Droid et tomt »What's New« for udgivelsen, fordi
+   `AutoUpdateMode: Version` ikke selv skriver en changelog.
 5. Opdatér `latest.json` (ny versionCode) + `fdroid/co.xplat.husk.yml` (ny Builds-entry
    `commit: vX.Y.Z` + `CurrentVersion`/`CurrentVersionCode`; **quoting:** to-punktums-version som
    `0.9.26` er UNQUOTED).
@@ -426,6 +430,6 @@ er unødvendig.
 - `fdroid/co.xplat.husk.yml` – F-Droid-metadata (KILDE for fork-metadata, MR !40810).
 - WSL: `~/android-build/` (miljø), `~/android-build/hb*.log` (historiske build-logs).
 - **Signeringsnøgle (IKKE i git):** kanon er `husk-release.jks` i **vaulten** (login-item
-  »Husk release-signeringsnoegle«), arbejdskopi `~/android-build/husk-signing/husk-release.jks`.
+  »Husk release-signeringsnøgle«), arbejdskopi `~/android-build/husk-signing/husk-release.jks`.
   Den PENSIONEREDE debug-keystore ligger stadig på telefonen (`~/husk/debug.keystore`) og i
   WSL, og skal blive der indtil hver enhed er geninstalleret på den nye nøgle. Se afsnit 5.

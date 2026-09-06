@@ -16,6 +16,9 @@
 > 1. Bump `versionCode` + `versionName` – ÉT sted: `app/build.gradle`.
 > 2. Byg `assembleRelease` i WSL + signér med release-keystoren (alias `husk`; adgangskode fra vaulten).
 > 3. Opdatér repo'ets `latest.json` + `husk-latest.apk` (den signerede APK).
+> 3b. **Skriv `fastlane/metadata/android/{en-US,da}/changelogs/<versionCode>.txt`** (maks 500
+>     tegn). Med `AutoUpdateMode: Version` lander en release UDEN denne fil med et tomt
+>     »What's New« i F-Droid – påpeget af F-Droid-testeren 06-09-2026.
 > 4. Opdatér `fdroid/co.xplat.husk.yml` (+ fork-metadata, MR !40810).
 > 5. Opdatér HUSK-konstanterne (`HUSK_VERSION_*`) i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
 > 6. **API-DOK-GATE (obligatorisk):** ændrer releasen endpoints/params/respons/adgangsmodel? Ajourfør
@@ -83,7 +86,7 @@ Kanonisk build = Gradle `assembleRelease` i WSL (`~/android-build`, env21.sh = J
 Een-kommando: `gradle-build.sh`. **Byg IKKE via `/mnt/g`** (Drive i WSL flaky) – synk fra git-bash til
 `//wsl.localhost/...` ELLER kald med `MSYS_NO_PATHCONV=1`. **Signeringsnøgle** (UDSKIFTET 2026-09-03: `CN=xplat, O=xplat, C=DK`, alias `husk`, RSA 4096,
 SHA-256 `96195cfd…c17d`). Keystore OG adgangskode ligger i **vaulten** som login-item
-»Husk release-signeringsnoegle (keystore husk-release.jks, base64)«; arbejdskopi i WSL
+»Husk release-signeringsnøgle (keystore husk-release.jks, base64)«; arbejdskopi i WSL
 `~/android-build/husk-signing/husk-release.jks`. Adgangskoden står ALDRIG i en fil i repoet –
 den gamle debug-nøgles kodeord gjorde, i et offentligt repo, og det var grunden til skiftet.
 Se `docs/BUILD.md` §5. ALDRIG i repoet/Drive (`.gitignore` dækker `*.keystore` OG `*.jks` - sidstnævnte manglede indtil 2026-09-04, hvor den nye nøgle var ubeskyttet). Per release: følg **⛔ RELEASE-PLIGT-blokken
