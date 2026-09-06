@@ -12,12 +12,18 @@ Features:
 * Optional "keep Samsung DeX connected" toggle (shown only on DeX-capable phones).
 * Starts automatically after a reboot.
 
+Updates: if you installed Husk from F-Droid, update it from F-Droid. The app also has its
+own "Update Husk (from xplat)" button, and that one is NOT F-Droid: it reads version
+information from xplat.co and downloads the APK from GitHub. It only ever runs when you
+press it - there is no background update check and no automatic update - so you can simply
+ignore the button and let F-Droid handle updates. The button exists because Husk is normally
+installed on headless phones that have no app store on them.
+
 Privacy and network: the network services listen on all interfaces but are protected by a
 source-IP allowlist, so only loopback, your local network and your Tailscale network can
 reach them (an optional token adds a second layer). Nothing is sent to any external server
 except two things you turn on or ask for yourself: the motion push (to your own ntfy topic),
-and the update check, which reads version information from xplat.co and downloads the APK
-from GitHub when you start an update. The app is 100% open source
+and the update check described above. The app is 100% open source
 (GPLv3) and uses only AOSP framework APIs (no trackers, no ads, no proprietary dependencies).
 
 Note: Husk uses the AccessibilityService API to automate on-screen actions, and exposes an

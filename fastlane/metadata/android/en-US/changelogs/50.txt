@@ -1,0 +1,2 @@
+New release signing key (CN=xplat, RSA 4096). Reproducible F-Droid build: the APK no
+longer embeds Git version info. No functional changes.

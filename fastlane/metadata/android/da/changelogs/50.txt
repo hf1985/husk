@@ -1,0 +1,2 @@
+Ny signeringsnøgle til udgivelser (CN=xplat, RSA 4096). Reproducerbar F-Droid-build:
+APK'en indlejrer ikke længere Git-versionsinfo. Ingen funktionsændringer.
