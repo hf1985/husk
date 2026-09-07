@@ -25,10 +25,11 @@ tilbage for ikke at kassere en bestået testkørsel).
 > - **F-Droids egen pipeline `2827292807` er GRØN** på fork-head: »Successfully built
 >   co.xplat.husk:51 from 02e069b7…«, »compared built binary to supplied reference binary
 >   successfully«, med den pinnede signer `96195cfd…c17d`.
-> - **Note10-riggen kører 1.0** (`/info`: `v1.0/51`, `a11y: true`). Bevist at det ER den nye
->   kode: `/screen.jpg` svarer nu »no screen frame (turn on screen sharing in the app)« og
->   `/update` svarer »remote self-update started … read /flags« - begge på engelsk, hvor 0.9.31
->   svarede på dansk.
+> - **Enhederne kører 1.0** (`/info`: `v1.0/51`, `a11y: true`). Bevist at det ER den nye kode og
+>   ikke bare et versionsnummer: `/update` svarer »remote self-update started … read /flags« og
+>   `/screen.jpg` svarede uden frame »no screen frame (turn on screen sharing in the app)« -
+>   begge på ENGELSK, hvor 0.9.31 svarede på dansk. Et versionsnummer kan komme fra en cache;
+>   svarets sprog kan ikke.
 > - **`tailscaleIp` er IKKE regredieret:** riggen på 1.0 rapporterer stadig
 >   `tailscaleIp=100.100.103.102`. Kravet om en `fd7a:`-markør på samme interface er målt
 >   holdbart, fordi `tun0` bærer både `100.100.103.102/32` og `fd7a:115c:a1e0::1536:c33a/128`.
@@ -38,18 +39,26 @@ tilbage for ikke at kassere en bestået testkørsel).
 >   »Update from the developer, not F-Droid« med knappen »DOWNLOAD FROM THE DEVELOPER«.
 >   Skærmbilleder er taget; a11y bekræftede noderne uafhængigt.
 
-**2 af 3 enheder kører 1.0/51: Note10-riggen og Sony 702SO.** Begge rapporterer stadig deres
-rigtige `tailscaleIp`, så fd7a-kravet er nu efterprøvet på to uafhængige enheder.
+**HELE flåden kører 1.0/51 (2026-09-07).** Den sidste enhed, Samsung SM-A102U1, blev taget af
+ejeren; de to andre fjernstyret. Målt på alle tre bagefter: `versionCode 51`, `rpc ping` = PONG,
+`a11y: true`, og `/snapshot` 200 med et rigtigt JPEG (92 kB på A9, 355 kB på A11, 208 kB på
+Note10). **Alle tre rapporterer stadig deres rigtige `tailscaleIp`**, så fd7a-kravet er nu
+efterprøvet på Android 9, 11 og 12 - tre uafhængige enheder, tre OS-generationer.
 
-⚠️ **Samsung SM-A102U1 står tilbage på 0.9.31/50, og den kan IKKE drives færdig herfra.**
-Årsagen til at ALLE tre stallede er fundet og står i nøgleskifte-opskriften nedenfor:
-»Installer ukendte apps« var slået FRA. Sony blev kureret fjernstyret (SETTINGS → toggle →
-tilbage) og tog derefter opdateringen i første forsøg. Samsung er dobbelt-blind: `/screen.jpg`
-serverer et FROSSET frame (uret stod på 7:35 timer efter), og a11y kan se install-dialogen,
-men IKKE indholdet af Indstillinger bagefter (`find` på »Allow from this source« giver `NONE`).
-Blind-tap er fravalgt med vilje på en sikkerhedstoggle. **Kuren er en reboot** (genrejser
-ScreenService, så man kan se igen) **eller et menneske.** Bemærk at den gemte toggle-koordinat
-`953,1222` fra nøgleskiftet er FORÆLDET: noten under Opdatér-knappen skubber alt nedenunder ned.
+Årsagen til at alle tre først stallede står i nøgleskifte-opskriften nedenfor: »Installer
+ukendte apps« var slået FRA. Sony blev kureret fjernstyret (SETTINGS → toggle → **tilbage ÉN
+gang**, ikke back+home, som forlader install-sessionen) og tog derefter opdateringen i første
+forsøg.
+
+⚠️ **Skærmdelingen overlever ikke en in-app-opdatering, og det er ikke nyt i 1.0.**
+MediaProjection-samtykket dør med processen, og `BootReceiver`s `MY_PACKAGE_REPLACED`-vej
+genrejser kun `CameraService`, ikke samtykket. Efter opdateringen kom Note10 og 702SO tilbage af
+sig selv, mens **SM-A102U1 stadig svarer »no screen frame«** på `/screen.jpg` - `screen`-pref'en
+er `true`, men der produceres ingen frames, og at slå toggle'en fra og til fjernstyret
+genudløste ikke samtykke-dialogen. **Kuren er en reboot**, som kører `ScreenConsentActivity`
+igennem boot-kæden. Kameraet er upåvirket på alle tre.
+Bemærk også at den gemte toggle-koordinat `953,1222` fra nøgleskiftet er FORÆLDET: noten under
+Opdatér-knappen skubber alt nedenunder ned.
 
 > ⚠️ **»Ingen adfærdsændring« om 0.9.31 var FORKERT, og stod her indtil 2026-09-06.**
 > `git diff v0.9.30 v0.9.31 -- app/` bærer også `ControlServer.java:218`:
@@ -111,10 +120,11 @@ ajourført.
 
 ## Næste skridt
 
-**1. Flåden er IKKE ensartet (2026-09-07): riggen kører 1.0/51, de to spares 0.9.31/50.**
-Se det målte i Status ovenfor. Næste handling på spares: reboot dem (genrejser a11y og
-ScreenService), kør `/update`, og kvittér install-dialogen med syn plus koordinat-tap - IKKE
-med den gamle koordinat, som 1.0's nye note har forskubbet.
+**1. Flåden er ENSARTET igen (2026-09-07): alle tre på 1.0/51.** Se det målte i Status ovenfor.
+**Eneste udestående på jern: reboot `SM-A102U1`** for at få skærmdelingen tilbage
+(MediaProjection-samtykket døde med opdateringen; kameraet er upåvirket). Skal en spare
+opdateres igen, så husk at »Installer ukendte apps« skal være slået TIL - ellers staller
+installen tavst, uden fejl i `/flags`.
 
 > **Nedenstående gjaldt nøgleskiftet 2026-09-04, hvor alle tre stod ens på 0.9.31/50.**
 > Note10 blev geninstalleret af sessionen, de to spares af ejeren. Målt via `/info` bagefter:
