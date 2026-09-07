@@ -9,6 +9,8 @@
     <!-- Foreground notification -->
     <string name="notif_title">Husk</string>
     <string name="notif_text">Camera and recovery active</string>
+    <string name="notif_channel_camera">Camera</string>
+    <string name="notif_channel_screen">Screen sharing</string>
 
     <!-- Status -->
     <string name="status_heading">Status</string>
@@ -55,7 +57,13 @@
     <!-- IP display + updates -->
     <string name="status_local_ip">Local IP</string>
     <string name="status_ts_ip">Tailscale IP</string>
-    <string name="btn_update">Update Husk (from xplat)</string>
+    <string name="btn_update">Update Husk (direct from the developer)</string>
+    <!-- Shown under the update button, always visible. F-Droid requires that a built-in updater
+         states plainly that the update does not come from F-Droid (MR !40810, reviewer linsui). -->
+    <string name="update_source_note">This update comes directly from the developer (xplat), not from F-Droid. The button reads the version number from xplat.co (falling back to the developer\'s GitHub repository) and downloads the APK from the address that file names, currently the developer\'s GitHub repository. F-Droid does not check, sign or distribute it. If you installed Husk from F-Droid, update it from F-Droid instead and ignore this button. Nothing checks for updates on its own.</string>
+    <string name="update_dialog_title">Update from the developer, not F-Droid</string>
+    <string name="update_dialog_msg">Husk will read the version number from xplat.co and download the APK from the developer\'s GitHub repository, then ask Android to install it.\n\nThis update does not come from F-Droid. F-Droid does not check, sign or distribute it, and will not know about it.\n\nContinue?</string>
+    <string name="update_dialog_go">Download from the developer</string>
     <string name="update_checking">Checking for updates...</string>
     <string name="update_latest">Already on the latest version.</string>
     <string name="update_downloading">Downloading</string>
@@ -69,4 +77,8 @@
     <string name="motion_hint">Turns this phone into a free, private security camera: when it sees movement it sends a push to your ntfy topic with a live snapshot. Install the ntfy app and subscribe to the same topic.</string>
     <string name="motion_on">Motion alerts on.</string>
     <string name="motion_off">Motion alerts off.</string>
+    <!-- Push text sent to the user's ntfy topic. Was hardcoded Danish until 1.0. -->
+    <string name="ntfy_title">Husk: motion detected</string>
+    <string name="ntfy_msg_camera">The camera detected movement (%1$d%% change)</string>
+    <string name="ntfy_msg_screen">The screen detected movement (%1$d%% change)</string>
 </resources>

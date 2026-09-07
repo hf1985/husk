@@ -370,7 +370,7 @@ public class RigAccessibilityService extends AccessibilityService {
             } else if (sawProgress && st != null && (st.startsWith("latest") || st.startsWith("ERR"))) {
                 // Kun bail hvis DENNE koersel foerst blev set i gang (sawProgress) og SAA endte latest/ERR - ellers
                 // ville en STALE terminal-vaerdi fra forrige koersel afbryde os foer Updater begyndte.
-                return "OK (ingen opdatering at installere - ingen tap)";
+                return "OK (no update to install - no tap)";
             }
             sleep(1000);   // ellers "checking..." -> vent paa Updater's afgoerelse
         }

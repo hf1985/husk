@@ -115,7 +115,7 @@ public final class Hardware {
         sm.registerListener(l, s, SensorManager.SENSOR_DELAY_FASTEST);
         try { latch.await(1800, TimeUnit.MILLISECONDS); } catch (InterruptedException e) {}
         sm.unregisterListener(l);
-        if (box[0] == null) return "ERR no-reading (sensor gav ikke en vaerdi)";
+        if (box[0] == null) return "ERR no-reading (sensor returned no value)";
         StringBuilder vb = new StringBuilder("[");
         for (int i = 0; i < box[0].length; i++) { if (i > 0) vb.append(","); vb.append(fj(box[0][i])); }
         vb.append("]");
@@ -156,7 +156,7 @@ public final class Hardware {
                 if (Boolean.TRUE.equals(f)) { cm.setTorchMode(id, on); return "OK (" + (on ? "on" : "off") + ")"; }
             }
             return "ERR no-flash-on-device";
-        } catch (Throwable t) { return "ERR " + t.getClass().getSimpleName() + " (kamera maaske i brug?)"; }
+        } catch (Throwable t) { return "ERR " + t.getClass().getSimpleName() + " (camera possibly in use?)"; }
     }
 
     // ---------------- Vibrator ----------------
@@ -193,7 +193,7 @@ public final class Hardware {
         if (level != null) {
             int s = audioStream(stream);
             try { am.setStreamVolume(s, level, 0); return "OK (" + (stream == null ? "media" : stream) + "=" + level + ")"; }
-            catch (Throwable t) { return "ERR " + t.getClass().getSimpleName() + " (DND aktiv?)"; }
+            catch (Throwable t) { return "ERR " + t.getClass().getSimpleName() + " (do-not-disturb active?)"; }
         }
         String[] names = {"media", "ring", "alarm", "notification", "system", "call"};
         StringBuilder b = new StringBuilder("{");
@@ -214,7 +214,7 @@ public final class Hardware {
             int m = mode.equals("silent") ? AudioManager.RINGER_MODE_SILENT
                   : mode.equals("vibrate") ? AudioManager.RINGER_MODE_VIBRATE : AudioManager.RINGER_MODE_NORMAL;
             try { am.setRingerMode(m); return "OK (" + mode + ")"; }
-            catch (Throwable t) { return "ERR " + t.getClass().getSimpleName() + " (kraever DND-adgang for silent/vibrate)"; }
+            catch (Throwable t) { return "ERR " + t.getClass().getSimpleName() + " (silent/vibrate needs do-not-disturb access)"; }
         }
         int r = am.getRingerMode();
         String s = r == AudioManager.RINGER_MODE_SILENT ? "silent" : r == AudioManager.RINGER_MODE_VIBRATE ? "vibrate" : "normal";
@@ -225,7 +225,7 @@ public final class Hardware {
 
     public static String brightness(Context c, Integer level) {
         if (level != null) {
-            if (!Settings.System.canWrite(c)) return "ERR needs WRITE_SETTINGS (giv 'Aendre systemindstillinger' til Husk)";
+            if (!Settings.System.canWrite(c)) return "ERR needs WRITE_SETTINGS (grant 'Modify system settings' to Husk)";
             try {
                 Settings.System.putInt(c.getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE,
                         Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
@@ -283,7 +283,7 @@ public final class Hardware {
 
     public static String locationJson(Context c) {
         if (!granted(c, "android.permission.ACCESS_FINE_LOCATION") && !granted(c, "android.permission.ACCESS_COARSE_LOCATION"))
-            return "ERR location-permission-not-granted (giv Husk Lokations-tilladelse)";
+            return "ERR location-permission-not-granted (grant Husk the Location permission)";
         LocationManager lm = (LocationManager) c.getSystemService(Context.LOCATION_SERVICE);
         if (lm == null) return "ERR no-location-service";
         Location best = null;
@@ -293,7 +293,7 @@ public final class Hardware {
                 if (l != null && (best == null || l.getTime() > best.getTime())) best = l;
             }
         } catch (SecurityException e) { return "ERR location-permission-not-granted"; } catch (Throwable t) { return "ERR " + t; }
-        if (best == null) return "ERR no-fix (ingen kendt position; er GPS taendt?)";
+        if (best == null) return "ERR no-fix (no known position; is location turned on?)";
         return "{\"lat\":" + best.getLatitude() + ",\"lon\":" + best.getLongitude() + ",\"accuracyM\":" + best.getAccuracy()
              + ",\"altitude\":" + best.getAltitude() + ",\"time\":" + best.getTime() + ",\"provider\":\"" + esc(best.getProvider()) + "\"}";
     }
@@ -301,7 +301,7 @@ public final class Hardware {
     // ---------------- Mikrofon (niveau) ----------------
 
     public static String micLevel(Context c) {
-        if (!granted(c, "android.permission.RECORD_AUDIO")) return "ERR record-audio-permission-not-granted (giv Husk Mikrofon-tilladelse)";
+        if (!granted(c, "android.permission.RECORD_AUDIO")) return "ERR record-audio-permission-not-granted (grant Husk the Microphone permission)";
         MediaRecorder mr = null;
         File tmp = null;
         try {

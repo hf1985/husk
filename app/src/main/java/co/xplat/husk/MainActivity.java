@@ -103,13 +103,20 @@ public class MainActivity extends Activity {
         refreshStatus();
         space(root, dp, 16);
 
-        // Opdatér: hent nyeste version fra xplat.co/husk/latest.json + installer (PackageInstaller)
+        // Opdatér: hent nyeste version fra xplat.co/husk/latest.json + installer (PackageInstaller).
+        // F-Droid-krav (MR !40810, anmelder linsui: "please make it clear in the UI that the update is
+        // from you directly"): brugeren skal kunne SE, i appen, at denne opdatering kommer fra
+        // udvikleren og IKKE fra F-Droid. Det staar to steder - permanent under knappen, og igen i en
+        // bekraeftelses-dialog i selve det oejeblik brugeren beder om opdateringen.
         Button upd = new Button(this);
         upd.setText(getString(R.string.btn_update));
         upd.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) { Updater.checkAndUpdate(MainActivity.this); }
+            public void onClick(View v) { confirmUpdate(); }
         });
         root.addView(upd);
+        TextView updNote = body(getString(R.string.update_source_note));
+        updNote.setTextColor(Color.parseColor("#8a93a0"));
+        root.addView(updNote);
         space(root, dp, 16);
 
         // Toggle: kamera-streaming (start/stop servicen) - KUN hvis enheden har et kamera
@@ -251,6 +258,24 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         refreshStatus();   // vis FAKTISK tilstand naar appen aabnes igen (ikke stale)
+    }
+
+    // Bekraeftelse foer den indbyggede opdatering: navngiv kilden (udvikleren, xplat.co + GitHub) og sig
+    // eksplicit at F-Droid hverken tjekker, signerer eller distribuerer den. Dialogen sidder KUN paa
+    // knappen; den fjern-udloeste vej (GET /update -> Updater.checkAndUpdate) er uaendret, saa en
+    // hovedloes flaade kan stadig opdateres uden en person ved skaermen.
+    private void confirmUpdate() {
+        new android.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.update_dialog_title))
+            .setMessage(getString(R.string.update_dialog_msg))
+            .setPositiveButton(getString(R.string.update_dialog_go),
+                new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int which) {
+                        Updater.checkAndUpdate(MainActivity.this);
+                    }
+                })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
     }
 
     private Button settingsButton(String label, final Intent intent) {

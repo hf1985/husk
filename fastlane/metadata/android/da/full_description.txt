@@ -13,11 +13,17 @@ Funktioner:
 * Starter automatisk efter en genstart.
 
 Opdateringer: har du installeret Husk fra F-Droid, så opdatér den fra F-Droid. Appen har
-også sin egen knap »Opdatér Husk (fra xplat)«, og den er IKKE F-Droid: den læser
-versionsinfo fra xplat.co og henter APK'en fra GitHub. Intet opdaterer af sig selv: der er
+også sin egen knap »Opdatér Husk (direkte fra udvikleren)«, og den er IKKE F-Droid: den læser
+versionsinfo fra xplat.co og henter APK'en fra den adresse, filen angiver - i dag udviklerens
+GitHub-repo. Appen siger det også på skærmen: en permanent note under knappen, og - når du
+trykker på knappen - en bekræftelses-dialog der navngiver kilden, før der hentes noget.
+Intet opdaterer af sig selv: der er
 intet baggrundstjek og ingen planlagt opdatering. Den kører kun når et menneske starter den,
 enten med knappen eller via appens dokumenterede /update-endpoint fra en maskine på dit eget
-private netværk. Har du installeret fra F-Droid, kan du roligt lade knappen være og lade
+private netværk. /update-endpointet har ingen dialog og lader appens egen
+tilgængelighedstjeneste bekræfte systemets install-dialog, fordi det findes for at opdatere en
+hovedløs telefon uden nogen ved skærmen; et menneske på det private net skal stadig bede om
+det. Har du installeret fra F-Droid, kan du roligt lade knappen være og lade
 F-Droid stå for opdateringerne. Knappen findes, fordi Husk normalt installeres på hovedløse
 telefoner uden en app-butik på sig.
 

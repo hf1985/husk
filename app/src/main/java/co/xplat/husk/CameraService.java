@@ -112,7 +112,7 @@ public class CameraService extends Service {
 
     private void createChannel() {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Rig-kamera", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, getString(R.string.notif_channel_camera), NotificationManager.IMPORTANCE_LOW);
         ch.setShowBadge(false);
         nm.createNotificationChannel(ch);
     }

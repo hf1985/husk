@@ -209,11 +209,15 @@ igen. `husk-build/.gradle` (projekt-cache) gør gentagne builds hurtige; ryd den
 
 ## 5. Signering (vigtigt for in-app-opdatering)
 
-F-Droid signerer selv med sin egen nøgle – til F-Droid behøves **ingen** signering fra os;
-den unsigned APK er nok.
+> ⚠️ **Rettet 2026-09-07.** Her stod »F-Droid signerer selv med sin egen nøgle – til F-Droid
+> behøves ingen signering fra os; den unsigned APK er nok.« Det holdt indtil 2026-09-03, hvor
+> recipe'en fik `Binaries:` + `AllowedAPKSigningKeys` (se afsnit 7b). **F-Droid distribuerer nu
+> VORES egen signerede APK** og bruger sin egen build kun til at sammenligne. Signeringen er
+> derfor ikke længere valgfri for F-Droid – den er forudsætningen for at en F-Droid-installeret
+> Husk kan tage en in-app-opdatering, fordi signaturerne skal matche.
 
-Til **GitHub-releases** og repo'ets `husk-latest.apk` (det in-app-updateren henter) signerer
-vi med `apksigner`. **Alle versioner SKAL signeres med samme nøgle**, ellers afviser Android
+Til **GitHub-releases** (det F-Droids `Binaries:` henter) og repo'ets `husk-latest.apk` (det
+in-app-updateren henter) signerer vi med `apksigner`. **Alle versioner SKAL signeres med samme nøgle**, ellers afviser Android
 opdateringen (signaturskift = "app not installed").
 
 ### Den kanoniske signeringsnøgle (UDSKIFTET 2026-09-03)

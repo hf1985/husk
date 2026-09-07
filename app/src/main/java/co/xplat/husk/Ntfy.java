@@ -28,13 +28,25 @@ public final class Ntfy {
                 if (base == null || base.trim().isEmpty()) base = "https://ntfy.sh";
                 base = base.trim().replaceAll("/+$", "");
                 // Defense-in-depth (udover /motion-gaten): send ALDRIG til en ikke-https-server (SSRF/downgrade).
-                if (!base.toLowerCase().startsWith("https://")) { Rig.lastNtfy = "ntfy afvist: ikke-https server"; return; }
+                if (!base.toLowerCase().startsWith("https://")) { Rig.lastNtfy = "ntfy refused: non-https server"; return; }
 
                 JSONObject j = new JSONObject();
                 j.put("topic", topic.trim());
-                j.put("title", "Husk: bevægelse registreret");
-                j.put("message", ("camera".equals(source) ? "Kameraet" : "Skærmen")
-                        + " registrerede bevægelse (" + pct + "% ændring)");
+                // Teksten er i18n (values/ engelsk, values-da/ dansk) - appens default er ENGELSK, og
+                // push'en gik foer altid ud paa dansk uanset enhedens sprog. Rig.ctx() er sat af den
+                // service der producerer frames; er den mod forventning null, sendes den engelske form.
+                final boolean fromCamera = "camera".equals(source);
+                android.content.Context rc = Rig.ctx();
+                String title, message;
+                if (rc != null) {
+                    title = rc.getString(R.string.ntfy_title);
+                    message = rc.getString(fromCamera ? R.string.ntfy_msg_camera : R.string.ntfy_msg_screen, pct);
+                } else {
+                    title = "Husk: motion detected";
+                    message = (fromCamera ? "The camera" : "The screen") + " detected movement (" + pct + "% change)";
+                }
+                j.put("title", title);
+                j.put("message", message);
                 j.put("priority", 4);
                 JSONArray tags = new JSONArray(); tags.put("eyes"); j.put("tags", tags);
                 String ts = Net.tailscaleIp();

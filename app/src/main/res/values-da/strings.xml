@@ -7,6 +7,8 @@
 
     <string name="notif_title">Husk</string>
     <string name="notif_text">Kamera og recovery aktiv</string>
+    <string name="notif_channel_camera">Kamera</string>
+    <string name="notif_channel_screen">Skærmdeling</string>
 
     <string name="status_heading">Status</string>
     <string name="status_engine">Automations-motor (tilgængelighed)</string>
@@ -49,7 +51,13 @@
     <!-- IP-visning + opdatering -->
     <string name="status_local_ip">Lokal IP</string>
     <string name="status_ts_ip">Tailscale-IP</string>
-    <string name="btn_update">Opdatér Husk (fra xplat)</string>
+    <string name="btn_update">Opdatér Husk (direkte fra udvikleren)</string>
+    <!-- Vises under opdaterings-knappen, altid synlig. F-Droid kræver at en indbygget updater siger
+         klart at opdateringen IKKE kommer fra F-Droid (MR !40810, anmelder linsui). -->
+    <string name="update_source_note">Denne opdatering kommer direkte fra udvikleren (xplat), ikke fra F-Droid. Knappen læser versionsnummeret fra xplat.co (med udviklerens GitHub-repo som reserve) og henter APK\'en fra den adresse, filen angiver - i dag udviklerens GitHub-repo. F-Droid hverken tjekker, signerer eller distribuerer den. Har du installeret Husk fra F-Droid, så opdatér derfra i stedet og se bort fra knappen. Intet tjekker for opdateringer af sig selv.</string>
+    <string name="update_dialog_title">Opdatering fra udvikleren, ikke fra F-Droid</string>
+    <string name="update_dialog_msg">Husk læser versionsnummeret fra xplat.co og henter APK\'en fra udviklerens GitHub-repo, og beder derefter Android om at installere den.\n\nDenne opdatering kommer ikke fra F-Droid. F-Droid hverken tjekker, signerer eller distribuerer den, og får den ikke at se.\n\nFortsæt?</string>
+    <string name="update_dialog_go">Hent fra udvikleren</string>
     <string name="update_checking">Tjekker for opdatering...</string>
     <string name="update_latest">Allerede nyeste version.</string>
     <string name="update_downloading">Henter</string>
@@ -63,4 +71,8 @@
     <string name="motion_hint">Gør denne telefon til et gratis, privat sikkerhedskamera: når den ser bevægelse, sender den en push til dit ntfy-emne med et live-snapshot. Installér ntfy-appen og abonnér på samme emne.</string>
     <string name="motion_on">Bevægelses-alarm slået til.</string>
     <string name="motion_off">Bevægelses-alarm slået fra.</string>
+    <!-- Push-tekst til brugerens ntfy-emne. Var hardkodet dansk indtil 1.0. -->
+    <string name="ntfy_title">Husk: bevægelse registreret</string>
+    <string name="ntfy_msg_camera">Kameraet registrerede bevægelse (%1$d%% ændring)</string>
+    <string name="ntfy_msg_screen">Skærmen registrerede bevægelse (%1$d%% ændring)</string>
 </resources>

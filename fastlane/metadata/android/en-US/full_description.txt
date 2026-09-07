@@ -13,11 +13,17 @@ Features:
 * Starts automatically after a reboot.
 
 Updates: if you installed Husk from F-Droid, update it from F-Droid. The app also has its
-own "Update Husk (from xplat)" button, and that one is NOT F-Droid: it reads version
-information from xplat.co and downloads the APK from GitHub. Nothing updates by itself:
+own "Update Husk (direct from the developer)" button, and that one is NOT F-Droid: it reads
+version information from xplat.co and downloads the APK from the address that file names,
+today the developer's GitHub repository. The app says so on screen too: a permanent note
+under the button, and, when you press the button, a confirmation dialog naming the source
+before anything is downloaded. Nothing updates by itself:
 there is no background check and no scheduled update. It runs only when a person starts it,
 either with that button or through the app's documented /update endpoint from a machine on
-your own private network. If you installed from F-Droid you can simply ignore the button and
+your own private network. The /update endpoint has no dialog and lets the app's own
+accessibility service confirm the system install prompt, because it exists to update a
+headless phone with nobody at the screen; a person on the private network still has to ask
+for it. If you installed from F-Droid you can simply ignore the button and
 let F-Droid handle updates. It exists because Husk is normally installed on headless phones
 that have no app store on them.
 

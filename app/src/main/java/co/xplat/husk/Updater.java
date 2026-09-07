@@ -33,7 +33,10 @@ public final class Updater {
     // Version-kilder, proeves i raekkefoelge. xplat.co's cert kaeder til Google Trust Services, hvis
     // krydssignering Android 9's system-trust-store ofte IKKE kan bygge (handshake-fejl) - derfor faldes
     // tilbage til raw.githubusercontent.com, der bruger Let's Encrypt / ISRG Root X1 (indbygget i Android
-    // 7.1.1+). APK'en ligger paa objects.githubusercontent.com (ogsaa ISRG) -> Android-9-betroet hele vejen.
+    // 7.1.1+). APK-URL'en er den latest.json ANGIVER; i dag husk-latest.apk paa raw.githubusercontent.com,
+    // altsaa en fil paa main-grenen og IKKE et GitHub-Release-asset - ogsaa ISRG, saa Android-9-betroet hele
+    // vejen. Her stod indtil 1.0 "objects.githubusercontent.com" (release-CDN'et); det er release-assettet
+    // F-Droids Binaries: henter, ikke det updateren henter. Forveksl aldrig de to.
     static final String[] SOURCES = {
         "https://xplat.co/husk/latest.json",
         "https://raw.githubusercontent.com/hf1985/husk/main/latest.json"
@@ -58,7 +61,7 @@ public final class Updater {
                     catch (Throwable e) { errs.append(tag).append("=").append(e.getClass().getSimpleName()).append("; "); }
                 }
                 if (j == null) {
-                    Rig.lastUpdate = "ERR alle kilder fejlede: " + errs;
+                    Rig.lastUpdate = "ERR all sources failed: " + errs;
                     toast(main, ctx, ctx.getString(R.string.update_failed) + " (" + errs + ")");
                     return;
                 }
@@ -128,7 +131,7 @@ public final class Updater {
     static byte[] httpGetBytes(String urlStr, int hopsLeft) throws Exception {
         URL url = new URL(urlStr);
         if (!"https".equalsIgnoreCase(url.getProtocol()))
-            throw new java.io.IOException("afviser ikke-https opdaterings-URL (" + url.getProtocol() + ")");
+            throw new java.io.IOException("refusing non-https update URL (" + url.getProtocol() + ")");
         HttpURLConnection c = (HttpURLConnection) url.openConnection();
         c.setInstanceFollowRedirects(true);
         c.setConnectTimeout(15000);
@@ -140,7 +143,7 @@ public final class Updater {
                 String loc = c.getHeaderField("Location");
                 if (loc != null) {
                     c.disconnect();
-                    if (hopsLeft <= 0) throw new java.io.IOException("for mange redirects i opdaterings-download");
+                    if (hopsLeft <= 0) throw new java.io.IOException("too many redirects in update download");
                     return httpGetBytes(loc, hopsLeft - 1);
                 }
             }

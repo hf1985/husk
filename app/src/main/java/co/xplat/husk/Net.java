@@ -10,9 +10,10 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 
-// IP-hjaelpere: hvilke adresser skal HTTP-serveren lytte paa, og hvad er enhedens lokale vs Tailscale-IP.
-// Husk virker baade paa rent LAN (uden Tailscale) OG over Tailscale - vi binder begge private adresser
-// (men ALDRIG 0.0.0.0). Token + privat-net er beskyttelsen; jf. ControlServer.
+// IP-hjaelpere: hvad er enhedens lokale vs Tailscale-IP, og hvilke peers maa naa serverne.
+// ControlServer (8090) og AdbForward (15557) binder 0.0.0.0 - begrundelsen staar i ControlServer.start().
+// Beskyttelsen er derfor kilde-IP-ACL'en (peerAllowed) + en valgfri token, IKKE bindingen.
+// (Her stod indtil 1.0 at vi bandt "ALDRIG 0.0.0.0". Det var forkert, og havde vaeret det laenge.)
 public final class Net {
     private Net() {}
 
@@ -37,10 +38,52 @@ public final class Net {
         return out;
     }
 
-    // Tailscale CGNAT 100.64.0.0/10 (100.64.x - 100.127.x).
+    // Enhedens Tailscale-IPv4 - eller null hvis enheden ikke er paa et tailnet.
+    //
+    // En adresse i 100.64.0.0/10 er IKKE i sig selv bevis for Tailscale: blokken er RFC 6598 CGNAT,
+    // og mobiloperatoerer deler den ud til helt almindelige abonnenter. Foer 1.0 returnerede vi den
+    // foerste 100.64/10-adresse paa et vilkaarligt interface, saa paa mobildata blev TELESELSKABETS
+    // adresse vist som "Tailscale IP" i /info og paa hovedskaermen. Maalt af F-Droid-testeren paa en
+    // Galaxy S9 helt UDEN Tailscale installeret.
+    //
+    // Diskriminatoren er Tailscales IPv6-ULA-praefiks fd7a:115c:a1e0::/48: vi rapporterer kun en
+    // CGNAT-adresse som Tailscales naar SAMME NetworkInterface ogsaa baerer en fd7a:-adresse.
+    // Bevidst konservativ: en selvhostet Headscale med et ANDET ULA-praefiks laeses som "ingen
+    // Tailscale". For en ETIKET er det den rigtige side at fejle til - vi hellere viser "-" end
+    // paastaar et privat net der ikke findes.
     public static String tailscaleIp() {
-        for (String ip : serveIps()) if (isTailscale(ip)) return ip;
+        try {
+            Enumeration<NetworkInterface> ifs = NetworkInterface.getNetworkInterfaces();
+            while (ifs.hasMoreElements()) {
+                NetworkInterface ni = ifs.nextElement();
+                try { if (ni.isLoopback()) continue; } catch (Throwable ignored) {}
+                String cgnat = null;
+                boolean marker = false;
+                Enumeration<InetAddress> addrs = ni.getInetAddresses();
+                while (addrs.hasMoreElements()) {
+                    InetAddress a = addrs.nextElement();
+                    if (a.isLoopbackAddress()) continue;
+                    if (a instanceof Inet4Address) {
+                        if (cgnat == null && isTailscale(a.getHostAddress())) cgnat = a.getHostAddress();
+                    } else if (isTailscaleUla(a)) {
+                        marker = true;
+                    }
+                }
+                if (cgnat != null && marker) return cgnat;
+            }
+        } catch (Throwable ignored) {}
         return null;
+    }
+
+    // Tailscales IPv6-ULA-praefiks fd7a:115c:a1e0::/48 - markoeren der skiller et rigtigt tailnet
+    // fra en mobiloperatoers CGNAT. Sammenlign PRAECIS 6 bytes; /48 er 48 bits.
+    static boolean isTailscaleUla(InetAddress a) {
+        if (a == null) return false;
+        byte[] r = a.getAddress();
+        return r != null && r.length == 16
+            && (r[0] & 0xff) == 0xfd && (r[1] & 0xff) == 0x7a
+            && (r[2] & 0xff) == 0x11 && (r[3] & 0xff) == 0x5c
+            && (r[4] & 0xff) == 0xa1 && (r[5] & 0xff) == 0xe0;
     }
 
     // Foerste ikke-Tailscale private adresse = enhedens LAN-IP.

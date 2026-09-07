@@ -182,7 +182,7 @@ public class ScreenService extends Service {
 
     private void createChannel() {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Husk-skaerm", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, getString(R.string.notif_channel_screen), NotificationManager.IMPORTANCE_LOW);
         ch.setShowBadge(false);
         nm.createNotificationChannel(ch);
     }

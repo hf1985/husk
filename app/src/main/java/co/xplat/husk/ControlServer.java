@@ -17,10 +17,13 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
-// Lille HTTP-server (raa ServerSocket, ingen lib) til den samlede rig. Den BINDER KUN til
-// loopback + Tailscale-IP'en, ALDRIG 0.0.0.0 - praecis som remote-control/adb-tailscale-forward.sh.
-// Fjernfladen daekkes saaledes af Tailscale-ACL'en + en delt token (?token=...). /healthz er
-// aaben (liveness). Een traad pr. listener-adresse; hver forbindelse haandteres paa egen traad.
+// Lille HTTP-server (raa ServerSocket, ingen lib) til den samlede rig. Den binder 0.0.0.0 - se
+// begrundelsen i start() (enumereringen af Tailscale-IP'en er ustabil). Fjernfladen daekkes derfor
+// af KILDE-IP-ACL'en (Net.peerAllowed: loopback/RFC1918/CGNAT/IPv6-ULA) + en valgfri delt token
+// (?token=...), IKKE af bindingen. /healthz og / er de eneste ruter uden token-tjek.
+// Een traad pr. listener-adresse; hver forbindelse haandteres paa egen traad.
+// (Her stod indtil 1.0 "BINDER KUN til loopback + Tailscale-IP'en, ALDRIG 0.0.0.0". Kommentaren var
+// forkert - koden har bundet 0.0.0.0 siden 0.9.x. Det er KOMMENTAREN der er rettet, ikke bindingen.)
 //
 // Ruter:
 //   GET /healthz                 -> "ok"                      (ingen token)
@@ -355,7 +358,7 @@ public class ControlServer {
     // Fejler sikkert: misser a11y-tappet, sker der INGEN install (PackageInstaller er atomisk -> nuvaerende bevares).
     private String triggerUpdate(String query) {
         final RigAccessibilityService svc = Rig.a11y;
-        if (svc == null) return "ERR a11y ikke oppe (kan ikke forgrunde + samtykke)";
+        if (svc == null) return "ERR a11y not running (cannot foreground + accept consent)";
         final boolean force = boolp(query, "force");
         // VIGTIGT: nulstil lastUpdate SYNKRONT foer accept-traaden starter. Ellers laeser acceptInstallConsent
         // den STALE terminale vaerdi fra FORRIGE koersel ("latest ..."/"ERR ...", der overlever i den 24/7-proces)
@@ -368,7 +371,7 @@ public class ControlServer {
             try { Thread.sleep(1500); } catch (InterruptedException e) {}   // lad forgrunden lande foer dialogen
             Updater.checkAndUpdate(svc, force);
         } }, "husk-upd").start();
-        return "remote self-update startet (foreground + auto-accept" + (force ? ", force" : "") + ") - laes /flags";
+        return "remote self-update started (foreground + auto-accept" + (force ? ", force" : "") + ") - read /flags";
     }
 
     // Reflekteres i controlHtml()/controlHwHtml() baade i et HTML-attribut ('/control?token=...') og i en
@@ -496,7 +499,7 @@ public class ControlServer {
             try { Thread.sleep(15); } catch (InterruptedException e) { break; }
             jpeg = Rig.latestScreenJpeg;
         }
-        if (jpeg == null) { writeText(out, 503, "ingen skærm-frame (slå skærmdeling til i appen)"); return; }
+        if (jpeg == null) { writeText(out, 503, "no screen frame (turn on screen sharing in the app)"); return; }
         StringBuilder hdr = new StringBuilder();
         hdr.append("HTTP/1.1 200 OK\r\n")
            .append("Content-Type: image/jpeg\r\n")
@@ -551,7 +554,7 @@ public class ControlServer {
         c.setSoTimeout(0);
         try { c.setTcpNoDelay(true); } catch (Throwable ignored) {}
         H264Stream st = Rig.ensureH264();
-        if (st == null) { writeText(out, 503, "ingen skærm/H.264 (slå skærmdeling til i appen)"); return; }
+        if (st == null) { writeText(out, 503, "no screen/H.264 (turn on screen sharing in the app)"); return; }
         String head = "HTTP/1.0 200 OK\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Type: video/mp4\r\n\r\n";
         out.write(head.getBytes("UTF-8")); out.flush();
         H264Stream.Client cl = st.addClient(out);
@@ -584,12 +587,12 @@ public class ControlServer {
              + "<title>Husk control (HW)</title>"
              + "<body style='margin:0;height:100vh;height:100dvh;display:flex;flex-direction:column;background:#111;color:#ccc;font-family:sans-serif;text-align:center;overflow:hidden;touch-action:manipulation'>"
              + "<div style='flex:none;padding:6px'>"
-             + "<button onclick=\"k('back')\">Tilbage</button> "
-             + "<button onclick=\"k('home')\">Hjem</button> "
+             + "<button onclick=\"k('back')\">Back</button> "
+             + "<button onclick=\"k('home')\">Home</button> "
              + "<button onclick=\"k('recents')\">Recents</button>"
-             + " <span id=stx style='font-size:12px;color:#888'>H.264 starter &middot; klik=tap &middot; træk=swipe</span>"
+             + " <span id=stx style='font-size:12px;color:#888'>H.264 starting &middot; click=tap &middot; drag=swipe</span>"
              + " <a href='/control" + tq + "' style='color:#6cf;font-size:12px'>MJPEG-fallback</a>"
-             + " <input id=kb placeholder='tastatur (skriv i fokuseret felt)' autocomplete=off autocapitalize=none autocorrect=off spellcheck=false style='font-size:14px;min-width:140px'></div>"
+             + " <input id=kb placeholder='keyboard (types into the focused field)' autocomplete=off autocapitalize=none autocorrect=off spellcheck=false style='font-size:14px;min-width:140px'></div>"
              + "<div style='flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden'>"
              + "<video id=v muted autoplay playsinline style='max-width:100%;max-height:100%;touch-action:none;background:#000'></video></div>"
              + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "',Q='" + tq + "';"
@@ -609,10 +612,10 @@ public class ControlServer {
              + "function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}"
              + "async function go(){"
              + "var codec='';for(var i=0;i<25&&!codec;i++){try{var t=(await (await fetch('/screen.codec'+Q)).text()).trim();if(t.indexOf('avc1')==0)codec=t;}catch(e){}if(!codec)await sleep(200);}"
-             + "if(!codec){say('H.264 ikke klar - brug /control');return;}"
-             + "if(!('MediaSource' in window)){say('MSE mangler - brug /control');return;}"
+             + "if(!codec){say('H.264 not ready - use /control');return;}"
+             + "if(!('MediaSource' in window)){say('MSE missing - use /control');return;}"
              + "var mime='video/mp4; codecs=\"'+codec+'\"';"
-             + "if(!MediaSource.isTypeSupported(mime)){say('codec ikke støttet: '+codec);return;}"
+             + "if(!MediaSource.isTypeSupported(mime)){say('codec not supported: '+codec);return;}"
              + "var ms=new MediaSource();v.src=URL.createObjectURL(ms);"
              + "ms.addEventListener('sourceopen',function(){"
              + "if(ms.sourceBuffers.length){return;}"   // sourceopen kan fyre igen -> undgaa dobbelt addSourceBuffer
@@ -625,7 +628,7 @@ public class ControlServer {
              // For-aggressivt (1.5x ned til 0.25s) gav underrun; her holdes ~0.4s sikkert. MSE har et reelt buffer-gulv
              // (modsat MJPEG, der bytter raa frames straks) - derfor er MJPEG stadig lavere lag paa en hurtig forbindelse.
              + "setInterval(function(){try{if(!v.buffered.length||v.paused)return;var end=v.buffered.end(v.buffered.length-1),gap=end-v.currentTime;if(gap>2.5){v.currentTime=end-0.4;v.playbackRate=1.0;}else if(gap>0.5){v.playbackRate=1.3;}else{v.playbackRate=1.0;}}catch(e){}},200);"
-             + "fetch('/screen.mp4'+Q).then(function(resp){var rd=resp.body.getReader();say('H.264 (HW) live');(function pump(){rd.read().then(function(r){if(r.done){return;}q.push(r.value);flush();pump();}).catch(function(){});})();}).catch(function(e){say('stream-fejl: '+e);});"
+             + "fetch('/screen.mp4'+Q).then(function(resp){var rd=resp.body.getReader();say('H.264 (HW) live');(function pump(){rd.read().then(function(r){if(r.done){return;}q.push(r.value);flush();pump();}).catch(function(){});})();}).catch(function(e){say('stream error: '+e);});"
              + "});"
              + "v.play().catch(function(){});"
              + "}go();"
@@ -646,7 +649,7 @@ public class ControlServer {
             String line = br.readLine();
             return line == null ? "" : line;
         } catch (Throwable t) {
-            return "ERR a11y (8127) ikke oppe";
+            return "ERR a11y (8127) not running";
         } finally {
             if (s != null) { try { s.close(); } catch (Throwable ignored) {} }
         }
@@ -675,12 +678,12 @@ public class ControlServer {
              // ikke scrolle siden paa en telefon og saa kun nederste/oeverste del af skaermen var synlig.
              + "<body style='margin:0;height:100vh;height:100dvh;display:flex;flex-direction:column;background:#111;color:#ccc;font-family:sans-serif;text-align:center;overflow:hidden;touch-action:manipulation'>"
              + "<div style='flex:none;padding:6px'>"
-             + "<button onclick=\"k('back')\">Tilbage</button> "
-             + "<button onclick=\"k('home')\">Hjem</button> "
+             + "<button onclick=\"k('back')\">Back</button> "
+             + "<button onclick=\"k('home')\">Home</button> "
              + "<button onclick=\"k('recents')\">Recents</button>"
-             + " <span style='font-size:12px;color:#888'>klik=tap &middot; træk=swipe/scroll</span>"
-             + " <a href='/controlhw" + tq + "' style='color:#6cf;font-size:12px'>HW (H.264, mindre lag)</a>"
-             + " <input id=kb placeholder='tastatur (skriv i fokuseret felt)' autocomplete=off autocapitalize=none autocorrect=off spellcheck=false style='font-size:14px;min-width:140px'></div>"
+             + " <span style='font-size:12px;color:#888'>click=tap &middot; drag=swipe/scroll</span>"
+             + " <a href='/controlhw" + tq + "' style='color:#6cf;font-size:12px'>HW (H.264, lower latency)</a>"
+             + " <input id=kb placeholder='keyboard (types into the focused field)' autocomplete=off autocapitalize=none autocorrect=off spellcheck=false style='font-size:14px;min-width:140px'></div>"
              + "<div style='flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden'>"
              + "<img id=v style='max-width:100%;max-height:100%;touch-action:none' src='/screen" + tq + "'></div>"
              + "<script>var W=" + w + ",H=" + h + ",A='" + amp + "';"
