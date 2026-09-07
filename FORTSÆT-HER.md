@@ -33,13 +33,23 @@ tilbage for ikke at kassere en bestået testkørsel).
 >   `tailscaleIp=100.100.103.102`. Kravet om en `fd7a:`-markør på samme interface er målt
 >   holdbart, fordi `tun0` bærer både `100.100.103.102/32` og `fd7a:115c:a1e0::1536:c33a/128`.
 
-⚠️ **De to spares er STADIG på 0.9.31/50.** Begge hentede 1.0 (`lastUpdate` =
-»install requested 1.0 via github« hhv. »… via xplat«), men OS-install-dialogen blev aldrig
-kvitteret. De kan ikke drives videre herfra lige nu: `/dump` returnerer kun navbar-noden, og
-`/screen.jpg` serverer et FROSSET frame (uret stod på 7:35 flere timer efter), altså er
-MediaProjection død på dem. Blind-tap blev fravalgt med vilje - og den gemte toggle-koordinat
-`953,1222` er nu FORÆLDET, fordi noten under Opdatér-knappen skubber alt nedenunder ned.
-Kuren er en reboot af de to spares (genrejser a11y + ScreenService) eller et menneske.
+> - **UI-teksten er set på skærmen, ikke kun i ressourcerne.** Sony 702SO på 1.0 viser knappen
+>   »UPDATE HUSK (DIRECT FROM THE DEVELOPER)« med hele noten under, og et tryk giver dialogen
+>   »Update from the developer, not F-Droid« med knappen »DOWNLOAD FROM THE DEVELOPER«.
+>   Skærmbilleder er taget; a11y bekræftede noderne uafhængigt.
+
+**2 af 3 enheder kører 1.0/51: Note10-riggen og Sony 702SO.** Begge rapporterer stadig deres
+rigtige `tailscaleIp`, så fd7a-kravet er nu efterprøvet på to uafhængige enheder.
+
+⚠️ **Samsung SM-A102U1 står tilbage på 0.9.31/50, og den kan IKKE drives færdig herfra.**
+Årsagen til at ALLE tre stallede er fundet og står i nøgleskifte-opskriften nedenfor:
+»Installer ukendte apps« var slået FRA. Sony blev kureret fjernstyret (SETTINGS → toggle →
+tilbage) og tog derefter opdateringen i første forsøg. Samsung er dobbelt-blind: `/screen.jpg`
+serverer et FROSSET frame (uret stod på 7:35 timer efter), og a11y kan se install-dialogen,
+men IKKE indholdet af Indstillinger bagefter (`find` på »Allow from this source« giver `NONE`).
+Blind-tap er fravalgt med vilje på en sikkerhedstoggle. **Kuren er en reboot** (genrejser
+ScreenService, så man kan se igen) **eller et menneske.** Bemærk at den gemte toggle-koordinat
+`953,1222` fra nøgleskiftet er FORÆLDET: noten under Opdatér-knappen skubber alt nedenunder ned.
 
 > ⚠️ **»Ingen adfærdsændring« om 0.9.31 var FORKERT, og stod her indtil 2026-09-06.**
 > `git diff v0.9.30 v0.9.31 -- app/` bærer også `ControlServer.java:218`:
@@ -136,6 +146,19 @@ med den gamle koordinat, som 1.0's nye note har forskubbet.
 >   **ikke** et menneske: `am start` på `MainActivity`, `adb exec-out screencap -p` som ØJNE, og
 >   `adb shell input tap` som FINGER. Toggle'en »Screen sharing (keep on)« lå på `953,1222` i
 >   1080x2280 på Note10. Husks egen a11y-motor accepterer derefter MediaProjection-dialogen selv.
+> - ⛔ **»Installer ukendte apps« ryddes OGSÅ - og det er den der tavst dræber self-update.**
+>   MÅLT 2026-09-07 på begge spares: `/update` hentede 1.0 og satte `lastUpdate` til
+>   »install requested«, men installen skete aldrig. På skærmen stod
+>   »For your security, your phone is not allowed to install unknown apps from this source«
+>   med knapperne CANCEL og SETTINGS. **`acceptInstallConsent` kan ikke klare den dialog**:
+>   den tapper efter Install/Update/Opdater, og kuren her er SETTINGS efterfulgt af en toggle
+>   i Indstillinger. Symptomet ligner »Play Protect gater sideloads«, men er en anden sag.
+>   `lastUpdate` bliver ved med at sige »install requested«, fordi der aldrig kommer en
+>   terminal status - der er altså INTET fejlsignal i `/flags`. Fjern-kuren:
+>   `/find?match=(?i)^settings$` → `/tap` → `/find?match=Allow from this source` → `/tap`,
+>   og gå så TILBAGE ÉN gang (ikke back+home, som forlader install-sessionen).
+>   Efter en afinstallation skal den altså sættes igen, ellers kan enheden aldrig
+>   fjern-opdatere sig selv.
 > - **Tokenet overlever** (det bor i `Settings.Global husk_token`, ikke i app-prefs).
 > - **adb skal gå DIREKTE til adbd**, ikke gennem Husks bro på 15557: broen er en del af appen og
 >   dør i det sekund man afinstallerer. **Find derfor WD-porten FØR afinstallationen** med
