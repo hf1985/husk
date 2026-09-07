@@ -50,15 +50,32 @@ ukendte apps« var slået FRA. Sony blev kureret fjernstyret (SETTINGS → toggl
 gang**, ikke back+home, som forlader install-sessionen) og tog derefter opdateringen i første
 forsøg.
 
-⚠️ **Skærmdelingen overlever ikke en in-app-opdatering, og det er ikke nyt i 1.0.**
-MediaProjection-samtykket dør med processen, og `BootReceiver`s `MY_PACKAGE_REPLACED`-vej
-genrejser kun `CameraService`, ikke samtykket. Efter opdateringen kom Note10 og 702SO tilbage af
-sig selv, mens **SM-A102U1 stadig svarer »no screen frame«** på `/screen.jpg` - `screen`-pref'en
-er `true`, men der produceres ingen frames, og at slå toggle'en fra og til fjernstyret
-genudløste ikke samtykke-dialogen. **Kuren er en reboot**, som kører `ScreenConsentActivity`
-igennem boot-kæden. Kameraet er upåvirket på alle tre.
+⚠️ **En in-app-opdatering efterlader TO tjenester nede, og ingen af dem melder en fejl.**
+Målt på flåden 2026-09-07 efter 1.0 landede. Begge er efterslæb fra processudskiftningen, ikke
+noget 1.0 indførte - `BootReceiver`s `MY_PACKAGE_REPLACED`-vej rejser 8090, og det gør at ALT
+ser sundt ud udefra:
+
+- **Skærmdeling (MediaProjection).** Samtykket dør med processen. Note10 og 702SO kom tilbage af
+  sig selv; `SM-A102U1` svarede »no screen frame« i timevis og er nu tilbage - men det kan
+  IKKE attribueres, fordi ejeren rørte telefonen samtidig med at en fjernstyret toggle-cyklus
+  var i gang. Skriv den ikke ned som en virksom kur uden en ren genmåling.
+- **Kamera (`CameraService`).** Efter opdateringen kørte tjenesten ikke på NOGEN af de to spares:
+  `/snapshot` svarede 503 »no frame yet« også på andet kald, mens `/screen.jpg` virkede - fordi
+  `ScreenService` hostede 8090 alene. Kuren er et tap på »Camera streaming« i appen; derefter
+  svarede begge 200 (94-346 kB). Note10 var upåvirket.
+
+**Efter enhver in-app-opdatering: efterprøv `/snapshot` OG `/screen.jpg` pr. enhed.** Hverken
+`/flags` eller `/info` kan afsløre det - se næste punkt.
+
+⛔ **`/flags` `camera` er MÅLT ubrugelig som diagnose tre gange på én dag.** Den er
+`Rig.cameraRunning`, som kun er sand mens capture faktisk kører, så den stod `False` på alle tre
+enheder SAMTIDIG med at Note10 leverede et 27 kB JPEG, og den stod `False` umiddelbart efter at
+et tap havde genstartet kameraet på `SM-A102U1` - som så svarede 346 kB. **Døm på `/snapshot`s
+svar, aldrig på flaget.**
+
 Bemærk også at den gemte toggle-koordinat `953,1222` fra nøgleskiftet er FORÆLDET: noten under
-Opdatér-knappen skubber alt nedenunder ned.
+Opdatér-knappen skubber alt nedenunder ned. Har enheden skærmdeling, så find koordinaten ved
+kørsel med `/find?match=...` frem for at genbruge et tal.
 
 > ⚠️ **»Ingen adfærdsændring« om 0.9.31 var FORKERT, og stod her indtil 2026-09-06.**
 > `git diff v0.9.30 v0.9.31 -- app/` bærer også `ControlServer.java:218`:
@@ -121,10 +138,11 @@ ajourført.
 ## Næste skridt
 
 **1. Flåden er ENSARTET igen (2026-09-07): alle tre på 1.0/51.** Se det målte i Status ovenfor.
-**Eneste udestående på jern: reboot `SM-A102U1`** for at få skærmdelingen tilbage
-(MediaProjection-samtykket døde med opdateringen; kameraet er upåvirket). Skal en spare
-opdateres igen, så husk at »Installer ukendte apps« skal være slået TIL - ellers staller
-installen tavst, uden fejl i `/flags`.
+**Intet udestår på jern.** Alle tre svarer nu PONG, leverer et JPEG på BÅDE `/screen.jpg` og
+`/snapshot`, og rapporterer deres rigtige `tailscaleIp`. Skal en spare opdateres igen, så husk
+de to ting der begge staller TAVST: »Installer ukendte apps« skal være slået TIL, ellers går
+installen aldrig igennem, og efter installen skal `/snapshot` og `/screen.jpg` efterprøves pr.
+enhed, fordi kamera- og skærmtjenesten kan ligge nede uden at `/flags` viser det.
 
 > **Nedenstående gjaldt nøgleskiftet 2026-09-04, hvor alle tre stod ens på 0.9.31/50.**
 > Note10 blev geninstalleret af sessionen, de to spares af ejeren. Målt via `/info` bagefter:
