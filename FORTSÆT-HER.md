@@ -178,4 +178,9 @@ bestået test og sendt MR'en bagerst i en lang kø.
 - [ ] SPOR: `2026-08-19-infra-docs-d04-plan.md` margen-S2 – Synk-gaten standser fem portefølje-tjek, fordi tre repoer er bagud
 - [ ] SPOR: `2026-08-19-infra-docs-d06-plan.md` HF6 – Bring `gradle-build.sh` tilbage til ren ASCII
 - [ ] SPOR: `2026-08-19-infra-docs-d07-plan.md` HF8 – Efterprøv F-Droids publicerede beskrivelse efter merge
+- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S1 – Afpublicér de gamle GitHub-releases (B1)
+- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S2 – Sæt et token på de to spares (B3)
+- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S3 – Release 0.9.32: tre målte fejl i appens kode
+- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S4 – `peerAllowed` og obligatorisk token: design og forelæg
+- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S5 – Følg op på F-Droid-MR !40810
 <!-- /SPOR-POINTERE -->
