@@ -8,11 +8,38 @@ root. Overblik: `README.md`. Agent-kontekst, invarianter og release-pligten:
 
 ## Status
 
-**Udgivet og i drift.** Nuværende version **0.9.31 / versionCode 50**
-(2026-09-03: ny release-signeringsnøgle + `vcsInfo { include false }`). Udgives på
-GitHub-releases (`hf1985/husk`) og `xplat.co/husk`; **F-Droid er endnu IKKE udgivet** -
-fdroiddata-MR !40810 er ÅBEN og afventer anmelderne. Pure framework, ingen AndroidX, ingen
-afhængigheder.
+**Udgivet og i drift.** Nuværende version **1.0 / versionCode 51** (2026-09-07, bygget og
+signeret på `HFs-lenovo`). Udgives på GitHub-releases (`hf1985/husk`) og `xplat.co/husk`;
+**F-Droid er endnu IKKE udgivet** - fdroiddata-MR !40810 er ÅBEN og afventer anmelderne.
+Pure framework, ingen AndroidX, ingen afhængigheder.
+
+**Hvorfor 1.0 kom.** F-Droid-anmelderen `linsui` skrev 07-09 kl. 12:58 det sidste krav:
+»Please also make it clear in the UI that the update is from you directly.« Hans første ønske
+blev løst metadata-only; dette kunne ikke, fordi det handler om appens egen skærm. Derfor blev
+de tre udskudte kode-fund taget med i samme bump (de krævede alle et versionsbump og var holdt
+tilbage for ikke at kassere en bestået testkørsel).
+
+> **Målt efter udgivelsen 2026-09-07:**
+> - Begge `latest.json`-endpoints viser `versionCode 51`, `/husk/openapi.json` melder 1.0 med
+>   44 paths, `pc/check-api-parity.sh` er grøn.
+> - **F-Droids egen pipeline `2827292807` er GRØN** på fork-head: »Successfully built
+>   co.xplat.husk:51 from 02e069b7…«, »compared built binary to supplied reference binary
+>   successfully«, med den pinnede signer `96195cfd…c17d`.
+> - **Note10-riggen kører 1.0** (`/info`: `v1.0/51`, `a11y: true`). Bevist at det ER den nye
+>   kode: `/screen.jpg` svarer nu »no screen frame (turn on screen sharing in the app)« og
+>   `/update` svarer »remote self-update started … read /flags« - begge på engelsk, hvor 0.9.31
+>   svarede på dansk.
+> - **`tailscaleIp` er IKKE regredieret:** riggen på 1.0 rapporterer stadig
+>   `tailscaleIp=100.100.103.102`. Kravet om en `fd7a:`-markør på samme interface er målt
+>   holdbart, fordi `tun0` bærer både `100.100.103.102/32` og `fd7a:115c:a1e0::1536:c33a/128`.
+
+⚠️ **De to spares er STADIG på 0.9.31/50.** Begge hentede 1.0 (`lastUpdate` =
+»install requested 1.0 via github« hhv. »… via xplat«), men OS-install-dialogen blev aldrig
+kvitteret. De kan ikke drives videre herfra lige nu: `/dump` returnerer kun navbar-noden, og
+`/screen.jpg` serverer et FROSSET frame (uret stod på 7:35 flere timer efter), altså er
+MediaProjection død på dem. Blind-tap blev fravalgt med vilje - og den gemte toggle-koordinat
+`953,1222` er nu FORÆLDET, fordi noten under Opdatér-knappen skubber alt nedenunder ned.
+Kuren er en reboot af de to spares (genrejser a11y + ScreenService) eller et menneske.
 
 > ⚠️ **»Ingen adfærdsændring« om 0.9.31 var FORKERT, og stod her indtil 2026-09-06.**
 > `git diff v0.9.30 v0.9.31 -- app/` bærer også `ControlServer.java:218`:
@@ -74,11 +101,16 @@ ajourført.
 
 ## Næste skridt
 
-**1. Flåden er FÆRDIG (2026-09-04): alle tre enheder på 0.9.31/50 med den nye nøgle.**
-Note10 blev geninstalleret af sessionen, de to spares af ejeren. Målt via `/info` bagefter:
-Sony 702SO (A9, sdk 28) og Samsung SM-A102U1 (A11, sdk 30), begge `versionName 0.9.31`,
-`versionCode 50`, `a11y: true`, `screen: true`, `batteryOptIgnored: true`, og `/snapshot` 200
-med et rigtigt JPEG (83-97 kB på A9, 380-405 kB på A11).
+**1. Flåden er IKKE ensartet (2026-09-07): riggen kører 1.0/51, de to spares 0.9.31/50.**
+Se det målte i Status ovenfor. Næste handling på spares: reboot dem (genrejser a11y og
+ScreenService), kør `/update`, og kvittér install-dialogen med syn plus koordinat-tap - IKKE
+med den gamle koordinat, som 1.0's nye note har forskubbet.
+
+> **Nedenstående gjaldt nøgleskiftet 2026-09-04, hvor alle tre stod ens på 0.9.31/50.**
+> Note10 blev geninstalleret af sessionen, de to spares af ejeren. Målt via `/info` bagefter:
+> Sony 702SO (A9, sdk 28) og Samsung SM-A102U1 (A11, sdk 30), begge `versionName 0.9.31`,
+> `versionCode 50`, `a11y: true`, `screen: true`, `batteryOptIgnored: true`, og `/snapshot` 200
+> med et rigtigt JPEG (83-97 kB på A9, 380-405 kB på A11).
 
 > **Opskriften er BEVARET her, fordi den gælder ethvert fremtidigt nøgleskifte** - ikke kun dette.
 > Afinstallationen tager mere med sig end app-data:
