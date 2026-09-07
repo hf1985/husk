@@ -14,9 +14,9 @@ Repo: https://github.com/hf1985/husk.git
 Binaries: https://github.com/hf1985/husk/releases/download/v%v/husk-v%v.apk
 
 Builds:
-  - versionName: 0.9.31
-    versionCode: 50
-    commit: 3e3ce525a6ad2de3f74ba8c86dfe40bed28afe1b
+  - versionName: '1.0'
+    versionCode: 51
+    commit: 02e069b763f5841b1be075734c7490ee0187f472
     subdir: app
     gradle:
       - yes
@@ -25,5 +25,5 @@ AllowedAPKSigningKeys: 96195cfd540e75f8a34dfc08764438769d4bc3e5d7970a9527d97004d
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 0.9.31
-CurrentVersionCode: 50
+CurrentVersion: '1.0'
+CurrentVersionCode: 51
