@@ -286,7 +286,7 @@ MR-labelen er `review-requested`. Svaret til `linsui` blev postet 07-09 kl. 18:1
 - [ ] SPOR: `2026-08-19-infra-docs-d07-plan.md` HF8 – Efterprøv F-Droids publicerede beskrivelse efter merge
 - [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S1 – Afpublicér de gamle GitHub-releases (B1)
 - [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S2 – Sæt et token på de to spares (B3)
-- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S3 – Release 0.9.32: tre målte fejl i appens kode
 - [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S4 – `peerAllowed` og obligatorisk token: design og forelæg
-- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S5 – Følg op på F-Droid-MR !40810
+- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S8 – Næste Husk-release: tre målte kode-fund
+- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S9 – Hvorfor kom kamera- og skærmtjenesten ikke op efter opdateringen?
 <!-- /SPOR-POINTERE -->
