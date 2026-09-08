@@ -1,9 +1,9 @@
 The update button now states in the app that the update comes directly from the developer,
 not F-Droid: a note under the button, plus a dialog naming the source.
 
-Fixes the "Tailscale IP" label: carriers also hand out 100.64.0.0/10 addresses, so on mobile
-data the carrier address was shown as Tailscale's. The interface must now also carry a
+Fixes the "Tailscale IP" label: carriers hand out 100.64.0.0/10 addresses too, so on mobile
+data the carrier address showed as Tailscale's. The interface must also carry an
 fd7a:115c:a1e0::/48 address.
 
-Server responses, the control pages and the motion push now follow the device language,
-with English as the default.
+Server responses and the browser control pages are now English. The motion push and
+notification channel names became translatable.

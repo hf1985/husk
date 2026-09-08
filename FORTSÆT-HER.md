@@ -59,10 +59,16 @@ ser sundt ud udefra:
   sig selv; `SM-A102U1` svarede »no screen frame« i timevis og er nu tilbage - men det kan
   IKKE attribueres, fordi ejeren rørte telefonen samtidig med at en fjernstyret toggle-cyklus
   var i gang. Skriv den ikke ned som en virksom kur uden en ren genmåling.
-- **Kamera (`CameraService`).** Efter opdateringen kørte tjenesten ikke på NOGEN af de to spares:
-  `/snapshot` svarede 503 »no frame yet« også på andet kald, mens `/screen.jpg` virkede - fordi
-  `ScreenService` hostede 8090 alene. Kuren er et tap på »Camera streaming« i appen; derefter
-  svarede begge 200 (94-346 kB). Note10 var upåvirket.
+- **Kamera (`CameraService`).** Efter opdateringen leverede kameraet ikke på NOGEN af de to
+  spares: `/snapshot` svarede 503 »no frame yet« også på andet kald, mens `/screen.jpg` virkede
+  og porten var oppe. Kuren er et tap på »Camera streaming« i appen; derefter svarede begge 200
+  (94-346 kB). Note10 var upåvirket.
+  ⚠️ **»Fordi `ScreenService` hostede 8090 alene« stod her som forklaring indtil 2026-09-08 og
+  er en HYPOTESE, ikke en måling.** `BootReceiver` starter `CameraService` ubetinget ved
+  `MY_PACKAGE_REPLACED`, og det er den der normalt hoster 8090, så forklaringen er ikke engang
+  den mest sandsynlige. Ingen målte `dumpsys activity services`, og der findes ingen måling af
+  hvorfor det ramte A9+A11 men ikke A12. **Mål det næste gang det sker** frem for at arve
+  forklaringen.
 
 **Efter enhver in-app-opdatering: efterprøv `/snapshot` OG `/screen.jpg` pr. enhed.** Hverken
 `/flags` eller `/info` kan afsløre det - se næste punkt.
@@ -194,9 +200,17 @@ enhed, fordi kamera- og skærmtjenesten kan ligge nede uden at `/flags` viser de
 >   eller efter en reboot når a11y har genrejst WD. Uden den sætning er punktet en advarsel uden
 >   kur, og netop den kur er det der gør et nøgleskifte kørbart uden et USB-kabel.
 
-**2. xplat.co ER deployet** (2026-09-04). Begge `latest.json`-endpoints viser
-`versionCode 50`, `/husk/openapi.json` melder 0.9.31 med 44 paths, og
+**2. xplat.co ER deployet** (senest 2026-09-08). Begge `latest.json`-endpoints viser
+`versionCode 51`, `/husk/openapi.json` melder 1.0 med 44 paths, og
 `pc/check-api-parity.sh` er grøn. Release-pligtens trin 8 er dermed opfyldt.
+
+> ⛔ **Men grøn parity er IKKE en ajour API-doc.** `pc/check-api-parity.sh` siger det selv i sit
+> hoved: den ser endpoint-NAVNE og `versionCode`, aldrig params, respons eller adgangsmodel.
+> En adversarisk gennemgang 2026-09-08 fandt seks ting kataloget skyldte: `/update`s svar stod
+> stadig på dansk, `/set` manglede `sq`+`sfps`, `/key` manglede `enter`, `/rpc` manglede
+> `text`/`enter`/`wake`, flere fejl-svarformer var udokumenterede, og API-doc'ens intro påstod
+> at kun Tailscale-nettet kan nå serveren, hvilket butiksteksten samtidig modsiger.
+> **Læs katalogets `resp`- og `params`-felter mod koden i hånden ved hver release.**
 
 > **Fælde værd at huske:** deployet blev først fejlagtigt meldt umuligt, fordi
 > `~/.ssh/agent.env` ikke fandtes i WSL. Det er den forkerte prøve.
@@ -217,24 +231,30 @@ enhed, fordi kamera- og skærmtjenesten kan ligge nede uden at `/flags` viser de
 **Deploy til den kørende rig:** `adb install -r <apk>` når adb eller WD er sund,
 derefter `adb reboot` for en ren fuld tilstand. **Launch aldrig `MainActivity`
 via `am start` på den kørende rig** – det forgrunder Husk nær DeX og slår a11y
-midlertidigt fra. Verificér i stedet via `/flags`.
+midlertidigt fra. Verificér i stedet via `/snapshot` (to kald - kameraet er dovent), **ikke via
+`/flags`s `camera`-felt**, som er målt ubrugeligt som diagnose (se advarslen ovenfor).
 
 
 
-## F-Droid MR !40810: svaret er afgivet 06-09-2026, bolden ligger hos F-Droid
+## F-Droid MR !40810: 1.0 er indsendt 07-09-2026, bolden ligger hos F-Droid
 
-Testeren `gitubpatrice` kørte 06-09 en fuld gennemgang (Galaxy S9, API 29, ingen tilladelser
-givet) og bestod: install, koldstart, reproducerbarhed og en netværks-måling. `linsui` svarede
-samme aften med **den eneste tilbageværende betingelse**: »please make it clear that the update
-is not from F-Droid«.
+**Aktuel tilstand (målt 2026-09-08):** recipe'ens build-entry peger på `02e069b` (1.0 / 51),
+fork-head er `e430655`, pipeline **2827292807** er grøn med reproducerbar byte-match, og
+MR-labelen er `review-requested`. Svaret til `linsui` blev postet 07-09 kl. 18:10Z.
 
-**Det er gjort METADATA-ONLY, med vilje.** Butiksteksten (en-US + da) har nu et
-Opdaterings-afsnit, og der er changelogs for versionCode 50. Recipe'ens build-entry peger på
-`dde86ba`; spejlet til `hf16/f-droid@435f265`, pipeline **2824652495 grøn**, og job
-**16333989229** loggede »compared built binary to supplied reference binary successfully«.
-**Ingen ændring under `app/`** – APK'en for versionCode 50 er den samme bytes som den testede,
-så testkørslen og reproducerbarheden står. Et versionsbump ville have kasseret en netop
-bestået test og sendt MR'en bagerst i en lang kø.
+> **Forhistorien, som forklarer hvorfor 1.0 kom.** Testeren `gitubpatrice` kørte 06-09 en fuld
+> gennemgang (Galaxy S9, API 29, ingen tilladelser givet) og bestod: install, koldstart,
+> reproducerbarhed og en netværks-måling. `linsui` svarede samme aften med den første betingelse
+> (»make it clear that the update is not from F-Droid«), som blev løst METADATA-ONLY. Dagen
+> efter kom den anden: »Please also make it clear **in the UI** that the update is from you
+> directly«. Den kunne ikke løses i butiksteksten, og derfor blev 1.0 bygget.
+
+> **Den FØRSTE betingelse blev løst METADATA-ONLY** (historik): butiksteksten fik et
+> Opdaterings-afsnit, og der kom changelogs for versionCode 50, uden nogen ændring under
+> `app/`. Formen er værd at kende, for den gælder hver gang en anmelder beder om noget der kan
+> siges i teksten: **APK'en forbliver byte-identisk, så en netop bestået testkørsel og
+> reproducerbarheden står**, mens et versionsbump ville have kasseret begge dele og sendt MR'en
+> bagerst i en lang kø. Den er brugt igen 2026-09-08 til at rette en falsk changelog-sætning.
 
 > **Fælden der blev fanget FØR den nåede F-Droid.** Min første butikstekst sagde »It only ever
 > runs when you press it«. Det er FALSK: `Updater.checkAndUpdate` har to indgange, knappen
@@ -243,17 +263,20 @@ bestået test og sendt MR'en bagerst i en lang kø.
 > det; teksten er rettet i `dde86ba`. **Ingen automatik findes dog:** ingen `AlarmManager`,
 > `JobScheduler` eller `WorkManager`, og `BootReceiver` kalder den ikke.
 
-**Køen til NÆSTE release (ikke til denne MR – de kræver alle et versionsbump):**
-- **`Net.tailscaleIp()` mislabeler carrier-CGNAT som Tailscale-IP.** Den returnerer den første
-  100.64/10-adresse på et vilkårligt interface, så på LTE bliver teleselskabets adresse vist som
-  »Tailscale IP« i `/info` og på hovedskærmen. Kuren: kræv at SAMME `NetworkInterface` også
-  bærer en adresse i `fd7a:115c:a1e0::/48`. **`localIp()` er allerede konservativ** (den
-  udelukker 100.64/10) – ret den ikke.
+**Køen til NÆSTE release (kræver alle et versionsbump):**
 - **`peerAllowed()`/token:** tokenet gater hele API'et via `dispatch()` (kun `/healthz` og `/`
   er fri), men `tokenOk()` returnerer true når tokenet er tomt. Obligatorisk token + en
   skarpere `peerAllowed` hører sammen i én release, fordi det bryder hver eksisterende enhed
   indtil den er re-paret.
-- **Danske strenge i HTTP-svar** på et API dokumenteret på engelsk (fx `ERR a11y (8127) ikke oppe`).
+- **Ingen fejlsignal når »Installer ukendte apps« er slået fra.** `Updater` bør kalde
+  `canRequestPackageInstalls()` FØR den henter, og sætte fx `ERR unknown-sources-off` i
+  `lastUpdate`. I dag står feltet på »install requested« for evigt, og `/flags` ser sund ud.
+- **`ControlServer.java:225`: `dparam(query,"server") != null`.** `dparam` returnerer `""` og
+  aldrig `null`, så guarden er ALTID sand - præcis 0.9.31's `topic`-fejl. I dag ufarlig, fordi
+  https-præfikstesten redder den, men én refaktor fra at bide.
+
+> ✅ **Udkom i 1.0:** `Net.tailscaleIp()`s carrier-CGNAT-mislabel og de danske strenge i
+> HTTP-svar. Stod her som kø-punkter indtil 2026-09-08.
 
 ## Åbne spor fra runde-planer
 

@@ -1,9 +1,9 @@
 Opdaterings-knappen siger nu inde i appen, at opdateringen kommer direkte fra udvikleren og
 ikke fra F-Droid: en note under knappen plus en dialog der navngiver kilden.
 
-Retter etiketten »Tailscale-IP«: mobilselskaber uddeler også 100.64.0.0/10-adresser, så på
-mobildata blev selskabets adresse vist som Tailscales. Samme interface skal nu også bære en
+Retter etiketten »Tailscale-IP«: mobilselskaber uddeler også 100.64.0.0/10-adresser, så
+selskabets adresse blev vist som Tailscales. Samme interface skal nu også bære en
 fd7a:115c:a1e0::/48-adresse.
 
-Server-svar, kontrolsiderne og bevægelses-pushen følger nu enhedens sprog, med engelsk som
-standard.
+Server-svar og browser-kontrolsiderne er nu på engelsk. Bevægelses-pushen og
+notifikationskanalernes navne blev oversættelige.

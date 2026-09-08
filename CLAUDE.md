@@ -111,7 +111,7 @@ Nuværende: **1.0 / versionCode 51** (2026-09-07, bygget på `HFs-lenovo`. Tre t
   bag kilde-IP-ACL (`Net.peerAllowed`: loopback/RFC1918/Tailscale) + valgfrit token. Enhver peer –
   også hfs-dell – styrer en enhed DIREKTE (`curl http://<ts-ip>:8090/…`, `/rpc?cmd=ping`→PONG a11y,
   `adb connect <ts-ip>:15557`) **uden Termux**. Termux var kun til overbygningens loopback-flader.
-- **Flåde (ENSARTET igen 2026-09-04): alle tre på 0.9.31/50 med den NYE nøgle.** Note10 blev geninstalleret først, de to spares bagefter. Målt efter geninstallationen på alle tre: a11y oppe, skærmdeling til, batteri-undtagelse på, og `/snapshot` svarer 200 med et rigtigt JPEG. Enheder: Note10 SM-N975U1 (A12, DeX, token, .103.102) + spare Sony **702SO**
+- **Flåde (ENSARTET 2026-09-07): alle tre på 1.0/51.** Efter en in-app-opdatering SKAL du efterprøve `/snapshot` OG `/screen.jpg` pr. enhed - porten kommer op uanset, så `/healthz` og `rpc ping` kan være grønne mens kamera- eller skærmtjenesten ligger nede (måleregel 422). Tidligere: 0.9.31/50 med den NYE nøgle (2026-09-04). Note10 blev geninstalleret først, de to spares bagefter. Målt efter geninstallationen på alle tre: a11y oppe, skærmdeling til, batteri-undtagelse på, og `/snapshot` svarer 200 med et rigtigt JPEG. Enheder: Note10 SM-N975U1 (A12, DeX, token, .103.102) + spare Sony **702SO**
   (A9, tokenløs, .101.101) + spare Samsung **SM-A102U1**/A10e (A11, tokenløs, .101.102).
 - **Spares KAN itereres fuldt (KORRIGERET 2026-07-12 – »umuligt« var en skærm-slukket-fejldiagnose).**
   En idle spare SOVER skærmen → a11y ser kun navbar, gestus=`ERR cancelled`, home/back=no-op (blev
