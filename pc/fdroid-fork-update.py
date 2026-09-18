@@ -33,6 +33,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 PROJEKT = "hf16%2Ff-droid"
@@ -92,19 +93,35 @@ def main():
         return 2
 
     indhold = io.open(a.recipe, encoding="utf-8").read()
-    res = kald(token, API + "/repository/commits", {
-        "branch": BRANCH,
-        "commit_message": a.besked,
-        "actions": [{"action": "update", "file_path": STI, "content": indhold}],
-    })
-    print("commit på forken:", res.get("id"))
+
+    # IDEMPOTENS: er forkens gren allerede identisk, så commit IKKE igen. Uden den koster
+    # hvert genforsøg - fx efter en fejl i MR-oprettelsen længere nede - en ny tom commit og
+    # en ny ~2 minutters pipeline på F-Droids delte runnere. Målt 2026-09-19: to identiske
+    # commits i træk, fordi kun det sidste trin fejlede.
+    sha = None
+    try:
+        raa = kald_raa_fil(token, BRANCH)
+        if raa == indhold:
+            gren = kald(token, API + "/repository/branches/" + urllib.parse.quote(BRANCH, safe=""))
+            sha = (gren.get("commit") or {}).get("id")
+            print("forken har allerede dette indhold - springer commiten over:", sha)
+    except urllib.error.HTTPError:
+        sha = None   # filen findes ikke på grenen endnu; så commit vi som normalt
+
+    if sha is None:
+        res = kald(token, API + "/repository/commits", {
+            "branch": BRANCH,
+            "commit_message": a.besked,
+            "actions": [{"action": "update", "file_path": STI, "content": indhold}],
+        })
+        sha = res.get("id")
+        print("commit på forken:", sha)
 
     # Pipelinen SKAL pinnes til den sha vi lige skrev. Et nøgent
     # `?ref=<branch>&per_page=1` giver den NYESTE pipeline paa grenen, og maalt
     # 2026-09-06 er den nye pipeline foerst oprettet 11-14 sekunder efter commiten.
     # Er GitLab langsommere end ventetiden, er `pls[0]` altsaa den FORRIGE pipeline -
     # som typisk er groen - og scriptet ville melde en forældet succes som sin egen.
-    sha = res.get("id")
     pid = None
     for _ in range(30):
         pls = kald(token, API + "/pipelines?ref=" + BRANCH + "&sha=" + sha + "&per_page=1")
@@ -159,8 +176,10 @@ def main():
             print("  !%s %s" % (m["iid"], m.get("web_url")))
         return 0
 
-    mr = kald(token, UPSTREAM_API + "/merge_requests", {
-        "source_project_id": kald(token, API)["id"],
+    # ⛔ MR'en oprettes paa KILDE-projektet (forken), ikke paa upstream. GitLab svarer 403
+    # Forbidden paa upstreams eget /merge_requests naar man ikke er medlem af det projekt -
+    # og 403 ligner et manglende token-scope frem for en forkert adresse. Maalt 2026-09-19.
+    mr = kald(token, API + "/merge_requests", {
         "source_branch": BRANCH,
         "target_project_id": UPSTREAM_ID,
         "target_branch": "master",
@@ -170,6 +189,16 @@ def main():
     })
     print("MR oprettet: !%s  %s" % (mr.get("iid"), mr.get("web_url")))
     return 0
+
+
+def kald_raa_fil(token, ref):
+    """Filens RAA indhold paa en gren. Bruges kun til idempotens-tjekket ovenfor."""
+    url = (API + "/repository/files/" + urllib.parse.quote(STI, safe="")
+           + "/raw?ref=" + urllib.parse.quote(ref, safe=""))
+    req = urllib.request.Request(url)
+    req.add_header("PRIVATE-TOKEN", token)
+    with urllib.request.urlopen(req, timeout=90) as r:
+        return r.read().decode("utf-8")
 
 
 def kald_raa_trace(token, job_id):
