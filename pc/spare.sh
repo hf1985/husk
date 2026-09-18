@@ -171,38 +171,28 @@ case "${VERB,,}" in
         ;;
 
     update)
-        # VAERN, genindfoert 2026-09-04 EFTER at en adversarisk verifikation fandt at
-        # ophaevelsen af noegleskifte-spaerren utilsigtet genaabnede en handling husets egne
-        # docs FORBYDER. Grunden er en HELT anden end noeglen, og den udloeb ikke med den:
+        # FJERNET SOM HANDLING i Husk 1.1. Appen har ingen indbygget updater mere (F-Droid-fund
+        # 3-9, 15-09-2026), saa /update svarer 404 paa enhver enhed der er paa 1.1. Verbet staar
+        # tilbage som en INSTRUKS frem for at doe med "ukendt verb", fordi den gamle form ellers
+        # ville se ud som en netvaerksfejl.
         #
-        #  * note10/rig: docs/fleet-tailnet-transport.md siger 'Opdater den ALDRIG via /update'.
-        #    /update forgrunder MainActivity -> Samsungs 'restart on another display'-churn paa
-        #    DeX -> a11y, scrcpy og Discord falder. Det er kontor-moedekameraet.
-        #  * a9: en opdatering kan afbinde a11y, og A9 mangler Wireless Debugging, saa den
-        #    KAN IKKE fikses remote uden et USB-kabel.
-        #
-        # force=1 er ikke en no-op paa en enhed der allerede er paa nyeste version: Updater.java
-        # gater kun med 'if (!force && latest <= cur)', saa kaldet geninstallerer samme version.
-        case "${TARGET,,}" in
-            note10|rig)
-                echo 'STOP: /update er FORBUDT paa note10 (DeX-churn slaar a11y, scrcpy og' >&2
-                echo '  Discord ned). Se docs/fleet-tailnet-transport.md. Saet HUSK_TILLAD_UPDATE=1'  >&2
-                echo '  hvis du bevidst vil goere det alligevel.' >&2
-                [ "${HUSK_TILLAD_UPDATE:-0}" = "1" ] || exit 3 ;;
-            a9|sony|702so)
-                echo 'ADVARSEL: A9 kan afbinde a11y ved en opdatering og har INGEN Wireless' >&2
-                echo '  Debugging - en fejl kraever et USB-kabel paa stedet.' >&2
-                [ "${HUSK_TILLAD_UPDATE:-0}" = "1" ] || { echo "  Saet HUSK_TILLAD_UPDATE=1 for at fortsaette." >&2; exit 3; } ;;
-        esac
-        wake
-        get_text '/update?force=1'
-        echo ""
-        echo "Self-update trigget. Foelg /flags -> lastUpdate. NAAR OS'ets install-dialog kommer:"
-        echo "  * Google Play Protect 'App scan recommended' (fersk sideload): koer 'shot',"
-        echo "    tap 'More details', 'shot' igen, tap saa 'Install without scanning'."
-        echo "  * Standard-dialog 'Do you want to install...': tap 'Install'."
-        echo "  (a11y-'find' er upaalidelig paa disse system-dialoger -> laes koordinater fra 'shot'.)"
-        echo "  Installen commit'er -> 8090 falder kort -> J4 rejser den igen (self-heal, ingen reboot)."
+        # De to gamle vaern gjaldt HANDLINGEN, ikke transporten, og de gaelder stadig:
+        #  * note10/rig er kontor-moedekameraet. En opdatering forgrunder appen -> Samsungs
+        #    'restart on another display'-churn paa DeX -> a11y, scrcpy og Discord falder.
+        #    Opdater den kun naar der ikke er et moede, og efterproev bagefter.
+        #  * a9 kan afbinde a11y ved en opdatering og mangler Wireless Debugging, saa en fejl
+        #    KAN IKKE fikses remote - den kraever et USB-kabel paa stedet.
+        echo 'HANDLINGEN FINDES IKKE MERE: Husk 1.1 har ingen indbygget updater, og /update' >&2
+        echo '  svarer 404. Opdater i stedet paa en af disse to maader:' >&2
+        echo '' >&2
+        echo '  1) F-Droid-klienten paa telefonen (den normale vej for en fremmed bruger).' >&2
+        echo '  2) adb install -r <husk-vX.apk> over husets Termux-ADB (husets driftsvej).' >&2
+        echo '     APK en hentes fra GitHub-releasen; den ligger ikke i repoet mere.' >&2
+        echo '' >&2
+        echo '  Efterproev ALTID bagefter, pr. enhed: /snapshot OG /screen.jpg. Porten kommer op' >&2
+        echo '  uanset, saa /healthz kan vaere groen mens kamera- eller skaermtjenesten ligger' >&2
+        echo '  nede (maaleregel 422).' >&2
+        exit 3
         ;;
 
     control)
@@ -212,6 +202,7 @@ case "${VERB,,}" in
 
     *)
         echo "ukendt verb: $VERB"
-        echo "verbs: health wake shot launch tap swipe home back recents notifications text find dump exists rpc update control"
+        echo "verbs: health wake shot launch tap swipe home back recents notifications text find dump exists rpc control"
+        echo "  (update er fjernet i Husk 1.1 - verbet forklarer hvad man goer i stedet)"
         ;;
 esac

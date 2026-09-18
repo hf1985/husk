@@ -104,9 +104,11 @@ if [ -n "$KS" ] && [ -f "$KS" ]; then
   "$AS" sign --ks "$KS" --ks-key-alias "$ALIAS" --ks-pass "$PASSARG" --out "$OUT" "$UNSIGNED"
   "$AS" verify --print-certs "$OUT" | grep -i "certificate DN" || true
   echo "SIGNED: $OUT"
-  echo "ADVARSEL: GitHub-release + repo'ets husk-latest.apk SKAL signeres med SAMME noegle"
+  echo "ADVARSEL: GitHub-releasens APK SKAL signeres med SAMME noegle"
   echo "          (CN=xplat, O=xplat, C=DK; SHA-256 96195cfd...c17d) ellers afvises opdateringer."
+  echo "          Fra 1.1 ligger APK'en KUN i releasen - aldrig i kildetraeet (F-Droid-fund 2)."
 else
-  echo "Ikke signeret (HUSK_KEYSTORE ikke sat). F-Droid behoever ingen signering;"
-  echo "GitHub/in-app-update SKAL bruge den kanoniske keystore - se docs/BUILD.md afsnit 5."
+  echo "Ikke signeret (HUSK_KEYSTORE ikke sat). F-Droids egen build behoever ingen signering,"
+  echo "men recipe'en distribuerer VORES signerede APK via Binaries:, saa GitHub-releasen SKAL"
+  echo "bruge den kanoniske keystore - se docs/BUILD.md afsnit 5."
 fi

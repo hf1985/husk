@@ -1,0 +1,8 @@
+The built-in updater is gone. Husk no longer downloads or installs anything by itself, and
+the "install unknown apps" permission is no longer requested. Update from F-Droid, or install
+a new APK with adb.
+
+New: the camera side can be switched over HTTP with /set?front=0|1, and /flags now reports the
+selected side in a "front" field. No cable and no adb needed.
+
+The prebuilt APK has been removed from the source tree; releases carry it instead.

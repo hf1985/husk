@@ -69,8 +69,10 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
    kør `wsl.exe --cd '~' -- bash -lc 'bash ~/sign-verify.sh'`. Verificér cert-digest =
    `96195cfd...c17d` (release-nøglen; ellers afviser Android opdateringen). Det gamle
    `1b89a920...62af59` er den PENSIONEREDE debug-nøgle - se afsnit 5.
-4. Kopiér den signerede APK til repoets `husk-latest.apk`:
-   `cp "//wsl.localhost/Ubuntu/home/hf198/android-build/husk-build/husk-vX.apk" "/g/My Drive/10_PROJEKTER/P_app_husk/husk-latest.apk"`.
+4. ⛔ **Her stod indtil 1.1: »kopiér den signerede APK til repoets `husk-latest.apk`«. GØR DET IKKE.**
+   Den prebuilte APK er fjernet af kildetræet (F-Droid-fund 2, 15-09-2026: binære filer i repoet kan
+   ikke revideres), og `.gitignore` dækker nu `*.apk`, så et nyt forsøg fejler tavst frem for larmende.
+   Den signerede APK hører **kun** i GitHub-releasen som `husk-v<versionName>.apk` (trin 6 herunder).
 4b. **Skriv changelog'en:** `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` OG
    `.../da/changelogs/<versionCode>.txt` (maks 500 tegn hver). Filnavnet er versionCode, ikke
    versionName. Uden den viser F-Droid et tomt »What's New« for udgivelsen, fordi
@@ -216,9 +218,12 @@ igen. `husk-build/.gradle` (projekt-cache) gør gentagne builds hurtige; ryd den
 > derfor ikke længere valgfri for F-Droid – den er forudsætningen for at en F-Droid-installeret
 > Husk kan tage en in-app-opdatering, fordi signaturerne skal matche.
 
-Til **GitHub-releases** (det F-Droids `Binaries:` henter) og repo'ets `husk-latest.apk` (det
-in-app-updateren henter) signerer vi med `apksigner`. **Alle versioner SKAL signeres med samme nøgle**, ellers afviser Android
-opdateringen (signaturskift = "app not installed").
+Til **GitHub-releases** (det F-Droids `Binaries:` henter) signerer vi med `apksigner`.
+**Alle versioner SKAL signeres med samme nøgle**, ellers afviser Android opdateringen
+(signaturskift = "app not installed"). Det gælder fortsat efter 1.1: kravet er Androids, ikke
+updaterens, så en `adb install -r` og F-Droid-klientens opgradering fejler på samme måde ved
+et signaturskift. Her stod også »og repo'ets `husk-latest.apk` (det in-app-updateren henter)« -
+begge dele findes ikke mere.
 
 ### Den kanoniske signeringsnøgle (UDSKIFTET 2026-09-03)
 
@@ -284,15 +289,17 @@ eller via helper-scriptet:
 
 ## 6. Per-release vedligehold (checkliste)
 
-Når en ny version udgives, skal følgende holdes i sync (ellers fejler in-app-update eller
-F-Droid-CI):
+Når en ny version udgives, skal følgende holdes i sync (ellers fejler F-Droid-CI, eller en flade
+annoncerer en version der ikke kan hentes):
 
 1. Bump `versionCode` + `versionName` i `app/build.gradle`.
 2. Byg + signér (afsnit 4–5).
-3. Opdater repo'ets `latest.json` + `husk-latest.apk` (in-app-update henter dem via
-   raw.githubusercontent / ISRG-cert – se [[husk-app]] for cert-historikken).
+3. Opdater repo'ets `latest.json` – **kun** versionsfelterne og `apk`-URL'en, som skal pege på
+   release-assettet. Læg ALDRIG APK'en i repoet igen (se trin 4 i afsnit 0b).
+   `latest.json` er fra 1.1 versionsvisning, ikke en opdateringskanal; den ENE undtagelse er
+   1.0-flåden, som stadig læser den gennem sin egen updater, indtil den er opgraderet.
 4. Opdater xplat HUSK-konstanter i `P_xplat/hosting/app.py` (`HUSK_VERSION_NAME`,
-   `HUSK_VERSION_CODE`, `HUSK_APK` = raw `husk-latest.apk`) **OG DEPLOY xplat.co** (`P_xplat`:
+   `HUSK_VERSION_CODE`, `HUSK_APK` = release-assettet) **OG DEPLOY xplat.co** (`P_xplat`:
    `check-local.sh` grøn → kør fra **Git Bash**: `bash scripts/hosting-deploy.sh --apply`.
    IKKE via `wsl.exe`: `vault2` kan kun køre i Git Bash, og scriptet henter selv
    Asura-nøglen gennem `scripts/deploy-asura/wsl-transport.sh`. Rettet 2026-09-04 efter at
@@ -373,8 +380,11 @@ curl -s --header "$H" "https://gitlab.com/api/v4/projects/$FORK/jobs/<JOB_ID>/tr
 
 **Øvrige post-publish-tjek** (ikke GitLab, men hører til samme runde):
 - GitHub-tag `vX` skal pege på den committede kilde (F-Droid bygger fra `commit: vX`).
-- In-app-update: `https://raw.githubusercontent.com/hf1985/husk/main/latest.json` +
-  `husk-latest.apk` skal være live og matche den nye `versionCode` (ISRG-cert → Android-9-OK).
+- Metadata: `https://raw.githubusercontent.com/hf1985/husk/main/latest.json` skal matche den nye
+  `versionCode`, og den `apk`-URL den navngiver skal kunne HENTES (fra 1.1 er det release-assettet,
+  ikke en fil i repoet). ⚠️ Release-assettet ligger på `github.com/.../releases/download/...`, som
+  kæder til USERTrust og kan fejle TLS på Android 9 - modsat `raw.githubusercontent.com` (ISRG Root
+  X1, betroet ned til 7.1.1). En telefon der ikke kan hente filen, opgraderes med `adb install`.
 - xplat: `https://xplat.co/husk/latest.json` opdateret (HUSK-konstanter i `P_xplat`).
 
 ## 7b. Reproducerbar build mod F-Droid (indført 2026-09-03, MR !40810)

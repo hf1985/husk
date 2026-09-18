@@ -64,12 +64,21 @@ public class CameraService extends Service {
     private volatile boolean opening = false;            // aabning i gang (async) -> undgaa dobbelt-aabning fra demandCheck
     private volatile String  targetCamId = null;          // id'et vi vil bruge (til availability-matchning)
     private CameraManager.AvailabilityCallback availCb;
+    // Generation for det AKTUELLE kameravalg. Enhver aabning faar sit eget nummer, og et sideskift
+    // (requestFront) bumper det. Async-callbacks fra en aabning der tilhoerte det GAMLE valg maa
+    // ikke naa at saette cameraDevice/captureSession - de ville ellers levere frames fra den side
+    // brugeren netop har fravalgt, og se ud som om skiftet ikke virkede.
+    private volatile int camGen = 0;
+    // Servicens EGEN instans, saa ControlServer kan bede om et sideskift uden at gaa gennem en
+    // Intent (samme idiom som Rig.a11y / Rig.controlServer). Nulstilles i onDestroy.
+    static volatile CameraService instance = null;
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
     @Override
     public void onCreate() {
         super.onCreate();
+        instance = this;
         Rig.appContext = getApplicationContext();
         Rig.loadMotionPrefs(getApplicationContext());   // bevaegelses-alarm-config (motion + ntfy) fra prefs
         createChannel();
@@ -212,6 +221,47 @@ public class CameraService extends Service {
         if (!destroyed && camHandler != null) camHandler.postDelayed(this, 1000);
     } };
 
+    // ---- Kameraside (front/bag) skiftet i farten over HTTP (/set?front=0|1) ----------------------
+    //
+    // Hele grunden til at PC-viewer'en kan blive et produkt: foer 1.1 var forsidekameraet kun
+    // naaeligt gennem en Android-intent over WSL -> SSH -> Termux -> ADB, og den kaede kan en
+    // fremmed bruger ikke have.
+    //
+    // Findes den oenskede side paa enheden? STRENGT - uden pickCamera()'s fallback, saa en
+    // manglende forsidekamera-side bliver en dokumenteret fejl frem for et tavst bagkamera.
+    static boolean facingExists(android.content.Context ctx, boolean front) {
+        if (ctx == null) return false;
+        try {
+            CameraManager cm = (CameraManager) ctx.getSystemService(Context.CAMERA_SERVICE);
+            return cm != null && findCameraId(cm, front) != null;
+        } catch (Throwable t) { return false; }
+    }
+
+    // Skift kameraside. Serialiseret paa camHandler, OGSAA under en igangvaerende aabning:
+    // camGen++ ugyldiggoer den aabnings callbacks, saa den ikke lander bagefter og leverer frames
+    // fra den gamle side. En UAENDRET vaerdi er en ren no-op - en koerende session roeres ikke.
+    // Genaabning sker KUN via demandCheck, altsaa kun hvis nogen faktisk efterspoerger billedet
+    // og kameraet er ledigt (invariant: vi evicter aldrig en anden app).
+    void requestFront(final boolean front) {
+        final Handler h = camHandler;
+        if (h == null) { Rig.useFront = front; return; }   // servicen er ikke naaet at starte endnu
+        h.post(new Runnable() { public void run() {
+            if (destroyed) return;
+            if (Rig.useFront == front) return;             // no-op: luk IKKE en koerende session
+            camGen++;                                      // fra nu af er igangvaerende aabninger forael dede
+            Rig.useFront = front;
+            opening = false;                               // en aabning i flugt tilhoerer det GAMLE valg
+            othersHaveCamera = false;                      // ledigheds-flaget gjaldt det GAMLE id
+            closeCameraDevice();                           // lukker session+device+reader og rydder latestJpeg
+            try {
+                if (cameraManager == null) cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+                targetCamId = pickCamera(cameraManager, front);
+            } catch (Throwable ignored) {}
+            Log.i(TAG, "kameraside skiftet -> " + (front ? "front" : "bag") + " (id " + targetCamId + ")");
+            h.post(demandCheck);
+        } });
+    }
+
     // Foelg systemets kamera-ledighed, saa vi ALDRIG aabner (= evicter) et kamera en anden app bruger.
     private void registerCameraAvailability() {
         try {
@@ -249,6 +299,7 @@ public class CameraService extends Service {
         if (othersHaveCamera) { Log.i(TAG, "kameraet er optaget af en anden app -> aabner IKKE (ingen eviction)"); return; }
         if (cameraDevice != null || opening) return;   // allerede aaben / aabning i gang
         opening = true;
+        final int gen = ++camGen;   // DENNE aabnings generation; et sideskift bumper og forael der den
         try {
             try { if (imageReader != null) { imageReader.close(); imageReader = null; } } catch (Throwable ignored) {}   // undgaa ImageReader-laek ved reopen
             cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
@@ -266,15 +317,28 @@ public class CameraService extends Service {
             }, camHandler);
 
             cameraManager.openCamera(camId, new CameraDevice.StateCallback() {
-                public void onOpened(CameraDevice device) { opening = false; cameraDevice = device; startFg(true); createSession(); }   // eleveR til camera-FGS (A14: paakraevet mens kameraet er aabent)
+                // gen-gaten: er kameravalget skiftet mens aabningen var i flugt, tilhoerer DETTE device
+                // den gamle side. Luk det og roer INTET andet - den nye aabning ejer nu tilstanden.
+                public void onOpened(CameraDevice device) {
+                    if (gen != camGen) { Log.i(TAG, "forael det kamera aabnede (sideskift) -> lukker straks"); try { device.close(); } catch (Throwable ignored) {} return; }
+                    opening = false; cameraDevice = device; startFg(true); createSession(gen);   // eleveR til camera-FGS (A14: paakraevet mens kameraet er aabent)
+                }
                 // Mistede kameraet (taget af en anden app, fx Discord) -> markér optaget + genaabn ALDRIG af os selv;
                 // availability-callback'en rydder flaget naar kameraet bliver ledigt igen, og demandCheck aabner da (hvis efterspurgt).
-                public void onDisconnected(CameraDevice device) { Log.w(TAG, "kamera disconnected (taget af anden app)"); opening = false; Rig.cameraRunning = false; device.close(); cameraDevice = null; othersHaveCamera = true; }
+                public void onDisconnected(CameraDevice device) {
+                    try { device.close(); } catch (Throwable ignored) {}
+                    if (gen != camGen) return;
+                    Log.w(TAG, "kamera disconnected (taget af anden app)"); opening = false; Rig.cameraRunning = false; cameraDevice = null; othersHaveCamera = true;
+                }
                 // onError = ofte en TRANSIENT HAL-fejl (ikke en anden app). Latch derfor IKKE othersHaveCamera=true
                 // (det ville holde kameraet lukket til en availability-callback der maaske aldrig fyrer for den aarsag);
                 // nulstil kun state, saa demandCheck proever igen om 1s. AvailabilityCallback saetter selv flaget hvis
                 // en ANDEN app reelt tager kameraet (onCameraUnavailable mens vi ikke har det).
-                public void onError(CameraDevice device, int error) { Log.e(TAG, "kamera-fejl " + error); opening = false; Rig.cameraRunning = false; device.close(); cameraDevice = null; }
+                public void onError(CameraDevice device, int error) {
+                    try { device.close(); } catch (Throwable ignored) {}
+                    if (gen != camGen) return;
+                    Log.e(TAG, "kamera-fejl " + error); opening = false; Rig.cameraRunning = false; cameraDevice = null;
+                }
             }, camHandler);
         } catch (CameraAccessException e) {
             opening = false;
@@ -292,15 +356,17 @@ public class CameraService extends Service {
         }
     }
 
-    private void createSession() {
+    private void createSession(final int gen) {
         try {
             cameraDevice.createCaptureSession(Collections.singletonList(imageReader.getSurface()),
                 new CameraCaptureSession.StateCallback() {
                     public void onConfigured(CameraCaptureSession session) {
+                        if (gen != camGen) { try { session.close(); } catch (Throwable ignored) {} return; }   // gammelt valg
                         captureSession = session;
-                        startRepeating();
+                        startRepeating(gen);
                     }
                     public void onConfigureFailed(CameraCaptureSession session) {
+                        if (gen != camGen) { try { session.close(); } catch (Throwable ignored) {} return; }   // gammelt valg
                         Log.e(TAG, "session-config fejlede - slipper kameraet (demandCheck proever igen)");
                         closeCameraDevice();
                     }
@@ -310,7 +376,8 @@ public class CameraService extends Service {
         }
     }
 
-    private void startRepeating() {
+    private void startRepeating(final int gen) {
+        if (gen != camGen) return;   // gammelt valg - start ALDRIG capture paa den fravalgte side
         try {
             CaptureRequest.Builder b = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             b.addTarget(imageReader.getSurface());
@@ -368,15 +435,23 @@ public class CameraService extends Service {
         }
     }
 
-    private static String pickCamera(CameraManager cm, boolean front) throws CameraAccessException {
-        String fallback = null;
+    // STRENGT opslag: id'et for den oenskede side, eller null hvis enheden ikke HAR den side.
+    // Adskilt fra pickCamera med vilje - fallbacken dernede er rigtig for opstart (en enhed med
+    // kun eet kamera skal stadig virke), men den ville maskere en 409 paa /set?front=.
+    private static String findCameraId(CameraManager cm, boolean front) throws CameraAccessException {
         int want = front ? CameraCharacteristics.LENS_FACING_FRONT : CameraCharacteristics.LENS_FACING_BACK;
         for (String id : cm.getCameraIdList()) {
-            if (fallback == null) fallback = id;
             Integer f = cm.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING);
             if (f != null && f == want) return id;
         }
-        return fallback;
+        return null;
+    }
+
+    private static String pickCamera(CameraManager cm, boolean front) throws CameraAccessException {
+        String id = findCameraId(cm, front);
+        if (id != null) return id;
+        String[] ids = cm.getCameraIdList();
+        return ids.length > 0 ? ids[0] : null;   // fallback: enheden har ikke den oenskede side
     }
 
     // Vaelg en frame-stoerrelse taet paa 1280x720 (god balance for moede+overvaagning).
@@ -394,6 +469,7 @@ public class CameraService extends Service {
     @Override
     public void onDestroy() {
         destroyed = true;            // stop demand-check
+        if (instance == this) instance = null;   // ControlServer maa ikke holde en doed service
         Rig.cameraRunning = false;   // kamera stoppes -> status/flags maa vise "off" (ControlServer lever videre)
         try { if (availCb != null && cameraManager != null) cameraManager.unregisterAvailabilityCallback(availCb); } catch (Throwable ignored) {}
         try { if (captureSession != null) captureSession.close(); } catch (Throwable ignored) {}

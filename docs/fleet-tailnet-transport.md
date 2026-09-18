@@ -112,8 +112,15 @@ fra en anden tailnet-peer. Det betyder de to spare-telefoner (uden Termux) styre
 ### 8090-endpoints (alle token-gated undtagen `/healthz` og `/`)
 `/flags` (health), `/info` (app+device+net+battery), `/battery`, `/sensors`, `/display`,
 `/connectivity`, `/wd` (trigger WD-recovery → returnerer adb ip:port; kræver a11y), `/pair`,
-`/update` (in-app self-update; kræver a11y), `/rpc?cmd=<8127-kommando>` (generisk a11y-passthrough:
+`/devoptions`, `/rpc?cmd=<8127-kommando>` (generisk a11y-passthrough:
 ping/find/click/dump/tap/launch/state/gettext/global/wake/…), samt kamera/skærm-streams.
+`/set` tog fra 1.1 også `front=0|1` (kameraside), og `/flags` bærer det valgte i feltet `front`.
+
+⛔ **`/update` findes ikke fra Husk 1.1** (F-Droid-fund 3-9, 15-09-2026). Stod her indtil da som
+»in-app self-update; kræver a11y«. Opdatering sker nu gennem F-Droid-klienten eller
+`adb install -r` over Termux-ADB, og `pc/spare.sh update` skriver instruksen frem for at kalde
+endpointet. Advarslerne om note10 (DeX-churn) og A9 (kan afbinde a11y, intet Wireless Debugging)
+gjaldt HANDLINGEN, ikke transporten, og gælder derfor stadig.
 
 ## 2. Flåde-inventar (alle på Husk 0.9.25 / versionCode 44, 2026-07-02)
 

@@ -76,9 +76,9 @@ Husk's accepted-risk model, in one place:
   less trusted, add a shared token to the 8127 protocol before relying on it.
 - **15557 (adb bridge)** requires one-time pairing via `/pair` and otherwise follows the same
   source-IP allowlist as 8090.
-- Nothing leaves the device except the motion push you configure (your own ntfy topic) and the
-  in-app update check (xplat.co for the version, GitHub for the APK), which only runs when you
-  start it or a permitted peer calls `/update`.
+- Nothing leaves the device except the motion push you configure (your own ntfy topic).
+  Since 1.1 there is no built-in updater and no update check: the app never downloads or
+  installs anything on its own. Update it from F-Droid, or with `adb install`.
 
 ## License
 GPL-3.0-or-later. See `LICENSE`.

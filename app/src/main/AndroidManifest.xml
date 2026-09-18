@@ -20,7 +20,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Hardware-styring/laesning (Device API). VIBRATE auto-gives; de oevrige er dangerous/special og
          skal gives af brugeren - endpoints'ene degraderer paent hvis ikke givet. -->
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -103,12 +102,5 @@
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name=".InstallReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="co.xplat.husk.INSTALL_STATUS" />
-            </intent-filter>
-        </receiver>
     </application>
 </manifest>

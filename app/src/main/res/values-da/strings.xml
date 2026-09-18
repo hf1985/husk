@@ -48,21 +48,9 @@
     <string name="toggle_screen">Skærmdeling (hold tændt)</string>
     <string name="screen_hint">Se + styr telefonen fra en browser på http://TELEFON-IP:8090/control. Forbliver tændt efter reboot; tilgængeligheds-motoren giver samtykket automatisk.</string>
 
-    <!-- IP-visning + opdatering -->
+    <!-- IP-visning -->
     <string name="status_local_ip">Lokal IP</string>
     <string name="status_ts_ip">Tailscale-IP</string>
-    <string name="btn_update">Opdatér Husk (direkte fra udvikleren)</string>
-    <!-- Vises under opdaterings-knappen, altid synlig. F-Droid kræver at en indbygget updater siger
-         klart at opdateringen IKKE kommer fra F-Droid (MR !40810, anmelder linsui). -->
-    <string name="update_source_note">Denne opdatering kommer direkte fra udvikleren (xplat), ikke fra F-Droid. Knappen læser versionsnummeret fra xplat.co (med udviklerens GitHub-repo som reserve) og henter APK\'en fra den adresse, filen angiver - i dag udviklerens GitHub-repo. F-Droid hverken tjekker, signerer eller distribuerer den. Har du installeret Husk fra F-Droid, så opdatér derfra i stedet og se bort fra knappen. Intet tjekker for opdateringer af sig selv.</string>
-    <string name="update_dialog_title">Opdatering fra udvikleren, ikke fra F-Droid</string>
-    <string name="update_dialog_msg">Husk læser versionsnummeret fra xplat.co og henter APK\'en fra udviklerens GitHub-repo, og beder derefter Android om at installere den.\n\nDenne opdatering kommer ikke fra F-Droid. F-Droid hverken tjekker, signerer eller distribuerer den, og får den ikke at se.\n\nFortsæt?</string>
-    <string name="update_dialog_go">Hent fra udvikleren</string>
-    <string name="update_checking">Tjekker for opdatering...</string>
-    <string name="update_latest">Allerede nyeste version.</string>
-    <string name="update_downloading">Henter</string>
-    <string name="update_failed">Opdatering fejlede - tjek forbindelsen.</string>
-    <string name="update_done">Husk opdateret.</string>
 
     <!-- Bevaegelses-alarm (sikkerhedskamera-tilstand) -->
     <string name="motion_heading">Bevægelses-alarm (sikkerhedskamera)</string>

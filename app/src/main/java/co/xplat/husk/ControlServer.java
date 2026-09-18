@@ -30,7 +30,9 @@ import java.util.List;
 //   GET /snapshot?token=         -> seneste JPEG              (image/jpeg)
 //   GET /stream?token=           -> MJPEG (multipart/x-mixed-replace)
 //   GET /wd?token=               -> JSON {"ip":"..","port":N} (trigger WD-recovery, til PC-companion)
-//   GET /set?token=&rot=&flip=&fps= -> "ok"                   (juster kamera-config i farten)
+//   GET /set?token=&rot=&flip=&front=&fps= -> "ok"            (juster kamera-config i farten;
+//                                front=0|1 vaelger kameraside, 400 ved ugyldig vaerdi,
+//                                409 hvis enheden ikke HAR den side)
 //   GET /                        -> minimal browser-viewer (overvaagning, M2)
 public class ControlServer {
     static final String TAG = "Husk";
@@ -135,7 +137,7 @@ public class ControlServer {
             int q = path.indexOf('?');
             if (q >= 0) { query = path.substring(q + 1); path = path.substring(0, q); }
             // CSRF + DNS-rebinding-forsvar: en drive-by browser paa samme LAN kunne ellers (a) fyre
-            // GET-bivirkninger (/tap //launch //update ...) og (b) via DNS-rebinding LAESE svar (kamera/
+            // GET-bivirkninger (/tap //launch //set ...) og (b) via DNS-rebinding LAESE svar (kamera/
             // skaerm/GPS/skaerm-tekst). Sec-Fetch-Site fanger cross-site browser-requests (ogsaa <img>);
             // Host-IP-literal-kravet fanger rebinding (hostnavn -> telefon-IP). curl/harness/ntfy-app
             // (ingen Sec-Fetch, Host=IP) og /control's egne same-origin-fetch rammes ikke. Se docs/AUDIT.
@@ -165,7 +167,9 @@ public class ControlServer {
         if (path.equals("/flags"))      { writeFlags(out); return; }
         // --- kamera ---
         if (path.equals("/snapshot"))   { writeSnapshot(out); return; }
-        if (path.equals("/set"))        { applySet(query); writeText(out, 200, "ok"); return; }
+        if (path.equals("/set"))        { String err = applySet(query);
+                                          if (err == null) { writeText(out, 200, "ok"); return; }
+                                          writeText(out, Integer.parseInt(err.substring(0, 3)), err.substring(4)); return; }
         // --- skaerm (MediaProjection) ---
         if (path.equals("/screen.jpg")) { writeScreenSnapshot(out); return; }
         if (path.equals("/screen.codec")) { writeText(out, 200, h264Codec()); return; }   // MSE-codec-streng
@@ -191,7 +195,9 @@ public class ControlServer {
         if (path.equals("/wd"))         { writeWd(out); return; }
         if (path.equals("/pair"))       { writePair(out); return; }
         if (path.equals("/devoptions")) { writeText(out, 200, rpc("devoptions" + ("1".equals(param(query,"probe")) ? " probe" : ""))); return; }
-        if (path.equals("/update"))     { writeText(out, 200, triggerUpdate(query)); return; }
+        // /update er FJERNET i 1.1 sammen med den indbyggede updater (F-Droid-fund 3-9: en app der
+        // henter og installerer sine egne opdateringer omgaar butikkens signering og review).
+        // Opdatering sker nu gennem F-Droid-klienten eller `adb install`.
         // --- generisk a11y-passthrough (alle 8127-kommandoer; cmd URL-encodet) ---
         if (path.equals("/rpc"))        { writeText(out, 200, rpc(dparam(query,"cmd"))); return; }
         // --- hardware (sensorer + fysisk styring; Android 8+) ---
@@ -222,7 +228,11 @@ public class ControlServer {
         // SSRF-haerdning: kun https-ntfy-servere. Ellers kunne en peer pege enheden mod en intern http-tjeneste
         // (SSRF-pivot fra telefonens netvaerksposition) eller downgrade alarm+snapshot-preview til klartekst.
         // https-only bevarer baade ntfy.sh og en selvhostet https-ntfy.
-        if (dparam(query, "server") != null)     { String s = dparam(query, "server"); if (s != null && s.toLowerCase().startsWith("https://")) Rig.ntfyServer = s; }
+        // param(), IKKE dparam(): dparam returnerer "" og ALDRIG null, saa `dparam(...) != null` var
+        // altid sand (S8-fund 2 fra 1.0-runden, genmaalt 2026-09-18 og stadig til stede). Den blev
+        // reddet af https-praefikstesten lige efter og var derfor ufarlig - men ordret samme fejl paa
+        // `topic` kostede i 0.9.31 en tavst afbrudt bevaegelses-alarm, saa formen bliver rettet her.
+        if (param(query, "server") != null)      { String s = dparam(query, "server"); if (s.toLowerCase().startsWith("https://")) Rig.ntfyServer = s; }
         if (param(query, "sensitivity") != null) Rig.motionSensitivity = Math.max(1, Math.min(10, intp(query, "sensitivity", Rig.motionSensitivity)));
         try { Rig.saveMotionPrefs(Rig.ctx()); } catch (Throwable ignored) {}
         StringBuilder b = new StringBuilder();
@@ -342,37 +352,17 @@ public class ControlServer {
         String json = "{\"dexReconnect\":" + Rig.dexReconnect
                     + ",\"a11y\":" + (Rig.a11y != null)
                     + ",\"camera\":" + Rig.cameraRunning
+                    // VALGT kameraside - IKKE et bevis for en leveret frame. "camera" ovenfor er
+                    // den faktiske capture-aktivitet; de to svarer paa hver sit spoergsmaal.
+                    + ",\"front\":" + Rig.useFront
                     + ",\"screen\":" + Rig.screenRunning
                     + ",\"motion\":" + Rig.motionEnabled
                     + ",\"ntfy\":" + (Rig.ntfyTopic != null && !Rig.ntfyTopic.isEmpty())
                     + ",\"batteryOptIgnored\":" + battOpt
-                    + ",\"lastUpdate\":\"" + jsonEsc(Rig.lastUpdate) + "\""
                     + ",\"lastNtfy\":\"" + jsonEsc(Rig.lastNtfy) + "\"}";
         writeText(out, 200, json, "application/json");
     }
 
-    // Trigger den indbyggede opdatering remote (over Tailscale) - resultatet/fejlen laeses i /flags
-    // (lastUpdate). Bruger a11y-servicen som Context (den er en Service = Context). Token-gated som alt.
-    // Fjern-self-update: bring appen i FORGRUNDEN (ellers blokerer Android install-dialogen = background-activity-
-    // start), start opdateringen, og lad a11y auto-tappe samtykket. ?force=1 geninstallerer samme version (test).
-    // Fejler sikkert: misser a11y-tappet, sker der INGEN install (PackageInstaller er atomisk -> nuvaerende bevares).
-    private String triggerUpdate(String query) {
-        final RigAccessibilityService svc = Rig.a11y;
-        if (svc == null) return "ERR a11y not running (cannot foreground + accept consent)";
-        final boolean force = boolp(query, "force");
-        // VIGTIGT: nulstil lastUpdate SYNKRONT foer accept-traaden starter. Ellers laeser acceptInstallConsent
-        // den STALE terminale vaerdi fra FORRIGE koersel ("latest ..."/"ERR ...", der overlever i den 24/7-proces)
-        // -> dens latest/ERR-gate ville bailu straks, foer Updater (der koerer 1500ms forsinket) overhovedet
-        // begynder -> intet auto-tap af install-dialogen. (Regression fanget i 0.9.28-selv-review.)
-        Rig.lastUpdate = "checking";
-        svc.foregroundSelf();
-        new Thread(new Runnable() { public void run() { svc.acceptInstallConsent(); } }, "husk-accept").start();
-        new Thread(new Runnable() { public void run() {
-            try { Thread.sleep(1500); } catch (InterruptedException e) {}   // lad forgrunden lande foer dialogen
-            Updater.checkAndUpdate(svc, force);
-        } }, "husk-upd").start();
-        return "remote self-update started (foreground + auto-accept" + (force ? ", force" : "") + ") - read /flags";
-    }
 
     // Reflekteres i controlHtml()/controlHwHtml() baade i et HTML-attribut ('/control?token=...') og i en
     // <script>-streng (A='&token=...') - param() URL-afkoder IKKE, saa raa metakarakterer i query-strengen
@@ -434,8 +424,7 @@ public class ControlServer {
         b.append("\"screen\":{\"width\":").append(sw).append(",\"height\":").append(sh).append("},");
         b.append("\"net\":{\"localIp\":").append(lan == null ? "null" : ("\"" + lan + "\"")).append(",\"tailscaleIp\":").append(ts == null ? "null" : ("\"" + ts + "\"")).append("},");
         b.append("\"battery\":{\"level\":").append(batt).append(",\"charging\":").append(charging).append("},");
-        b.append("\"services\":{\"a11y\":").append(Rig.a11y != null).append(",\"camera\":").append(Rig.cameraRunning).append(",\"screen\":").append(Rig.screenRunning).append(",\"dexReconnect\":").append(Rig.dexReconnect).append("},");
-        b.append("\"lastUpdate\":\"").append(jsonEsc(Rig.lastUpdate)).append("\"}");
+        b.append("\"services\":{\"a11y\":").append(Rig.a11y != null).append(",\"camera\":").append(Rig.cameraRunning).append(",\"screen\":").append(Rig.screenRunning).append(",\"dexReconnect\":").append(Rig.dexReconnect).append("}}");
         return b.toString();
     }
 
@@ -465,10 +454,31 @@ public class ControlServer {
         try { return Integer.valueOf(v); } catch (Throwable t) { return null; }
     }
 
-    private void applySet(String query) {
+    // Returnerer null ved succes, ellers "<kode> <besked>" (fx "400 invalid front ...").
+    // front VALIDERES FOERST og FOER nogen tilstand roeres: kontrakten i /husk/api lover 400 uden
+    // tilstandsaendring, og den loefte kan kun holdes hvis ingen af de andre params allerede er sat.
+    private String applySet(String query) {
+        String front = param(query, "front");
+        Boolean wantFront = null;
+        if (front != null) {
+            if (front.equals("1") || front.equalsIgnoreCase("true")) wantFront = Boolean.TRUE;
+            else if (front.equals("0") || front.equalsIgnoreCase("false")) wantFront = Boolean.FALSE;
+            else return "400 invalid front (use 0 for back camera or 1 for front camera)";
+            // Findes siden overhovedet? STRENGT opslag, saa pickCamera()'s fallback ikke tavst
+            // leverer den anden side og faar et umuligt oenske til at ligne en succes.
+            if (!CameraService.facingExists(Rig.ctx(), wantFront.booleanValue()))
+                return "409 no " + (wantFront.booleanValue() ? "front" : "back") + " camera on this device";
+        }
         String rot = param(query, "rot");
         String flip = param(query, "flip");
         String fps = param(query, "fps");
+        if (wantFront != null) {
+            CameraService cs = CameraService.instance;
+            // Uaendret vaerdi er en no-op HELE vejen ned: requestFront roerer ikke en koerende
+            // session. Koerer servicen ikke, saettes flaget alligevel, saa naeste start bruger det.
+            if (cs != null) cs.requestFront(wantFront.booleanValue());
+            else Rig.useFront = wantFront.booleanValue();
+        }
         try { if (rot != null) Rig.rotation = Integer.parseInt(rot); } catch (Throwable ignored) {}
         if (flip != null) Rig.flip = flip.equals("1") || flip.equalsIgnoreCase("true");
         try { if (fps != null) Rig.targetFps = Math.max(1, Integer.parseInt(fps)); } catch (Throwable ignored) {}
@@ -476,6 +486,7 @@ public class ControlServer {
         try { String sq = param(query, "sq"); if (sq != null) Rig.screenQuality = Math.max(1, Math.min(100, Integer.parseInt(sq))); } catch (Throwable ignored) {}
         try { String sfps = param(query, "sfps"); if (sfps != null) { int f = Math.max(1, Math.min(30, Integer.parseInt(sfps))); Rig.screenMinFrameMs = Math.max(20, 1000 / f); } } catch (Throwable ignored) {}
         // Bemaerk: rotation slaar igennem ved naeste session-rebuild; her sat for snapshot/flip-vej.
+        return null;
     }
 
     private String viewerHtml() {

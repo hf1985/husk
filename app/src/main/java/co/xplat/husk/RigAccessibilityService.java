@@ -305,24 +305,15 @@ public class RigAccessibilityService extends AccessibilityService {
         return "NONE";
     }
 
-    // Bring appens EGEN MainActivity i forgrunden. Noedvendigt foer en fjern-udloest opdatering: Android blokerer
-    // baggrunds-apps fra at vise install-dialogen (background-activity-start), saa /update virker kun naar appen
-    // er i forgrunden. En a11y-service MAA starte aktiviteter (samme vej som WD-recovery launcher Settings).
-    // getLaunchIntentForPackage giver den rigtige MAIN+LAUNCHER-intent (kan IKKE laves via den generiske launch-RPC).
-    String foregroundSelf() {
-        wakeScreen();   // vaek display 0 FOERST (DeX-rig: telefonskaermen er ofte slukket -> dialog usynlig/ikke-tapbar)
-        try {
-            Intent i = getPackageManager().getLaunchIntentForPackage(getPackageName());
-            if (i == null) return "ERR no-launch-intent";
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            ActivityOptions opts = ActivityOptions.makeBasic();
-            opts.setLaunchDisplayId(0);   // ALTID display 0 (telefonskaermen), ALDRIG DeX-skaermen
-            startActivity(i, opts.toBundle());
-            return "OK";
-        } catch (Throwable t) { return "ERR " + t; }
-    }
+    // Her sad indtil 1.1 tre metoder der KUN fandtes for den indbyggede opdatering: bring appen i
+    // forgrunden, og lad a11y auto-tappe systemets install-samtykke. Hele den vej er fjernet
+    // (F-Droid-fund 3-9), saa de tre var doed kode - og netop a11y-auto-tap af en systemdialog er den
+    // adfaerd fundet handler om. Navnene staar med vilje IKKE her: H1's lukke-betingelse er et grep
+    // efter fravaer, og en gravsten der citerer det fjernede ville faelde sin egen kur (maaleregel
+    // 405). Slaa dem op i git-historikken foer 1.1 hvis en senere udgave faar brug for dem.
 
-    // Vaek + hold display 0 (telefonskaermen) taendt ~120s, saa fjern-opdaterings-install-dialogen er synlig + tap-bar.
+    // Vaek + hold display 0 (telefonskaermen) taendt ~120s. Blev indfoert for at gore en fjern-udloest
+    // install-dialog synlig og tap-bar; siden 1.1 er den kun /wake's motor.
     // SCREEN_BRIGHT_WAKE_LOCK er deprecated men taender stadig skaermen; ACQUIRE_CAUSES_WAKEUP vaekker fra slukket.
     private android.os.PowerManager.WakeLock screenWakeLock = null;
     String wakeScreen() {
@@ -339,59 +330,6 @@ public class RigAccessibilityService extends AccessibilityService {
         } catch (Throwable t) { return "ERR " + t; }
     }
 
-    // Auto-accepter systemets install-bekraeftelse (PackageInstaller) ved fjern-opdatering: tap hoved-knappen
-    // (Update/Install/Opdater/Installer), evt. Play Protect ("install anyway"), og den afsluttende Open/Done.
-    // Loeber ~24s, da dialogen kan komme forsinket (download) + i flere trin. clickD rammer kun KLIKBARE noder,
-    // saa knappen (ikke broedtekst) tappes. Naar installen commit'er, draebes appen (inkl. denne traad) + relaunches.
-    String acceptInstallConsent() {
-        // VIGTIGT: system-installerens knapper accepterer IKKE a11y-ACTION_CLICK (clickD -> "click-false", bevist) ->
-        // find knappens koordinater + GESTURE-tap dem i stedet. Eksakt tekst-match (^...$) saa broedteksten
-        // ("Do you want to install an update...") IKKE rammes (en bred "install" ramte den foer). Loeber laenge nok
-        // til at daekke download + commit; naar installen commit'er, draebes appen (denne traad med) -> loop ender.
-        boolean sawProgress = false;
-        for (int i = 0; i < 80; i++) {
-            // Tap KUN naar Updater faktisk installerer (lastUpdate = "downloading"/"install requested"). Foer
-            // tappede vi blindt Husks EGEN foregrund-UI i 80s selv naar der IKKE var en opdatering (latest/ERR)
-            // -> kunne ramme appens egne knapper ("Opdater"/toggles). Vent under "checking"; stop ved latest/ERR.
-            String st = Rig.lastUpdate;
-            boolean installing = st != null && (st.startsWith("downloading") || st.startsWith("install requested"));
-            if (st != null && (st.startsWith("checking") || installing)) sawProgress = true;   // DENNE koersel er i gang
-            if (installing) {
-                // Google Play Protect "App scan recommended" (fersk sideload UDEN "install anyway"-knap - kun
-                // "Scan app" / "Don't install app"): udvid "More details" -> tap "Install without scanning".
-                // ANKREDE moenstre (^...$) saa "Don't install app" (indeholder "install") og "Scan app" ALDRIG rammes.
-                // Loopet klarer sekvensen: iteration N udvider, iteration N+1 tapper den nu-synlige knap.
-                // Bevist paa Samsung A10e/A11-spare 2026-07-12 (docs/fleet-tailnet-transport.md §0/§7).
-                tapMatch("(?i)^\\s*(more details|flere oplysninger|flere detaljer)\\s*$");
-                tapMatch("(?i)^\\s*(install without scanning|installer uden (at )?scann?ing?|installer uden at scanne)\\s*$");
-                tapMatch("(?i)install anyway|installer alligevel|send anyway");   // Play Protect (aeldre variant m. knap)
-                tapMatch("(?i)^\\s*(install|update|opdater|installer|geninstaller|ok)\\s*$");  // hoved-knap (INSTALL/Opdater)
-                tapMatch("(?i)^\\s*(open|åbn|aabn|done|f(ae|æ)rdig|udf(oe|ø)rt)\\s*$");        // afslut
-            } else if (sawProgress && st != null && (st.startsWith("latest") || st.startsWith("ERR"))) {
-                // Kun bail hvis DENNE koersel foerst blev set i gang (sawProgress) og SAA endte latest/ERR - ellers
-                // ville en STALE terminal-vaerdi fra forrige koersel afbryde os foer Updater begyndte.
-                return "OK (no update to install - no tap)";
-            }
-            sleep(1000);   // ellers "checking..." -> vent paa Updater's afgoerelse
-        }
-        return "OK";
-    }
-
-    // Find foerste node der matcher regex + GESTURE-tap dens center. Bruges hvor a11y-ACTION_CLICK fejler
-    // (system-dialoger som PackageInstaller). doGesture er en raa beroering -> virker paa system-knapper.
-    private void tapMatch(final String regex) {
-        final Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
-        String pos = onMain(new Job() { public String run() {
-            AccessibilityNodeInfo n = findNode(0, p);
-            if (n == null) return "NONE";
-            Rect r = new Rect(); n.getBoundsInScreen(r);
-            return ((r.left + r.right) / 2) + " " + ((r.top + r.bottom) / 2);
-        } }, 5000);
-        if (pos != null && pos.matches("\\d+ \\d+")) {
-            String[] xy = pos.split(" ");
-            try { doGesture(Integer.parseInt(xy[0]), Integer.parseInt(xy[1]), -1, -1, 0, 60); } catch (Throwable ignored) {}
-        }
-    }
 
     String gettextD(final int d, final String regex) {  // returnerer foerste match-tekst eller "NONE"
         final Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);

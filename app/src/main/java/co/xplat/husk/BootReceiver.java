@@ -13,12 +13,15 @@ import android.util.Log;
 // re-binder Android selv ved boot (jf. DexRPC), saa WD-recovery er klar; her sikrer vi blot at
 // capture+server kommer op uden manuel indgriben. Ingen Termux/crontab noedvendig (constraint).
 //
-// J4 (v0.9.25): haandter OGSAA MY_PACKAGE_REPLACED. En in-app selv-opdatering (PackageInstaller)
-// draeber app-processen; paa Android 12+ er en FGS-genstart fra InstallReceiver's STATUS_SUCCESS
-// blokeret af baggrunds-FGS-restriktionen, saa 8090/ControlServer laa nede indtil et rigtigt boot
-// (eller en manuel QUICKBOOT-nudge). MY_PACKAGE_REPLACED leveres KUN til den netop-opdaterede app
-// og staar paa Androids FGS-start-undtagelsesliste (samme klasse som BOOT_COMPLETED), saa FGS-starten
-// herfra ER tilladt -> ControlServeren rejser sig selv efter enhver selv-opdatering.
+// J4 (v0.9.25): haandter OGSAA MY_PACKAGE_REPLACED. Enhver opdatering af appen draeber
+// app-processen; paa Android 12+ er en FGS-genstart fra en almindelig baggrunds-kontekst blokeret af
+// baggrunds-FGS-restriktionen, saa 8090/ControlServer laa nede indtil et rigtigt boot (eller en
+// manuel QUICKBOOT-nudge). MY_PACKAGE_REPLACED leveres KUN til den netop-opdaterede app og staar paa
+// Androids FGS-start-undtagelsesliste (samme klasse som BOOT_COMPLETED), saa FGS-starten herfra ER
+// tilladt -> ControlServeren rejser sig selv efter enhver opdatering.
+//
+// Grenen er IKKE blevet doed med 1.1's fjernelse af den indbyggede updater: den daekker nu
+// F-Droid-klientens opdatering og `adb install -r`, som ogsaa udloeser MY_PACKAGE_REPLACED.
 public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {

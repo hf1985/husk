@@ -11,3 +11,6 @@ build/
 local.properties
 # OS/editor
 .DS_Store
+# Signerede APK-artefakter hoerer i GitHub-releasen, ALDRIG i kildetraeet
+# (F-Droid-fund 2, 15-09-2026: binaere filer i repoet kan ikke revideres).
+*.apk

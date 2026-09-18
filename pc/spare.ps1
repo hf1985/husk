@@ -132,33 +132,21 @@ switch ($Verb.ToLower()) {
     }
 
     'update' {
-        # VAERN, genindfoert 2026-09-04 - se pc/spare.sh for den fulde begrundelse.
-        # Kort: /update er FORBUDT paa note10 (DeX-churn), og A9 kan afbinde a11y uden at
-        # kunne fikses remote (ingen Wireless Debugging). Grunden er en anden end noegleskiftet.
-        $lav = $Target.ToLower()
-        if ($env:HUSK_TILLAD_UPDATE -ne "1") {
-            if ($lav -in @('note10','rig')) {
-                Write-Host "STOP: /update er FORBUDT paa note10 (DeX-churn slaar a11y, scrcpy og" -ForegroundColor Red
-                Write-Host "  Discord ned). Se docs/fleet-tailnet-transport.md." -ForegroundColor Red
-                Write-Host "  Saet HUSK_TILLAD_UPDATE=1 for bevidst at goere det alligevel." -ForegroundColor Red
-                exit 3
-            }
-            if ($lav -in @('a9','sony','702so')) {
-                Write-Host "STOP: A9 kan afbinde a11y ved en opdatering og har INGEN Wireless" -ForegroundColor Red
-                Write-Host "  Debugging - en fejl kraever et USB-kabel paa stedet." -ForegroundColor Red
-                Write-Host "  Saet HUSK_TILLAD_UPDATE=1 for at fortsaette." -ForegroundColor Red
-                exit 3
-            }
-        }
-        Wake
-        Write-Host (Get-Text '/update?force=1')
+        # FJERNET SOM HANDLING i Husk 1.1 - se pc/spare.sh for den fulde begrundelse.
+        # Kort: appen har ingen indbygget updater mere (F-Droid-fund 3-9), saa /update svarer 404.
+        # Verbet staar tilbage som en INSTRUKS, saa den gamle form ikke ligner en netvaerksfejl.
+        Write-Host "HANDLINGEN FINDES IKKE MERE: Husk 1.1 har ingen indbygget updater, og /update" -ForegroundColor Red
+        Write-Host "  svarer 404. Opdater i stedet paa en af disse to maader:" -ForegroundColor Red
         Write-Host ""
-        Write-Host "Self-update trigget. Foelg /flags -> lastUpdate. NAAR OS'ets install-dialog kommer:" -ForegroundColor Cyan
-        Write-Host "  * Google Play Protect 'App scan recommended' (fersk sideload): koer 'shot',"
-        Write-Host "    tap 'More details', 'shot' igen, tap saa 'Install without scanning'."
-        Write-Host "  * Standard-dialog 'Do you want to install...': tap 'Install'."
-        Write-Host "  (a11y-'find' er upaalidelig paa disse system-dialoger -> laes koordinater fra 'shot'.)"
-        Write-Host "  Installen commit'er -> 8090 falder kort -> J4 rejser den igen (self-heal, ingen reboot)."
+        Write-Host "  1) F-Droid-klienten paa telefonen (den normale vej for en fremmed bruger)."
+        Write-Host "  2) adb install -r <husk-vX.apk> over husets Termux-ADB (husets driftsvej)."
+        Write-Host "     APK en hentes fra GitHub-releasen; den ligger ikke i repoet mere."
+        Write-Host ""
+        Write-Host "  De to gamle vaern gjaldt HANDLINGEN og gaelder stadig: note10/rig er"
+        Write-Host "  kontor-moedekameraet (DeX-churn slaar a11y, scrcpy og Discord), og A9 kan"
+        Write-Host "  afbinde a11y uden at kunne fikses remote (ingen Wireless Debugging)."
+        Write-Host "  Efterproev ALTID bagefter, pr. enhed: /snapshot OG /screen.jpg (maaleregel 422)."
+        exit 3
     }
 
     'control' {

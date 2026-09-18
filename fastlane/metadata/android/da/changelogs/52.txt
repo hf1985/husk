@@ -1,0 +1,8 @@
+Den indbyggede updater er væk. Husk henter og installerer ikke længere noget af sig selv, og
+tilladelsen »installer ukendte apps« bliver ikke længere bedt om. Opdatér fra F-Droid, eller
+installér en ny APK med adb.
+
+Nyt: kamerasiden kan skiftes over HTTP med /set?front=0|1, og /flags viser nu den valgte side
+i feltet »front«. Uden kabel og uden adb.
+
+Den prebuilte APK er fjernet fra kildetræet; den ligger i stedet i udgivelserne.

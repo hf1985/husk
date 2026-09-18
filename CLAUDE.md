@@ -8,14 +8,24 @@
 > agenter (fx P_auto-optimering): stop ALDRIG ved commit. (Senest brændt: XSS-sikkerhedsfixet
 > `e999ae4` blev committet men aldrig releaset – alle enheder kørte videre på 0.9.25 uden fixet.)
 >
-> **KRITISK fælde:** appens updater spørger `https://xplat.co/husk/latest.json` FØRST
-> (GitHub-raw er kun fallback). Glemmes xplat.co-deployen, svarer enhederne »allerede nyeste«,
-> selv om GitHub er opdateret (set 0.9.18–0.9.21). BEGGE endpoints SKAL vise den nye `versionCode`.
+> ⚠️ **Fra 1.1 har appen INGEN indbygget updater** (F-Droid-fund 3-9, 15-09-2026: en app der henter
+> og installerer sine egne opdateringer omgår butikkens signering og review). Flåden opgraderes
+> derefter gennem **F-Droid-klienten** eller **`adb install` over husets Termux-ADB**.
+> `latest.json` og `HUSK_VERSION_*` er derfor ikke længere en opdateringskanal – de er
+> versionsvisning for websiden og for `check-api-parity.sh`. Bevar dem ajour, men lad være med at
+> kalde dem »det flåden læser«.
+>
+> ⛔ **Den ENE undtagelse, og den udløber:** 1.0-telefoner HAR stadig updateren, og den læser
+> `https://xplat.co/husk/latest.json` først med `raw.githubusercontent.com/hf1985/husk/main/latest.json`
+> som fallback. Begge flader skal derfor stå rigtigt indtil hele flåden er på 1.1 – det er den
+> sidste opgradering der kan ske i appen. Rør ikke `latest.json`s FORM før da.
 >
 > **Release-huskeliste** (fuld procedure: `docs/BUILD.md` §4–7):
 > 1. Bump `versionCode` + `versionName` – ÉT sted: `app/build.gradle`.
 > 2. Byg `assembleRelease` i WSL + signér med release-keystoren (alias `husk`; adgangskode fra vaulten).
-> 3. Opdatér repo'ets `latest.json` + `husk-latest.apk` (den signerede APK).
+> 3. Opdatér repo'ets `latest.json` (versionsfelter + `apk`-URL). ⛔ **Læg ALDRIG APK'en i repoet
+>    igen** – `husk-latest.apk` er fjernet i 1.1 (F-Droid-fund 2: binære filer i kildetræet kan ikke
+>    revideres), og `.gitignore` dækker nu `*.apk`. Den signerede APK hører i GitHub-releasen.
 > 3b. **Skriv `fastlane/metadata/android/{en-US,da}/changelogs/<versionCode>.txt`** (maks 500
 >     tegn). Med `AutoUpdateMode: Version` lander en release UDEN denne fil med et tomt
 >     »What's New« i F-Droid – påpeget af F-Droid-testeren 06-09-2026.
@@ -31,13 +41,17 @@
 >    `v1.0` (ikke `v1.0.0`) og assettet `husk-v1.0.apk`, ellers henter F-Droid en 404 og indsendelsen brækker.
 > 8. Verificér: BÅDE `https://xplat.co/husk/latest.json` OG
 >    `https://raw.githubusercontent.com/hf1985/husk/main/latest.json` viser den nye
->    `versionCode`, og F-Droid/GitLab-pipelinen er GRØN.
+>    `versionCode` og peger på en APK der FAKTISK kan hentes, og F-Droid/GitLab-pipelinen er GRØN.
+>    De to flader er versionsvisning fra 1.1 og frem, men de skal stadig stemme – en 404 bag
+>    `apk`-feltet er en fejlet releaseprøve, ikke en kosmetisk skønhedsfejl.
 >
-> **Definition af færdig:** begge `latest.json`-endpoints viser den nye version, F-Droid-pipelinen er
-> grøn, **OG `pc/check-api-parity.sh` er grøn + `/husk/api` er ajour** (trin 6). Før ALT dette er
-> opgaven ÅBEN – uanset hvor grøn builden er lokalt. (Erfaring 2026-07-12: en release bumpede versionen
-> men glemte 5 nye endpoints + CSRF-modellen i `/husk/api`; gaten fanger netop dét.)
-> (Flåden opdateres derefter via in-app Updater – aldrig on-phone build/adb install.)
+> **Definition af færdig:** begge `latest.json`-endpoints viser den nye version og en hentbar APK,
+> F-Droid-pipelinen er grøn, **OG `pc/check-api-parity.sh` er grøn + `/husk/api` er ajour** (trin 6).
+> Før ALT dette er opgaven ÅBEN – uanset hvor grøn builden er lokalt. (Erfaring 2026-07-12: en
+> release bumpede versionen men glemte 5 nye endpoints + CSRF-modellen i `/husk/api`; gaten fanger
+> netop dét.)
+> (Flåden opgraderes derefter gennem F-Droid-klienten eller `adb install` over husets Termux-ADB –
+> aldrig on-phone build. Her stod indtil 1.1 »via in-app Updater«; den findes ikke mere.)
 
 > **Miljø-regel (Windows/PowerShell→ssh):** sender du en `ssh`/`scp`/`mysql -e`-kommando med `(` `)` `$()` backtick, linjeskift eller `"`? Inline den IKKE – PowerShell spiser embedded quotes, så metakarakterer brækker remote-bash (`syntax error near '('`). Skriv til lokal fil (LF), `scp`, kør `ssh host "bash /sti.sh"`. Fuld regel: `10_PROJEKTER/CLAUDE.md`.
 
@@ -61,11 +75,11 @@ AndroidX, ingen deps) → nem F-Droid-build. 18 Java-kilder i `app/src/main/java
   `onAccessibilityEvent` (henter noder on-demand).
 - **8090** `ControlServer` – HTTP (0.0.0.0 + kilde-IP-ACL: loopback/RFC1918/Tailscale): kamera (`/snapshot`
   `/stream` `/set`), skærm (`/screen` `/screen.mp4` `/control` `/controlhw`), input-proxy til 8127,
-  hardware (`/sensors` `/battery` …), mgmt (`/wd` `/pair` `/update` `/flags`), motion (`/motion` `/events`).
+  hardware (`/sensors` `/battery` …), mgmt (`/wd` `/pair` `/devoptions` `/flags`), motion (`/motion` `/events`).
   Hostes af CameraService/ScreenService (`Rig.ensureControlServer`), proces-singleton.
 - **15557** `AdbForward` – app-native scrcpy/adb-bro over Tailscale (Termux-uafhængig).
-- `BootReceiver` (boot), `CameraService`, `ScreenService`, `MainActivity` (UI), `Motion`/`Ntfy`
-  (bevægelses-alarm), `Updater`/`InstallReceiver` (in-app self-update).
+- `BootReceiver` (boot + `MY_PACKAGE_REPLACED`), `CameraService`, `ScreenService`, `MainActivity`
+  (UI), `Motion`/`Ntfy` (bevægelses-alarm). De to selv-opdaterings-klasser er slettet i 1.1.
 
 ## MUST-NOT-REGRESS-invarianter (LÆS docs/YDELSE-OG-DRIFT.md før du rører Screen/Camera/a11y)
 Husk er idle det meste af tiden og må KUN bruge ressourcer on-demand. Fire invarianter (alle indført
@@ -95,7 +109,14 @@ den gamle debug-nøgles kodeord gjorde, i et offentligt repo, og det var grunden
 Se `docs/BUILD.md` §5. ALDRIG i repoet/Drive (`.gitignore` dækker `*.keystore` OG `*.jks` - sidstnævnte manglede indtil 2026-09-04, hvor den nye nøgle var ubeskyttet). Per release: følg **⛔ RELEASE-PLIGT-blokken
 øverst i denne fil** (alle 7 trin, inkl. xplat.co-konstanter + DEPLOY + verifikation af begge
 `latest.json`-endpoints); detaljer i `docs/BUILD.md` §6–7.
-Nuværende: **1.0 / versionCode 51** (2026-09-07, bygget på `HFs-lenovo`. Tre ting: F-Droid-anmelderen `linsui` bad om at det står i UI'et at den indbyggede opdatering kommer direkte fra udvikleren og ikke fra F-Droid - nu en permanent note under knappen PLUS en bekræftelses-dialog der navngiver xplat.co + GitHub, og som KUN sidder på knappen, så den hovedløse `/update`-vej er uændret. Dertil de udskudte kode-fund: `Net.tailscaleIp()` mislabelede en mobiloperatørs CGNAT-adresse som Tailscale-IP - den kræver nu en `fd7a:115c:a1e0::/48`-adresse på SAMME interface. **Målt på Note10 FØR udgivelsen: `tun0` bærer både `100.100.103.102/32` og `fd7a:115c:a1e0::1536:c33a/128`**, så etiketten er stadig sand på en rigtig Tailscale-enhed; en carrier-CGNAT-adresse lander på `rmnet0` uden `fd7a:`. Danske strenge i HTTP-svar er oversat til engelsk - både `ControlServer`, `RigAccessibilityService` og de seks i `Hardware` (torch/volume/ringer/brightness/location/mic, som en adversarisk gennemgang fandt efter jeg havde erklæret oversættelsen færdig), plus de to serverede browser-kontrolsider. Samme fejl to steder mere er taget med: ntfy-pushen og de to notifikationskanal-navne var hardkodet dansk uanset enhedens sprog og er nu string-ressourcer (engelsk default, dansk følger enheden). Forældede header-kommentarer i `ControlServer`/`Net` om »binder ALDRIG 0.0.0.0« er rettet; bindingen selv er uændret. `Updater`s kommentar om at APK'en ligger på `objects.githubusercontent.com` er også rettet: updateren henter `husk-latest.apk` fra **main-grenen**, ikke et Release-asset - det er F-Droids `Binaries:` der henter release-assettet). Tidligere: 0.9.31/50 (ny release-nøgle + `vcsInfo { include false }` for reproducerbar F-Droid-build. Signaturskiftet kunne ikke bæres af in-app-updateren, så alle tre enheder blev afinstalleret og geninstalleret via adb - gjort 2026-09-04). Tidligere: 0.9.30/49 (token-gate for `/stream`, `/screen`, `/screen.mp4`). Tidligere: 0.9.29/48 (audit-runde 2 via Note10, log `docs/AUDIT-2026-07-12-runde2.md`: selv-review fangede en HIGH-regression jeg indførte i 0.9.28 – `acceptInstallConsent` læste stale `lastUpdate` → gentaget `/update` efter »latest« stallede; rettet m. synkron »checking«-reset + `sawProgress`-gate. Plus 3 LOW: /vibrate-loft, sensor-NaN-guard, InstallReceiver-fejl-synlighed. Note10-rig live-verificeret sund på 0.9.28: kamera/H.264/hardware/DeX/CSRF). Tidligere: 0.9.28/47 (stor sikkerheds+korrektheds+ydelses-audit 2026-07-12 – 3 parallelle review-agenter + manuel verifikation; beslutnings-log i `docs/AUDIT-2026-07-12.md`. Højdepunkter: CSRF/DNS-rebinding-forsvar i ControlServer; kamera-permanent-død + H.264-ANR + PackageInstaller-session-læk fikset; A14-sikker specialUse→camera-FGS selv-heal (uændret på ≤A13); motion-på-skærm-CPU-spild fjernet + Bitmap/BAOS genbrug. Ingen invariant A-D svækket). Tidligere: 0.9.27/46 (`acceptInstallConsent` lærte Play Protects »Install without scanning«-sti; on-device auto-accept KUN delvist pålidelig på spares pga. flaky a11y-`getWindows()` → pålidelig ubemandet self-update = Play Protect-scanning FRA ELLER PC-harness vision+tap; docs/fleet-tailnet-transport.md §7). Tidligere: 0.9.26/45 (reflekteret-XSS-fix); 0.9.25/44 (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090 rejser sig efter in-app-opdatering – bevist virksom på spares 2026-07-12). Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
+Nuværende: **1.1 / versionCode 52** (2026-09-18, bygget på `HFs_Dell`. Releasen lukker F-Droids
+review-rapport af 15-09: den indbyggede updater (`Updater`/`InstallReceiver`, `REQUEST_INSTALL_PACKAGES`,
+`/update`, `Rig.lastUpdate`, a11y-auto-tap af install-dialogen og de ti `update_*`-strenge) er FJERNET,
+og den prebuilte `husk-latest.apk` er ude af kildetræet med `*.apk` i `.gitignore`. Nyt: `/set?front=0|1`
+vælger kameraside over HTTP, og `/flags` bærer det valgte i feltet `front` – det er forudsætningen for
+at PC-viewer'en kan blive et produkt uden ADB-kæden. Tagget sættes på PRÆCIS byggecommiten (fund 1:
+`v1.0` sad på `02e069b`, mens `b75af7a` blev bygget).
+Tidligere: **1.0 / versionCode 51** (2026-09-07, bygget på `HFs-lenovo`. Tre ting: F-Droid-anmelderen `linsui` bad om at det står i UI'et at den indbyggede opdatering kommer direkte fra udvikleren og ikke fra F-Droid - nu en permanent note under knappen PLUS en bekræftelses-dialog der navngiver xplat.co + GitHub, og som KUN sidder på knappen, så den hovedløse `/update`-vej er uændret. Dertil de udskudte kode-fund: `Net.tailscaleIp()` mislabelede en mobiloperatørs CGNAT-adresse som Tailscale-IP - den kræver nu en `fd7a:115c:a1e0::/48`-adresse på SAMME interface. **Målt på Note10 FØR udgivelsen: `tun0` bærer både `100.100.103.102/32` og `fd7a:115c:a1e0::1536:c33a/128`**, så etiketten er stadig sand på en rigtig Tailscale-enhed; en carrier-CGNAT-adresse lander på `rmnet0` uden `fd7a:`. Danske strenge i HTTP-svar er oversat til engelsk - både `ControlServer`, `RigAccessibilityService` og de seks i `Hardware` (torch/volume/ringer/brightness/location/mic, som en adversarisk gennemgang fandt efter jeg havde erklæret oversættelsen færdig), plus de to serverede browser-kontrolsider. Samme fejl to steder mere er taget med: ntfy-pushen og de to notifikationskanal-navne var hardkodet dansk uanset enhedens sprog og er nu string-ressourcer (engelsk default, dansk følger enheden). Forældede header-kommentarer i `ControlServer`/`Net` om »binder ALDRIG 0.0.0.0« er rettet; bindingen selv er uændret. `Updater`s kommentar om at APK'en ligger på `objects.githubusercontent.com` er også rettet: updateren henter `husk-latest.apk` fra **main-grenen**, ikke et Release-asset - det er F-Droids `Binaries:` der henter release-assettet). Tidligere: 0.9.31/50 (ny release-nøgle + `vcsInfo { include false }` for reproducerbar F-Droid-build. Signaturskiftet kunne ikke bæres af in-app-updateren, så alle tre enheder blev afinstalleret og geninstalleret via adb - gjort 2026-09-04). Tidligere: 0.9.30/49 (token-gate for `/stream`, `/screen`, `/screen.mp4`). Tidligere: 0.9.29/48 (audit-runde 2 via Note10, log `docs/AUDIT-2026-07-12-runde2.md`: selv-review fangede en HIGH-regression jeg indførte i 0.9.28 – `acceptInstallConsent` læste stale `lastUpdate` → gentaget `/update` efter »latest« stallede; rettet m. synkron »checking«-reset + `sawProgress`-gate. Plus 3 LOW: /vibrate-loft, sensor-NaN-guard, InstallReceiver-fejl-synlighed. Note10-rig live-verificeret sund på 0.9.28: kamera/H.264/hardware/DeX/CSRF). Tidligere: 0.9.28/47 (stor sikkerheds+korrektheds+ydelses-audit 2026-07-12 – 3 parallelle review-agenter + manuel verifikation; beslutnings-log i `docs/AUDIT-2026-07-12.md`. Højdepunkter: CSRF/DNS-rebinding-forsvar i ControlServer; kamera-permanent-død + H.264-ANR + PackageInstaller-session-læk fikset; A14-sikker specialUse→camera-FGS selv-heal (uændret på ≤A13); motion-på-skærm-CPU-spild fjernet + Bitmap/BAOS genbrug. Ingen invariant A-D svækket). Tidligere: 0.9.27/46 (`acceptInstallConsent` lærte Play Protects »Install without scanning«-sti; on-device auto-accept KUN delvist pålidelig på spares pga. flaky a11y-`getWindows()` → pålidelig ubemandet self-update = Play Protect-scanning FRA ELLER PC-harness vision+tap; docs/fleet-tailnet-transport.md §7). Tidligere: 0.9.26/45 (reflekteret-XSS-fix); 0.9.25/44 (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090 rejser sig efter in-app-opdatering – bevist virksom på spares 2026-07-12). Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
 
 ## Deploy til den KØRENDE rig (kamera-sameksistens) – se docs/YDELSE-OG-DRIFT.md §3
 - `adb install -r <apk>` (når adb/WD er sund) → a11y/8127 re-binder selv (~4s), kameraet røres ikke;
