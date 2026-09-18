@@ -290,3 +290,54 @@ MR-labelen er `review-requested`. Svaret til `linsui` blev postet 07-09 kl. 18:1
 - [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S8 – Næste Husk-release: tre målte kode-fund
 - [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S9 – Hvorfor kom kamera- og skærmtjenesten ikke op efter opdateringen?
 <!-- /SPOR-POINTERE -->
+
+## ⛔ 2026-09-18: MR'en er MERGET, men F-Droids review-kit melder ni fejl - og kuren fjerner flådens selv-opdatering
+
+Skrevet af en ad hoc-runde på `HFs-lenovo` der arbejdede i `P_app_husk-viewer`. Runden rørte
+**ingen** kode her; den målte tilstanden og lagde arbejdet i en plan.
+
+**Afsnittet »F-Droid MR !40810: 1.0 er indsendt, bolden ligger hos F-Droid« er forældet.**
+Bolden ligger hos os. To ting er sket siden:
+
+1. **MR !40810 blev MERGET 15-09-2026 kl. 08:49** af `linsui` (mail i tråd `19eded065e4c820c` på
+   `hf@brobjerg.dk`, besked `1a0a4420f407536e`). En tester (`dowardev`) havde bekræftet 1.0/51 på
+   en Xiaomi 23129RA5FL med signatur-match.
+2. **Fire timer senere, kl. 13:20, postede `LiberiFatali` en `fdroid-review-kit`-rapport med
+   dommen ❌ FAIL: 9 fejl, 1 advarsel, 5 spørgsmål** (note_3836453313). En merge er altså ikke en
+   ren anmeldelse, og rapporten kom EFTER merget - læs aldrig merget som et grønt lys.
+
+**De ni fejl, målt mod repoet 2026-09-18 og alle stadig åbne:**
+
+| Fund | Målt tilstand | Kommando |
+|---|---|---|
+| 1. `Builds.commit` er ikke det taggede commit | tag `v1.0` → `02e069b763f5`, recipens `commit:` → `b75af7a07c5d` | `git rev-parse 'v1.0^{}'` og `grep commit: fdroid/co.xplat.husk.yml` |
+| 2. Prebuilt APK i kildetræet | `husk-latest.apk` er **sporet i git** | `git ls-files \| grep -i '\.apk$'` |
+| 3-8. Selv-opdaterings-kode | `PackageInstaller` i **6** filer; `Updater.java` 164 linjer, `InstallReceiver.java` 53 | `grep -rln PackageInstaller app/src/main/java/co/xplat/husk/` |
+| 9. `REQUEST_INSTALL_PACKAGES` | erklæret på linje 23 | `grep -n REQUEST_INSTALL_PACKAGES app/src/main/AndroidManifest.xml` |
+
+Dertil advarsel 10 og spørgsmål 11-15: hver netværksvært skal gøres rede for i butiksteksten
+(`0.0.0.0`, `127.0.0.1`, `ntfy.sh`, `xplat.co` - og `raw.githubusercontent.com`, som kun findes i
+`Updater.java` og forsvinder med fund 3-8).
+
+**To følger der skal læses FØR nogen går i gang:**
+
+- **Flåden mister in-app-opdatering.** F-Droids inklusionspolitik tager ikke selvopdaterende apps,
+  så `/update`-ruten, `Updater.java` og tilladelsen skal væk. Opdatering sker derefter gennem
+  F-Droid-klienten eller `adb install` over husets egen Termux-ADB. Ejeren har besluttet det,
+  verbatim 2026-09-18: »Når du opgraderer appen, så sørg også for at implementere alle rettelser
+  fra fdroids seneste emails«.
+- **Husets egen RELEASE-PLIGT modsiger F-Droid.** `CLAUDE.md`s trin 3 foreskriver at repoet skal
+  bære den signerede `husk-latest.apk`. Det er ordret det fund 2 afviser. Reglen skal rettes i
+  samme ombæring, ellers genindfører næste release fejlen.
+
+**Arbejdet er skrevet som en køreklar plan, ikke som spor her:**
+`_styresystem/planer/2026-09-18-husk-webcam-produkt-plan.md`, sporene `H1`-`H7`.
+Planen lukker de ni fejl OG tilføjer `/set?front=0|1` i samme release (1.1 / versionCode 52),
+fordi PC-siden ellers skal vælge forsidekamera gennem WSL → SSH → Termux → ADB, og den kæde kan en
+fremmed bruger ikke have. `Rig.useFront` findes allerede (`Rig.java` l. 39) og læses i
+`CameraService.openCamera()` (l. 255), så ændringen er lille - men den skal lukke den åbne
+kamera-enhed ved et SKIFT, ellers slår valget først igennem ved næste dovne genåbning.
+
+⚠️ **Rækkefølgen er bindende:** `P_xplat`s `HUSK_API`-katalog skal ændres FØR releasen, fordi
+`pc/check-api-parity.sh` er en release-gate der læser katalogfilen og sammenligner både endpoints
+og versionCode med appen. Planens spor `X1`-`X2` kommer derfor før `H5`-`H6`.
