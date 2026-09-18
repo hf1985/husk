@@ -31,7 +31,11 @@ URL = "https://gitlab.com/api/v4/projects/36528/merge_requests/{mr}/notes"
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("tekstfil", help="fil med kommentarens markdown")
-    p.add_argument("--mr", default="40810", help="MR-nummer (default 40810)")
+    # --mr er PAAKRAEVET fra 2026-09-19. Defaulten var 40810, og den MR blev MERGET
+    # 15-09-2026: et glemt flag ville have postet 1.1-kommentaren i en lukket traad,
+    # hvor ingen anmelder laeser den, og kaldet ville have svaret 201 hele vejen.
+    # En default der peger paa en lukket traad er en tavs fejl-adresse, ikke en bekvemmelighed.
+    p.add_argument("--mr", required=True, help="MR-nummer (paakraevet; 40810 er MERGET)")
     a = p.parse_args()
 
     token = os.environ.get("GL_TOKEN", "").strip()

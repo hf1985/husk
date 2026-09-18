@@ -10,7 +10,18 @@ Brug:
         | grep -oE 'glpat-[A-Za-z0-9_.-]+' | head -1)"
     py -3.11 pc/fdroid-fork-update.py fdroid/co.xplat.husk.yml -m "commit-besked"
 
-Exit 0 = pipelinen blev grøn. Exit 1 = den fejlede. Exit 2 = brugsfejl.
+Med `--opret-mr <fil>` åbnes desuden en NY merge request mod upstream, når pipelinen er
+grøn. Filens første linje er MR-titlen, resten er beskrivelsen. Det er nødvendigt fra og
+med 1.1: !40810 (»New app«) blev MERGET 15-09-2026, og hverken en ny commit på forkens
+gren eller en kommentar på den lukkede MR fører ændringen videre til upstream. En
+opdatering kræver sin egen MR.
+
+Exit 0 = pipelinen blev grøn (og MR'en oprettet, hvis der blev bedt om en).
+Exit 1 = den fejlede. Exit 2 = brugsfejl.
+
+⛔ `--opret-mr` er UDADVENDT og kan ikke kaldes tilbage. Samme regel som
+`fdroid-mr-comment.py`: kør en frisk, adversarisk gennemgang over titel og beskrivelse
+OG det bevis de hviler på, før du kalder den.
 
 Tokenet læses KUN fra miljøet, aldrig fra argv: en hemmelighed i en
 kommandolinje er offentlig, så længe processen kører (måleregel 185).
@@ -28,6 +39,9 @@ PROJEKT = "hf16%2Ff-droid"
 BRANCH = "co.xplat.husk"
 STI = "metadata/co.xplat.husk.yml"
 API = "https://gitlab.com/api/v4/projects/" + PROJEKT
+# fdroid/fdroiddata har numerisk projekt-id 36528 (samme tal som fdroid-mr-comment.py).
+UPSTREAM_ID = 36528
+UPSTREAM_API = "https://gitlab.com/api/v4/projects/%d" % UPSTREAM_ID
 
 
 def kald(token, url, data=None, metode=None):
@@ -51,7 +65,26 @@ def main():
     p.add_argument("recipe", help="sti til fdroid/co.xplat.husk.yml")
     p.add_argument("-m", "--besked", required=True, help="commit-besked på forken")
     p.add_argument("--timeout", type=int, default=1500, help="sekunder at vente på pipelinen")
+    p.add_argument("--opret-mr", metavar="FIL",
+                   help="åbn en NY merge request mod upstream når pipelinen er grøn; "
+                        "filens første linje er titlen, resten beskrivelsen")
     a = p.parse_args()
+
+    # Forudsætnings-tjek FØR der skrives noget: et --opret-mr der peger på en tom eller
+    # manglende fil må ikke opdages EFTER commit og en kvarters pipeline, hvor det eneste
+    # der er tilbage er at gøre det i hånden.
+    titel = beskrivelse = None
+    if a.opret_mr:
+        tekst = io.open(a.opret_mr, encoding="utf-8").read().strip()
+        if not tekst:
+            print("--opret-mr: filen er tom", file=sys.stderr)
+            return 2
+        dele = tekst.split("\n", 1)
+        titel = dele[0].strip()
+        beskrivelse = dele[1].strip() if len(dele) > 1 else ""
+        if not titel:
+            print("--opret-mr: første linje (titlen) er tom", file=sys.stderr)
+            return 2
 
     token = os.environ.get("GL_TOKEN", "").strip()
     if not token:
@@ -112,6 +145,30 @@ def main():
                         "allowed signer", "successfully verified")):
                     print("  " + linje.split("Z 01E ")[-1].strip())
             break
+
+    if titel is None:
+        return 0
+
+    # En ALLEREDE åben MR fra samme gren må ikke blive til to. GitLab afviser dubletten
+    # med 409, men fejlen ville stå som en rød kørsel frem for som den normale tilstand
+    # den er, så vi spørger først.
+    aabne = kald(token, UPSTREAM_API + "/merge_requests?state=opened&source_branch=" + BRANCH)
+    if aabne:
+        print("MR findes allerede - opretter ikke en ny:")
+        for m in aabne:
+            print("  !%s %s" % (m["iid"], m.get("web_url")))
+        return 0
+
+    mr = kald(token, UPSTREAM_API + "/merge_requests", {
+        "source_project_id": kald(token, API)["id"],
+        "source_branch": BRANCH,
+        "target_project_id": UPSTREAM_ID,
+        "target_branch": "master",
+        "title": titel,
+        "description": beskrivelse,
+        "remove_source_branch": False,
+    })
+    print("MR oprettet: !%s  %s" % (mr.get("iid"), mr.get("web_url")))
     return 0
 
 

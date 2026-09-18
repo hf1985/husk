@@ -11,14 +11,22 @@
 > ⚠️ **Fra 1.1 har appen INGEN indbygget updater** (F-Droid-fund 3-9, 15-09-2026: en app der henter
 > og installerer sine egne opdateringer omgår butikkens signering og review). Flåden opgraderes
 > derefter gennem **F-Droid-klienten** eller **`adb install` over husets Termux-ADB**.
-> `latest.json` og `HUSK_VERSION_*` er derfor ikke længere en opdateringskanal – de er
-> versionsvisning for websiden og for `check-api-parity.sh`. Bevar dem ajour, men lad være med at
-> kalde dem »det flåden læser«.
+> **TRE flader hedder næsten det samme, og de har hver sin ejer. Hold dem fra hinanden:**
 >
-> ⛔ **Den ENE undtagelse, og den udløber:** 1.0-telefoner HAR stadig updateren, og den læser
-> `https://xplat.co/husk/latest.json` først med `raw.githubusercontent.com/hf1985/husk/main/latest.json`
-> som fallback. Begge flader skal derfor stå rigtigt indtil hele flåden er på 1.1 – det er den
-> sidste opgradering der kan ske i appen. Rør ikke `latest.json`s FORM før da.
+> | Flade | Hvem læser den | Hvornår kan den gå væk |
+> |---|---|---|
+> | `HUSK_VERSION_NAME`/`_CODE` i `P_xplat/hosting/app.py` | websiden, og `pc/check-api-parity.sh`, som sammenligner `HUSK_VERSION_CODE` med `app/build.gradle` | aldrig – den er release-gaten |
+> | `https://xplat.co/husk/latest.json` | genereres af de konstanter; **læses desuden af 1.0-flådens updater som FØRSTE kilde** | når flåden er på 1.1 mister den sin app-læser, men bliver som websidens versionsvisning |
+> | `latest.json` **i dette repo** | KUN 1.0-flådens updater, som fallback når xplat.co ikke svarer | når flåden er på 1.1 har den **ingen læser tilbage** og kan slettes |
+>
+> ⚠️ `check-api-parity.sh` læser **ikke** `latest.json` – den sammenligner `app/build.gradle` med
+> `P_xplat`s `HUSK_VERSION_CODE`. Her stod indtil 2026-09-19 at gaten var en af `latest.json`s
+> læsere; det var falsk og ville have holdt en fil i live på en grund den ikke har.
+>
+> ⛔ **Undtagelsen udløber:** 1.0-telefoner HAR stadig updateren. Begge `latest.json`-flader skal
+> derfor stå rigtigt indtil hele flåden er på 1.1 – det er den sidste opgradering der kan ske i
+> appen. Rør ikke repoets `latest.json`s FORM før da, og slet den først når `/info` på hver enhed
+> viser 52 eller derover.
 >
 > **Release-huskeliste** (fuld procedure: `docs/BUILD.md` §4–7):
 > 1. Bump `versionCode` + `versionName` – ÉT sted: `app/build.gradle`.

@@ -12,9 +12,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-    <!-- specialUse: CameraService starter som specialUse-FGS ved boot/self-update (hoster kun HTTP-serveren)
-         og eleverer foerst til camera-FGS naar kameraet aabnes. Paa Android 14 maa en camera-FGS ikke startes
-         fra baggrund (BOOT_COMPLETED/MY_PACKAGE_REPLACED); specialUse maa. Paa <=A13 er dette en no-op. -->
+    <!-- specialUse: CameraService starter som specialUse-FGS ved boot og efter en pakke-udskiftning
+         (hoster kun HTTP-serveren) og eleverer foerst til camera-FGS naar kameraet aabnes. Paa
+         Android 14 maa en camera-FGS ikke startes fra baggrund (BOOT_COMPLETED/MY_PACKAGE_REPLACED);
+         specialUse maa. Paa <=A13 er dette en no-op. Her stod "self-update" indtil 1.1; appen har
+         ingen indbygget updater mere, men grenen daekker F-Droid-klienten og `adb install -r`. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -95,9 +97,10 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                <!-- J4: leveres kun til denne app efter en selv-opdatering; paa FGS-start-undtagelses-
-                     listen, saa ControlServeren (8090) rejser sig selv igen. Ingen <data> (MY_PACKAGE_-
-                     REPLACED baerer ingen package:-URI, i modsaetning til PACKAGE_REPLACED). -->
+                <!-- J4: leveres kun til denne app efter at DENS EGEN pakke er udskiftet (F-Droid-klienten
+                     eller `adb install -r`); paa FGS-start-undtagelseslisten, saa ControlServeren (8090)
+                     rejser sig selv igen. Ingen <data> (MY_PACKAGE_REPLACED baerer ingen package:-URI, i
+                     modsaetning til PACKAGE_REPLACED). -->
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>

@@ -12,13 +12,15 @@ flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-mem
 >   **Nøgleskiftet krævede afinstallation + geninstallation på hver enhed** - Android afviser et
 >   signaturskifte, uanset Play Protect, så `spare.* update` kunne ikke bruges til springet.
 >   Opskriften står i `FORTSÆT-HER.md` og gælder ethvert fremtidigt nøgleskifte.
->   **A9-noten:** `.101`s updater logger `xplat=SSLHandshakeException` og falder tilbage til
->   GitHub-raw. Det er den DESIGNEDE adfærd, ikke en fejl: xplat.co's cert kæder til Google Trust
->   Services, mens raw/objects.githubusercontent.com bruger ISRG Root X1, der er betroet ned til
->   Android 7.1.1. Fallbacken virkede: `latest via github (have 50, remote 50)`.
->   **Følgen er en enkeltfejlskilde:** A9'ens ENESTE fungerende opdateringsvej er
->   `raw.githubusercontent.com`, og `Updater.java` har kun de to kilder. Går repoet privat eller
->   flytter, mister enheden self-update lydløst.
+>   **A9-noten (HISTORISK fra 1.0 og derunder - appen har ingen updater fra 1.1):** `.101`s updater
+>   loggede `xplat=SSLHandshakeException` og faldt tilbage til GitHub-raw. Det var den DESIGNEDE
+>   adfærd, ikke en fejl: xplat.co's cert kæder til Google Trust Services, mens
+>   raw/objects.githubusercontent.com bruger ISRG Root X1, der er betroet ned til Android 7.1.1.
+>   Fallbacken virkede: `latest via github (have 50, remote 50)`.
+>   **Cert-forskellen er IKKE historisk** og bider nu et andet sted: release-assettet ligger på
+>   `github.com/.../releases/download/...`, som kæder til USERTrust. En A9 der ikke kan hente det,
+>   opgraderes med `adb install` - men A9 mangler Wireless Debugging, så den kræver et USB-kabel
+>   på stedet. Planlæg derfor A9-opgraderinger fysisk, ikke remote.
 > - **Play Protect er FRA på begge spares**, og det rører en geninstallation ikke. Oplysningen
 >   stod i den gamle statusblok og gælder stadig; §7 nedenfor bygger på den.
 > - **⚠️ Lære (A9): en app-opdatering kan AFBINDE a11y-servicen på ældre Android.** .101 endte efter

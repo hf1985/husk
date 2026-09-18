@@ -296,8 +296,11 @@ annoncerer en version der ikke kan hentes):
 2. Byg + signér (afsnit 4–5).
 3. Opdater repo'ets `latest.json` – **kun** versionsfelterne og `apk`-URL'en, som skal pege på
    release-assettet. Læg ALDRIG APK'en i repoet igen (se trin 4 i afsnit 0b).
-   `latest.json` er fra 1.1 versionsvisning, ikke en opdateringskanal; den ENE undtagelse er
-   1.0-flåden, som stadig læser den gennem sin egen updater, indtil den er opgraderet.
+   ⚠️ Repoets `latest.json` har **én eneste læser tilbage**: 1.0-flådens indbyggede updater, som
+   bruger den som fallback når `xplat.co` ikke svarer. Den har ingen anden rolle - hverken for
+   websiden (den genereres af `HUSK_VERSION_*` i `P_xplat`) eller for `check-api-parity.sh` (som
+   sammenligner `app/build.gradle` med `HUSK_VERSION_CODE`). **Når hver enhed viser 52 eller
+   derover i `/info`, kan filen slettes, og så falder dette trin bort.**
 4. Opdater xplat HUSK-konstanter i `P_xplat/hosting/app.py` (`HUSK_VERSION_NAME`,
    `HUSK_VERSION_CODE`, `HUSK_APK` = release-assettet) **OG DEPLOY xplat.co** (`P_xplat`:
    `check-local.sh` grøn → kør fra **Git Bash**: `bash scripts/hosting-deploy.sh --apply`.
