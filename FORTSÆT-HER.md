@@ -460,6 +460,21 @@ kamera-enhed ved et SKIFT, ellers slår valget først igennem ved næste dovne g
 `pc/check-api-parity.sh` er en release-gate der læser katalogfilen og sammenligner både endpoints
 og versionCode med appen. Planens spor `X1`-`X2` kommer derfor før `H5`-`H6`.
 
+## Adversarisk verifikation (ad hoc-runde `husk-loekkefix-og-korthed`, 2026-09-19, `HFs-lenovo`)
+
+Frisk sub-agent (`fable`), syv linser, uden orkestratorens konklusioner.
+Runden havde ingen plan, så dommene står her.
+
+| Linse | Dom | Hvad der blev målt |
+|---|---|---|
+| 1. Er planernes tal sande? | **REFUTERET: delvist** | 13 tal holdt ved genmåling; 4 gjorde ikke. `MAALEREGLER.md` var forkert allerede ved commit, `CLAUDE.md` var forældet af en nabo, commit-medianen er 1.321,5 (ikke 1.369), og C#-bentallet er 133 talt statisk og **ikke kørt**. linsuis tid er UTC. |
+| 2. Er planerne kørbare uden at spørge? | **REFUTERET: ja** | `sync-config-homes.ps1` ligger i `hooks/`, ikke `scripts/`. `K4`s værktøj måler ikke `CLAUDE.md`. `K1` genindførte den pensionerede nøgle `plan-loft`. To lukke-betingelser krævede »grøn« på tjek der var røde i forvejen. `H1`s rebase-præmis var forkert. |
+| 3. Lukke-betingelser der ikke kan fejle | **REFUTERET: ja** | `V1` og `H1` hvilede på en dom frem for en måling; begge er nu grep-ankrede. Luk-sporene `H8`/`V6`/`K7` bærer bevidst ingen betingelse. |
+| 4. Gate 4 og gate 11 | **REFUTERET: ja** | `infra/gitlab.md` manglede at MR-metadata svarer 200 anonymt, og at en squash-merget MR efterlader kildegrenen konfliktende. Begge er skrevet ind. |
+| 5. Kolliderer runden med en nabosession? | **REFUTERET: delvist** | Tre nabo-commits samme aften rørte `CLAUDE.md`, `MAALEREGLER.md` og `check-claudemd-size.sh`. `GRAENSE` er hævet 150.000 → 200.000, så måleregel-ruten er åben igen. |
+| 6. Lander `SVAR`-blokkene? | **REFUTERET: nej** | `check-svar-landet.sh`: 97 blokke, 69 landet, 28 FUND – ingen af de 28 er `M-2026-09-19-01/-02/-04`. Spor-id'erne findes i de navngivne planer. |
+| 7. Er der en fjerde ting? | **REFUTERET: delvist** | 1.1 indførte **to** fejl i `requestFront`, ikke én, og `Rig.useFront` persisteres ikke. Begge står nedenfor. |
+
 ## Register 2026-09-19 (ad hoc-runde `husk-loekkefix-og-korthed`, `HFs-lenovo`): MR'en er blokeret, og 1.1 bar TO fejl
 
 **Arbejdet er lagt i to planer, ikke her:**
