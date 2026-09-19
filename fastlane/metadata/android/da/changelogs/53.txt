@@ -1,0 +1,6 @@
+Fejlrettelse. Skift af kameraside over HTTP (/set?front=0|1) startede en ekstra baggrundsløkke
+hver gang i stedet for at genbruge den der allerede kørte, så gentagne skift efterlod flere
+et-sekunds-løkker i gang på én gang. De samles nu til én.
+
+Intet andet er ændret: ingen nye tilladelser, ingen nye endpoints, og HTTP-fladen er den samme
+som i 1.1.

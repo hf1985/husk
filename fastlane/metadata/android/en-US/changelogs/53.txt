@@ -1,0 +1,6 @@
+Bugfix. Switching the camera side over HTTP (/set?front=0|1) started an extra background check
+loop each time instead of reusing the one already running, so repeated switches left several
+one-second loops going at once. They are now collapsed into one.
+
+Nothing else changed: no new permissions, no new endpoints, and the HTTP interface is the same
+as in 1.1.
