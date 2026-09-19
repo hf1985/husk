@@ -3,12 +3,404 @@
 
 Flyttet hertil fra `CLAUDE.md` 2026-09-19, ordret og uden at slette noget.
 
-**Hvorfor den ikke maa staa i `CLAUDE.md`:** den fil auto-loades i HVER agents kontekst i hele
-porteføljen, og `check-claudemd-size.sh` maalte kæden til 152.147 bytes mod et loft paa 150.000.
-Historikken er ren BEVIS-tekst - hvad hver udgave aendrede - og gatens egen kur er at beholde
-paastanden i `CLAUDE.md` og flytte beviset til en fil der ikke auto-loades. Det er denne fil.
+**Hvorfor den ikke må stå i `CLAUDE.md`:** den fil auto-loades i HVER agents kontekst i hele
+porteføljen, og `check-claudemd-size.sh` målte kæden til 152.147 bytes mod et loft på 150.000.
+Historikken er ren BEVIS-tekst - hvad hver udgave ændrede - og gatens egen kur er at beholde
+påstanden i `CLAUDE.md` og flytte beviset til en fil der ikke auto-loades. Det er denne fil.
 
-**Den aktuelle version staar stadig i `CLAUDE.md`**, fordi det er en paastand om NUTIDEN som en
-agent skal kende uden at slaa op. Alt fra den forrige og bagud staar her.
+**Den aktuelle version står stadig i `CLAUDE.md`**, fordi det er en påstand om NUTIDEN som en
+agent skal kende uden at slå op. Alt fra den forrige og bagud står her.
 
 Tidligere: **1.0 / versionCode 51** (2026-09-07, bygget på `HFs-lenovo`. Tre ting: F-Droid-anmelderen `linsui` bad om at det står i UI'et at den indbyggede opdatering kommer direkte fra udvikleren og ikke fra F-Droid - nu en permanent note under knappen PLUS en bekræftelses-dialog der navngiver xplat.co + GitHub, og som KUN sidder på knappen, så den hovedløse `/update`-vej er uændret. Dertil de udskudte kode-fund: `Net.tailscaleIp()` mislabelede en mobiloperatørs CGNAT-adresse som Tailscale-IP - den kræver nu en `fd7a:115c:a1e0::/48`-adresse på SAMME interface. **Målt på Note10 FØR udgivelsen: `tun0` bærer både `100.100.103.102/32` og `fd7a:115c:a1e0::1536:c33a/128`**, så etiketten er stadig sand på en rigtig Tailscale-enhed; en carrier-CGNAT-adresse lander på `rmnet0` uden `fd7a:`. Danske strenge i HTTP-svar er oversat til engelsk - både `ControlServer`, `RigAccessibilityService` og de seks i `Hardware` (torch/volume/ringer/brightness/location/mic, som en adversarisk gennemgang fandt efter jeg havde erklæret oversættelsen færdig), plus de to serverede browser-kontrolsider. Samme fejl to steder mere er taget med: ntfy-pushen og de to notifikationskanal-navne var hardkodet dansk uanset enhedens sprog og er nu string-ressourcer (engelsk default, dansk følger enheden). Forældede header-kommentarer i `ControlServer`/`Net` om »binder ALDRIG 0.0.0.0« er rettet; bindingen selv er uændret. `Updater`s kommentar om at APK'en ligger på `objects.githubusercontent.com` er også rettet: updateren henter `husk-latest.apk` fra **main-grenen**, ikke et Release-asset - det er F-Droids `Binaries:` der henter release-assettet). Tidligere: 0.9.31/50 (ny release-nøgle + `vcsInfo { include false }` for reproducerbar F-Droid-build. Signaturskiftet kunne ikke bæres af in-app-updateren, så alle tre enheder blev afinstalleret og geninstalleret via adb - gjort 2026-09-04). Tidligere: 0.9.30/49 (token-gate for `/stream`, `/screen`, `/screen.mp4`). Tidligere: 0.9.29/48 (audit-runde 2 via Note10, log `docs/AUDIT-2026-07-12-runde2.md`: selv-review fangede en HIGH-regression jeg indførte i 0.9.28 – `acceptInstallConsent` læste stale `lastUpdate` → gentaget `/update` efter »latest« stallede; rettet m. synkron »checking«-reset + `sawProgress`-gate. Plus 3 LOW: /vibrate-loft, sensor-NaN-guard, InstallReceiver-fejl-synlighed. Note10-rig live-verificeret sund på 0.9.28: kamera/H.264/hardware/DeX/CSRF). Tidligere: 0.9.28/47 (stor sikkerheds+korrektheds+ydelses-audit 2026-07-12 – 3 parallelle review-agenter + manuel verifikation; beslutnings-log i `docs/AUDIT-2026-07-12.md`. Højdepunkter: CSRF/DNS-rebinding-forsvar i ControlServer; kamera-permanent-død + H.264-ANR + PackageInstaller-session-læk fikset; A14-sikker specialUse→camera-FGS selv-heal (uændret på ≤A13); motion-på-skærm-CPU-spild fjernet + Bitmap/BAOS genbrug. Ingen invariant A-D svækket). Tidligere: 0.9.27/46 (`acceptInstallConsent` lærte Play Protects »Install without scanning«-sti; on-device auto-accept KUN delvist pålidelig på spares pga. flaky a11y-`getWindows()` → pålidelig ubemandet self-update = Play Protect-scanning FRA ELLER PC-harness vision+tap; docs/fleet-tailnet-transport.md §7). Tidligere: 0.9.26/45 (reflekteret-XSS-fix); 0.9.25/44 (J4: `BootReceiver` håndterer `MY_PACKAGE_REPLACED` → 8090 rejser sig efter in-app-opdatering – bevist virksom på spares 2026-07-12). Ingen GitHub Actions i repoet (Gradle-buildet er verifikationen).
+
+---
+
+# Arkiveret fra FORTSÆT-HER.md 2026-09-20
+
+Flyttet hertil ORDRET, uden at slette noget, af spor `H7` i
+`_styresystem/planer/2026-09-19-husk-udgiv-loekkefix-plan.md`.
+
+**Hvorfor:** `FORTSÆT-HER.md` auto-loades ved hver sessionsstart på denne flade og var vokset til
+36.204 bytes. Ejerbeslutningen 2026-09-19 lyder »Gate nyt, ryd kun det der læses udefra eller ved
+hver sessionsstart«, og handoffen er netop det sidste. Loftet er 12.000 bytes.
+
+**Det der IKKE står her, står stadig i handoffen:** de to ting der kræver et menneske, de tre
+BESLUTTEDE opgaver uden levende peger, og de to åbne fund fra 2026-09-19. Kun det der var
+historik er flyttet.
+
+Blokken nedenfor er linje 133-477 af filen som den så ud før flytningen. Den bærer sine egne
+overskrifter og sine egne datoer; læs den som et øjebliksbillede, ikke som nutid. Flere af dens
+afsnit beskriver en tilstand der siden er ændret - navnlig at flåden var ensartet på 1.0/51, og
+at F-Droid-indsendelsen var MR !40810.
+
+## Status (historik frem til 1.0)
+
+**Udgivet og i drift.** Tidligere version **1.0 / versionCode 51** (2026-09-07, bygget og
+signeret på `HFs-lenovo`). Udgives på GitHub-releases (`hf1985/husk`) og `xplat.co/husk`;
+**F-Droid er endnu IKKE udgivet** - fdroiddata-MR !40810 er ÅBEN og afventer anmelderne.
+Pure framework, ingen AndroidX, ingen afhængigheder.
+
+**Hvorfor 1.0 kom.** F-Droid-anmelderen `linsui` skrev 07-09 kl. 12:58 det sidste krav:
+»Please also make it clear in the UI that the update is from you directly.« Hans første ønske
+blev løst metadata-only; dette kunne ikke, fordi det handler om appens egen skærm. Derfor blev
+de tre udskudte kode-fund taget med i samme bump (de krævede alle et versionsbump og var holdt
+tilbage for ikke at kassere en bestået testkørsel).
+
+> **Målt efter udgivelsen 2026-09-07:**
+> - Begge `latest.json`-endpoints viser `versionCode 51`, `/husk/openapi.json` melder 1.0 med
+>   44 paths, `pc/check-api-parity.sh` er grøn.
+> - **F-Droids egen pipeline `2827292807` er GRØN** på fork-head: »Successfully built
+>   co.xplat.husk:51 from 02e069b7…«, »compared built binary to supplied reference binary
+>   successfully«, med den pinnede signer `96195cfd…c17d`.
+> - **Enhederne kører 1.0** (`/info`: `v1.0/51`, `a11y: true`). Bevist at det ER den nye kode og
+>   ikke bare et versionsnummer: `/update` svarer »remote self-update started … read /flags« og
+>   `/screen.jpg` svarede uden frame »no screen frame (turn on screen sharing in the app)« -
+>   begge på ENGELSK, hvor 0.9.31 svarede på dansk. Et versionsnummer kan komme fra en cache;
+>   svarets sprog kan ikke.
+> - **`tailscaleIp` er IKKE regredieret:** riggen på 1.0 rapporterer stadig
+>   `tailscaleIp=100.100.103.102`. Kravet om en `fd7a:`-markør på samme interface er målt
+>   holdbart, fordi `tun0` bærer både `100.100.103.102/32` og `fd7a:115c:a1e0::1536:c33a/128`.
+
+> - **UI-teksten er set på skærmen, ikke kun i ressourcerne.** Sony 702SO på 1.0 viser knappen
+>   »UPDATE HUSK (DIRECT FROM THE DEVELOPER)« med hele noten under, og et tryk giver dialogen
+>   »Update from the developer, not F-Droid« med knappen »DOWNLOAD FROM THE DEVELOPER«.
+>   Skærmbilleder er taget; a11y bekræftede noderne uafhængigt.
+
+**HELE flåden kører 1.0/51 (2026-09-07).** Den sidste enhed, Samsung SM-A102U1, blev taget af
+ejeren; de to andre fjernstyret. Målt på alle tre bagefter: `versionCode 51`, `rpc ping` = PONG,
+`a11y: true`, og `/snapshot` 200 med et rigtigt JPEG (92 kB på A9, 355 kB på A11, 208 kB på
+Note10). **Alle tre rapporterer stadig deres rigtige `tailscaleIp`**, så fd7a-kravet er nu
+efterprøvet på Android 9, 11 og 12 - tre uafhængige enheder, tre OS-generationer.
+
+Årsagen til at alle tre først stallede står i nøgleskifte-opskriften nedenfor: »Installer
+ukendte apps« var slået FRA. Sony blev kureret fjernstyret (SETTINGS → toggle → **tilbage ÉN
+gang**, ikke back+home, som forlader install-sessionen) og tog derefter opdateringen i første
+forsøg.
+
+⚠️ **En in-app-opdatering efterlader TO tjenester nede, og ingen af dem melder en fejl.**
+Målt på flåden 2026-09-07 efter 1.0 landede. Begge er efterslæb fra processudskiftningen, ikke
+noget 1.0 indførte - `BootReceiver`s `MY_PACKAGE_REPLACED`-vej rejser 8090, og det gør at ALT
+ser sundt ud udefra:
+
+- **Skærmdeling (MediaProjection).** Samtykket dør med processen. Note10 og 702SO kom tilbage af
+  sig selv; `SM-A102U1` svarede »no screen frame« i timevis og er nu tilbage - men det kan
+  IKKE attribueres, fordi ejeren rørte telefonen samtidig med at en fjernstyret toggle-cyklus
+  var i gang. Skriv den ikke ned som en virksom kur uden en ren genmåling.
+- **Kamera (`CameraService`).** Efter opdateringen leverede kameraet ikke på NOGEN af de to
+  spares: `/snapshot` svarede 503 »no frame yet« også på andet kald, mens `/screen.jpg` virkede
+  og porten var oppe. Kuren er et tap på »Camera streaming« i appen; derefter svarede begge 200
+  (94-346 kB). Note10 var upåvirket.
+  ⚠️ **»Fordi `ScreenService` hostede 8090 alene« stod her som forklaring indtil 2026-09-08 og
+  er en HYPOTESE, ikke en måling.** `BootReceiver` starter `CameraService` ubetinget ved
+  `MY_PACKAGE_REPLACED`, og det er den der normalt hoster 8090, så forklaringen er ikke engang
+  den mest sandsynlige. Ingen målte `dumpsys activity services`, og der findes ingen måling af
+  hvorfor det ramte A9+A11 men ikke A12. **Mål det næste gang det sker** frem for at arve
+  forklaringen.
+
+**Efter enhver in-app-opdatering: efterprøv `/snapshot` OG `/screen.jpg` pr. enhed.** Hverken
+`/flags` eller `/info` kan afsløre det - se næste punkt.
+
+⛔ **`/flags` `camera` er MÅLT ubrugelig som diagnose tre gange på én dag.** Den er
+`Rig.cameraRunning`, som kun er sand mens capture faktisk kører, så den stod `False` på alle tre
+enheder SAMTIDIG med at Note10 leverede et 27 kB JPEG, og den stod `False` umiddelbart efter at
+et tap havde genstartet kameraet på `SM-A102U1` - som så svarede 346 kB. **Døm på `/snapshot`s
+svar, aldrig på flaget.**
+
+Bemærk også at den gemte toggle-koordinat `953,1222` fra nøgleskiftet er FORÆLDET: noten under
+Opdatér-knappen skubber alt nedenunder ned. Har enheden skærmdeling, så find koordinaten ved
+kørsel med `/find?match=...` frem for at genbruge et tal.
+
+> ⚠️ **»Ingen adfærdsændring« om 0.9.31 var FORKERT, og stod her indtil 2026-09-06.**
+> `git diff v0.9.30 v0.9.31 -- app/` bærer også `ControlServer.java:218`:
+> `dparam(query,"topic") != null` → `param(query,"topic") != null`. `dparam` returnerer `""`
+> og aldrig `null` (linje 441-442), så guarden var ALTID sand: ethvert `/motion`-kald uden
+> `topic` nulstillede `Rig.ntfyTopic` og persisterede det, så bevægelses-alarmen tavst holdt
+> op med at sende push. Fixet er `6a07d64`, forfader til `v0.9.31` men ikke til `v0.9.30`.
+> **GitHub-release-teksten for v0.9.31 bærer stadig den falske sætning** - se sporet i
+> rundens lukkeplan.
+
+**Signeringsnøglen blev skiftet i 0.9.31.** Den gamle var en genbrugt
+debug-keystore hvis kodeord stod i klartekst i `docs/BUILD.md` i dette
+OFFENTLIGE repo; F-Droid pinner nøglen permanent, så vinduet var FØR første
+publicering. Ny nøgle: `CN=xplat`, RSA 4096, SHA-256 `96195cfd…c17d`, i
+vaulten (se `docs/BUILD.md` §5). **Springet fra 0.9.30 til 0.9.31 kunne
+ikke bæres af in-app-updateren** – Android afviser en signaturændring – så alle tre enheder blev
+afinstalleret og geninstalleret via adb. **Det er gjort (2026-09-04); flåden er ensartet.**
+
+Flåden er tre fysiske enheder: Note10+ SM-N975U1 (Android 12, DeX, token,
+`.103.102`) plus to spares, Sony 702SO (A9, tokenløs, `.101.101`) og Samsung
+SM-A102U1 (A11, tokenløs, `.101.102`).
+
+Husk er **motoren**; `husk-overbygning`, `P_app_phone-devbox` og `P_kontor`
+bygger ovenpå, og `P_add-on_phone-transport` er hvordan man når telefonen.
+
+## Det der oftest går galt, og som skal stå her
+
+**En kodeændring er IKKE færdig før den er UDGIVET.** Committet-men-ikke-udgivet
+betyder at de fysiske telefoner stadig kører den gamle kode. Det er sket:
+XSS-fixet `e999ae4` blev committet og aldrig releaset, så alle enheder kørte
+videre på 0.9.25 uden det.
+
+**Updateren spørger `https://xplat.co/husk/latest.json` FØRST** (GitHub-raw er
+kun fallback). Glemmes xplat.co-deployen, svarer enhederne »allerede nyeste« selv
+om GitHub er opdateret. **Begge** endpoints skal vise den nye `versionCode`.
+
+Den fulde otte-trins release-huskeliste står i `CLAUDE.md`; gentag den ikke her.
+Definition af færdig: begge `latest.json`-endpoints viser den nye version,
+F-Droid-pipelinen er grøn, **og** `pc/check-api-parity.sh` er grøn med `/husk/api`
+ajourført.
+
+## Verificeret / ikke verificeret
+
+- **Fire ydelses-invarianter (A-D) må ALDRIG rulles tilbage.** De blev alle
+  indført efter konkrete CPU- og frys-regressioner: doven skærm-streaming, smal
+  a11y-maske, dovent kamera uden eviction, og **ingen cross-display launch**
+  (invariant D er selv en fjernelse – v0.9.21's display-0-bounce triggede
+  Samsungs »genstart på anden skærm«-dialog og crashede scrcpy og Discord på
+  DeX). Læs `docs/YDELSE-OG-DRIFT.md` før du rører Screen, Camera eller a11y.
+- **Spares kan itereres fuldt** – det tidligere »umuligt« var en fejldiagnose.
+  En idle spare sover skærmen, så a11y kun ser navbaren og gestus svarer
+  `ERR cancelled`; det blev læst som en død motor. **Kuren er `wake` FØRST.**
+  Harness: `pc/spare.ps1` og `pc/spare.sh`.
+- **Node-læsning er pålidelig på A11 og flaky på A9** – begge spares drives
+  derfor via syn plus koordinat-tap, ikke via node-opslag.
+- **Rest-gab:** en ren `adb reboot` på en spare kræver stadig et engangs-USB-kabel.
+  Det er ikke nødvendigt for iteration. Fuld analyse:
+  `docs/fleet-tailnet-transport.md`.
+
+## Næste skridt
+
+**1. Flåden er ENSARTET igen (2026-09-07): alle tre på 1.0/51.** Se det målte i Status ovenfor.
+**Intet udestår på jern.** Alle tre svarer nu PONG, leverer et JPEG på BÅDE `/screen.jpg` og
+`/snapshot`, og rapporterer deres rigtige `tailscaleIp`. Skal en spare opdateres igen, så husk
+de to ting der begge staller TAVST: »Installer ukendte apps« skal være slået TIL, ellers går
+installen aldrig igennem, og efter installen skal `/snapshot` og `/screen.jpg` efterprøves pr.
+enhed, fordi kamera- og skærmtjenesten kan ligge nede uden at `/flags` viser det.
+
+> **Nedenstående gjaldt nøgleskiftet 2026-09-04, hvor alle tre stod ens på 0.9.31/50.**
+> Note10 blev geninstalleret af sessionen, de to spares af ejeren. Målt via `/info` bagefter:
+> Sony 702SO (A9, sdk 28) og Samsung SM-A102U1 (A11, sdk 30), begge `versionName 0.9.31`,
+> `versionCode 50`, `a11y: true`, `screen: true`, `batteryOptIgnored: true`, og `/snapshot` 200
+> med et rigtigt JPEG (83-97 kB på A9, 380-405 kB på A11).
+
+> **Opskriften er BEVARET her, fordi den gælder ethvert fremtidigt nøgleskifte** - ikke kun dette.
+> Afinstallationen tager mere med sig end app-data:
+> - **Køretids-tilladelser nulstilles.** `/snapshot` svarer 503 »no frame yet« indtil
+>   `pm grant co.xplat.husk android.permission.CAMERA` (samt `RECORD_AUDIO`, de to `*_LOCATION`,
+>   `POST_NOTIFICATIONS`).
+>   **⛔ `camera`-flaget i `/flags` kan IKKE bruges som diagnose - det er MÅLT forkert 2026-09-04.**
+>   Flaget er `Rig.cameraRunning`, som først sættes når capture reelt kører
+>   (`CameraService.java:320`). Mangler tilladelsen, fejler `openCamera`, flaget bliver aldrig
+>   sandt, og `/snapshot` svarer 503 fordi `latestJpeg` er null (`ControlServer.java:263`).
+>   **`camera:false` + 503 er derfor byte-identisk i »dovent, endnu ikke åbnet« og i »tilladelsen
+>   mangler«.** Her stod indtil 2026-09-04 at man skulle kalde to-tre gange og se på flaget; det
+>   er en diagnose der ikke kan fejle, altså ingen diagnose (måleregel 8).
+>   **Spørg i stedet det lag der VED det:** `adb shell dumpsys package co.xplat.husk | grep -i CAMERA`
+>   viser `granted=true|false` direkte. Alternativt: se om flaget SKIFTER til sandt efter et kald.
+> - **a11y-registreringen ryddes.** `settings put secure enabled_accessibility_services
+>   co.xplat.husk/co.xplat.husk.RigAccessibilityService` + `accessibility_enabled 1`, og **den
+>   binder først ved næste reboot**.
+> - **Batteri-undtagelsen ryddes.** `dumpsys deviceidle whitelist +co.xplat.husk`.
+> - **`dex_reconnect` og `screen_share` ryddes.** Den første sættes hovedløst
+>   (`am start -n co.xplat.husk/.MainActivity --ez dexreconnect true --ez finish true`).
+>   Den anden kan ikke sættes gennem `ScreenConsentActivity` (`exported="false"`), men kræver
+>   **ikke** et menneske: `am start` på `MainActivity`, `adb exec-out screencap -p` som ØJNE, og
+>   `adb shell input tap` som FINGER. Toggle'en »Screen sharing (keep on)« lå på `953,1222` i
+>   1080x2280 på Note10. Husks egen a11y-motor accepterer derefter MediaProjection-dialogen selv.
+> - ⛔ **»Installer ukendte apps« ryddes OGSÅ - og det er den der tavst dræber self-update.**
+>   MÅLT 2026-09-07 på begge spares: `/update` hentede 1.0 og satte `lastUpdate` til
+>   »install requested«, men installen skete aldrig. På skærmen stod
+>   »For your security, your phone is not allowed to install unknown apps from this source«
+>   med knapperne CANCEL og SETTINGS. **`acceptInstallConsent` kan ikke klare den dialog**:
+>   den tapper efter Install/Update/Opdater, og kuren her er SETTINGS efterfulgt af en toggle
+>   i Indstillinger. Symptomet ligner »Play Protect gater sideloads«, men er en anden sag.
+>   `lastUpdate` bliver ved med at sige »install requested«, fordi der aldrig kommer en
+>   terminal status - der er altså INTET fejlsignal i `/flags`. Fjern-kuren:
+>   `/find?match=(?i)^settings$` → `/tap` → `/find?match=Allow from this source` → `/tap`,
+>   og gå så TILBAGE ÉN gang (ikke back+home, som forlader install-sessionen).
+>   Efter en afinstallation skal den altså sættes igen, ellers kan enheden aldrig
+>   fjern-opdatere sig selv.
+> - **Tokenet overlever** (det bor i `Settings.Global husk_token`, ikke i app-prefs).
+> - **adb skal gå DIREKTE til adbd**, ikke gennem Husks bro på 15557: broen er en del af appen og
+>   dør i det sekund man afinstallerer. **Find derfor WD-porten FØR afinstallationen** med
+>   `adb connect 127.0.0.1:15557` og `adb devices` (den direkte `127.0.0.1:<wd>` står da på listen),
+>   eller efter en reboot når a11y har genrejst WD. Uden den sætning er punktet en advarsel uden
+>   kur, og netop den kur er det der gør et nøgleskifte kørbart uden et USB-kabel.
+
+**2. xplat.co ER deployet** (senest 2026-09-08). Begge `latest.json`-endpoints viser
+`versionCode 51`, `/husk/openapi.json` melder 1.0 med 44 paths, og
+`pc/check-api-parity.sh` er grøn. Release-pligtens trin 8 er dermed opfyldt.
+
+> ⛔ **Men grøn parity er IKKE en ajour API-doc.** `pc/check-api-parity.sh` siger det selv i sit
+> hoved: den ser endpoint-NAVNE og `versionCode`, aldrig params, respons eller adgangsmodel.
+> En adversarisk gennemgang 2026-09-08 fandt seks ting kataloget skyldte: `/update`s svar stod
+> stadig på dansk, `/set` manglede `sq`+`sfps`, `/key` manglede `enter`, `/rpc` manglede
+> `text`/`enter`/`wake`, flere fejl-svarformer var udokumenterede, og API-doc'ens intro påstod
+> at kun Tailscale-nettet kan nå serveren, hvilket butiksteksten samtidig modsiger.
+> **Læs katalogets `resp`- og `params`-felter mod koden i hånden ved hver release.**
+
+> **Fælde værd at huske:** deployet blev først fejlagtigt meldt umuligt, fordi
+> `~/.ssh/agent.env` ikke fandtes i WSL. Det er den forkerte prøve.
+> `hosting-deploy.sh` skal køres fra **Git Bash** (vault2 virker kun dér) og
+> bruger selv `scripts/deploy-asura/wsl-transport.sh` som bro til den private
+> Asura-nøgle, der kun ligger i WSL (`~/.ssh/khfrb_asura_openssh`).
+> Én negativ prøve på ét sted er ikke et bevis for manglende adgang.
+
+> **Samme fælde en gang til, samme dag:** `screen_share` blev meldt som »kræver
+> et menneske«, fordi `ScreenConsentActivity` ikke er exported. Men adb giver
+> både syn (`screencap`) og berøring (`input tap`), så appens egen UI kan betjenes
+> uden a11y og uden en person. CLAUDE.mds advarsel mod at forgrunde `MainActivity`
+> på den kørende rig holdt IKKE her: efter tryk + `KEYCODE_HOME` var a11y stadig
+> PONG, `/snapshot` gav 200 (230 kB), `/screen.jpg` 200 (82 kB) og adb-broen levede.
+> Advarslen gælder DeX-churn, og det er uvist om DeX var tilsluttet under målingen,
+> så den er ikke modbevist - kun konstateret uskadelig i dette tilfælde.
+
+**Deploy til den kørende rig:** `adb install -r <apk>` når adb eller WD er sund,
+derefter `adb reboot` for en ren fuld tilstand. **Launch aldrig `MainActivity`
+via `am start` på den kørende rig** – det forgrunder Husk nær DeX og slår a11y
+midlertidigt fra. Verificér i stedet via `/snapshot` (to kald - kameraet er dovent), **ikke via
+`/flags`s `camera`-felt**, som er målt ubrugeligt som diagnose (se advarslen ovenfor).
+
+
+## 📜 HISTORIK: F-Droid MR !40810 (1.0, indsendt 07-09-2026)
+
+> ⛔ **FORÆLDET.** !40810 blev MERGET 15-09-2026, og 1.1 gik gennem den NYE MR !49350
+> 19-09-2026. Alt herunder gælder 1.0-indsendelsen og er bevaret som historik.
+
+**Aktuel tilstand (målt 2026-09-08):** recipe'ens build-entry peger på `02e069b` (1.0 / 51),
+fork-head er `e430655`, pipeline **2827292807** er grøn med reproducerbar byte-match, og
+MR-labelen er `review-requested`. Svaret til `linsui` blev postet 07-09 kl. 18:10Z.
+
+> **Forhistorien, som forklarer hvorfor 1.0 kom.** Testeren `gitubpatrice` kørte 06-09 en fuld
+> gennemgang (Galaxy S9, API 29, ingen tilladelser givet) og bestod: install, koldstart,
+> reproducerbarhed og en netværks-måling. `linsui` svarede samme aften med den første betingelse
+> (»make it clear that the update is not from F-Droid«), som blev løst METADATA-ONLY. Dagen
+> efter kom den anden: »Please also make it clear **in the UI** that the update is from you
+> directly«. Den kunne ikke løses i butiksteksten, og derfor blev 1.0 bygget.
+
+> **Den FØRSTE betingelse blev løst METADATA-ONLY** (historik): butiksteksten fik et
+> Opdaterings-afsnit, og der kom changelogs for versionCode 50, uden nogen ændring under
+> `app/`. Formen er værd at kende, for den gælder hver gang en anmelder beder om noget der kan
+> siges i teksten: **APK'en forbliver byte-identisk, så en netop bestået testkørsel og
+> reproducerbarheden står**, mens et versionsbump ville have kasseret begge dele og sendt MR'en
+> bagerst i en lang kø. Den er brugt igen 2026-09-08 til at rette en falsk changelog-sætning.
+
+> **Fælden der blev fanget FØR den nåede F-Droid.** Min første butikstekst sagde »It only ever
+> runs when you press it«. Det er FALSK: `Updater.checkAndUpdate` har to indgange, knappen
+> (`MainActivity.java:110`) OG `GET /update` (`ControlServer.java:369`), og sidstnævnte lader
+> a11y kvittere for install-dialogen selv. Den adversariske gennemgang af svar-udkastet fandt
+> det; teksten er rettet i `dde86ba`. **Ingen automatik findes dog:** ingen `AlarmManager`,
+> `JobScheduler` eller `WorkManager`, og `BootReceiver` kalder den ikke.
+
+**Køen til NÆSTE release (kræver alle et versionsbump):**
+- **`peerAllowed()`/token:** tokenet gater hele API'et via `dispatch()` (kun `/healthz` og `/`
+  er fri), men `tokenOk()` returnerer true når tokenet er tomt. Obligatorisk token + en
+  skarpere `peerAllowed` hører sammen i én release, fordi det bryder hver eksisterende enhed
+  indtil den er re-paret.
+- ✅ **BORTFALDET i 1.1:** »ingen fejlsignal når Installer ukendte apps er slået fra«.
+  Hele updateren er fjernet, så tilstanden kan ikke opstå.
+- ✅ **RETTET i 1.1:** `dparam(query,"server") != null` var altid sand, fordi `dparam` giver
+  `""` og aldrig `null` - præcis 0.9.31's `topic`-fejl. Genmålt 2026-09-19, stadig til stede,
+  og skrevet om til `param(...)`.
+
+> ✅ **Udkom i 1.0:** `Net.tailscaleIp()`s carrier-CGNAT-mislabel og de danske strenge i
+> HTTP-svar. Stod her som kø-punkter indtil 2026-09-08.
+
+
+
+## 📜 HISTORIK 2026-09-18: MR'en er MERGET, men F-Droids review-kit melder ni fejl
+
+> ✅ **LUKKET 2026-09-19 i 1.1.** Alt herunder er bevaret som historik. De ni fejl er rettet,
+> MR !49350 er åbnet, og status står i afsnittet øverst. Læs det FØRST - dette afsnit
+> beskriver en tilstand der ikke findes mere.
+
+Skrevet af en ad hoc-runde på `HFs-lenovo` der arbejdede i `P_app_husk-viewer`. Runden rørte
+**ingen** kode her; den målte tilstanden og lagde arbejdet i en plan.
+
+**Afsnittet »F-Droid MR !40810: 1.0 er indsendt, bolden ligger hos F-Droid« er forældet.**
+Bolden ligger hos os. To ting er sket siden:
+
+1. **MR !40810 blev MERGET 15-09-2026 kl. 08:49** af `linsui` (mail i tråd `19eded065e4c820c` på
+   `hf@brobjerg.dk`, besked `1a0a4420f407536e`). En tester (`dowardev`) havde bekræftet 1.0/51 på
+   en Xiaomi 23129RA5FL med signatur-match.
+2. **Fire timer senere, kl. 13:20, postede `LiberiFatali` en `fdroid-review-kit`-rapport med
+   dommen ❌ FAIL: 9 fejl, 1 advarsel, 5 spørgsmål** (note_3836453313). En merge er altså ikke en
+   ren anmeldelse, og rapporten kom EFTER merget - læs aldrig merget som et grønt lys.
+
+**De ni fejl, målt mod repoet 2026-09-18 og alle stadig åbne:**
+
+| Fund | Målt tilstand | Kommando |
+|---|---|---|
+| 1. `Builds.commit` er ikke det taggede commit | tag `v1.0` → `02e069b763f5`, recipens `commit:` → `b75af7a07c5d` | `git rev-parse 'v1.0^{}'` og `grep commit: fdroid/co.xplat.husk.yml` |
+| 2. Prebuilt APK i kildetræet | `husk-latest.apk` er **sporet i git** | `git ls-files \| grep -i '\.apk$'` |
+| 3-8. Selv-opdaterings-kode | `PackageInstaller` i **6** filer; `Updater.java` 164 linjer, `InstallReceiver.java` 53 | `grep -rln PackageInstaller app/src/main/java/co/xplat/husk/` |
+| 9. `REQUEST_INSTALL_PACKAGES` | erklæret på linje 23 | `grep -n REQUEST_INSTALL_PACKAGES app/src/main/AndroidManifest.xml` |
+
+Dertil advarsel 10 og spørgsmål 11-15: hver netværksvært skal gøres rede for i butiksteksten
+(`0.0.0.0`, `127.0.0.1`, `ntfy.sh`, `xplat.co` - og `raw.githubusercontent.com`, som kun findes i
+`Updater.java` og forsvinder med fund 3-8).
+
+**To følger der skal læses FØR nogen går i gang:**
+
+- **Flåden mister in-app-opdatering.** F-Droids inklusionspolitik tager ikke selvopdaterende apps,
+  så `/update`-ruten, `Updater.java` og tilladelsen skal væk. Opdatering sker derefter gennem
+  F-Droid-klienten eller `adb install` over husets egen Termux-ADB. Ejeren har besluttet det,
+  verbatim 2026-09-18: »Når du opgraderer appen, så sørg også for at implementere alle rettelser
+  fra fdroids seneste emails«.
+- **Husets egen RELEASE-PLIGT modsiger F-Droid.** `CLAUDE.md`s trin 3 foreskriver at repoet skal
+  bære den signerede `husk-latest.apk`. Det er ordret det fund 2 afviser. Reglen skal rettes i
+  samme ombæring, ellers genindfører næste release fejlen.
+
+**Arbejdet er skrevet som en køreklar plan, ikke som spor her:**
+`_styresystem/planer/2026-09-18-husk-webcam-produkt-plan.md`, sporene `H1`-`H7`.
+Planen lukker de ni fejl OG tilføjer `/set?front=0|1` i samme release (1.1 / versionCode 52),
+fordi PC-siden ellers skal vælge forsidekamera gennem WSL → SSH → Termux → ADB, og den kæde kan en
+fremmed bruger ikke have. `Rig.useFront` findes allerede (`Rig.java` l. 39) og læses i
+`CameraService.openCamera()` (l. 255), så ændringen er lille - men den skal lukke den åbne
+kamera-enhed ved et SKIFT, ellers slår valget først igennem ved næste dovne genåbning.
+
+⚠️ **Rækkefølgen er bindende:** `P_xplat`s `HUSK_API`-katalog skal ændres FØR releasen, fordi
+`pc/check-api-parity.sh` er en release-gate der læser katalogfilen og sammenligner både endpoints
+og versionCode med appen. Planens spor `X1`-`X2` kommer derfor før `H5`-`H6`.
+
+## Adversarisk verifikation (ad hoc-runde `husk-loekkefix-og-korthed`, 2026-09-19, `HFs-lenovo`)
+
+Frisk sub-agent (`fable`), syv linser, uden orkestratorens konklusioner.
+Runden havde ingen plan, så dommene står her.
+
+| Linse | Dom | Hvad der blev målt |
+|---|---|---|
+| 1. Er planernes tal sande? | **REFUTERET: delvist** | 13 tal holdt ved genmåling; 4 gjorde ikke. `MAALEREGLER.md` var forkert allerede ved commit, `CLAUDE.md` var forældet af en nabo, commit-medianen er 1.321,5 (ikke 1.369), og C#-bentallet er 133 talt statisk og **ikke kørt**. linsuis tid er UTC. |
+| 2. Er planerne kørbare uden at spørge? | **REFUTERET: ja** | `sync-config-homes.ps1` ligger i `hooks/`, ikke `scripts/`. `K4`s værktøj måler ikke `CLAUDE.md`. `K1` genindførte den pensionerede nøgle `plan-loft`. To lukke-betingelser krævede »grøn« på tjek der var røde i forvejen. `H1`s rebase-præmis var forkert. |
+| 3. Lukke-betingelser der ikke kan fejle | **REFUTERET: ja** | `V1` og `H1` hvilede på en dom frem for en måling; begge er nu grep-ankrede. Luk-sporene `H8`/`V6`/`K7` bærer bevidst ingen betingelse. |
+| 4. Gate 4 og gate 11 | **REFUTERET: ja** | `infra/gitlab.md` manglede at MR-metadata svarer 200 anonymt, og at en squash-merget MR efterlader kildegrenen konfliktende. Begge er skrevet ind. |
+| 5. Kolliderer runden med en nabosession? | **REFUTERET: delvist** | Tre nabo-commits samme aften rørte `CLAUDE.md`, `MAALEREGLER.md` og `check-claudemd-size.sh`. `GRAENSE` er hævet 150.000 → 200.000, så måleregel-ruten er åben igen. |
+| 6. Lander `SVAR`-blokkene? | **REFUTERET: nej** | `check-svar-landet.sh`: 97 blokke, 69 landet, 28 FUND – ingen af de 28 er `M-2026-09-19-01/-02/-04`. Spor-id'erne findes i de navngivne planer. |
+| 7. Er der en fjerde ting? | **REFUTERET: delvist** | 1.1 indførte **to** fejl i `requestFront`, ikke én, og `Rig.useFront` persisteres ikke. Begge står nedenfor. |
+
+
+---
+
+# Hvorfor release-pligten ser sådan ud
+
+`CLAUDE.md`s release-blok bærer PÅSTANDEN; her står de hændelser der er grunden til hvert krav.
+Flyttet hertil 2026-09-20 af spor `H7`, fordi `CLAUDE.md` auto-loades i hver agents kontekst og
+skulle under 12.000 bytes. Intet krav er ændret, kun beviserne er flyttet.
+
+- **»Stop ALDRIG ved commit«** – XSS-sikkerhedsfixet `e999ae4` blev committet men aldrig releaset,
+  så alle enheder kørte videre på 0.9.25 uden fixet. Det er den hændelse hele release-pligten er
+  skrevet efter.
+- **API-DOK-GATEN (trin 6)** – erfaring 2026-07-12: en release bumpede versionen men glemte fem nye
+  endpoints plus CSRF-modellen i `/husk/api`. `pc/check-api-parity.sh` fanger netop dét.
+- **»Læg ALDRIG APK'en i repoet igen« (trin 3)** – F-Droid-fund 2 af 15-09-2026: binære filer i
+  kildetræet kan ikke revideres. `husk-latest.apk` blev fjernet i 1.1, og `.gitignore` dækker `*.apk`.
+- **Changelog-kravet (trin 3b)** – påpeget af F-Droid-testeren 06-09-2026: med
+  `AutoUpdateMode: Version` lander en release uden `changelogs/<versionCode>.txt` med et tomt
+  »What's New« i F-Droid.
+- **»Tagget SKAL sidde på præcis byggecommiten« (trin 7)** – F-Droid-review-kittets fund 1:
+  `v1.0` sad på `02e069b`, mens `b75af7a` var den commit der blev bygget.
+- **Flåden opgraderes gennem F-Droid-klienten eller `adb install`, aldrig on-phone build.** Her stod
+  indtil 1.1 »via in-app Updater«; den findes ikke mere (F-Droid-fund 3-9).
+- **`check-api-parity.sh` læser IKKE `latest.json`.** Indtil 2026-09-19 stod der i `CLAUDE.md` at
+  gaten var en af `latest.json`s læsere. Det var falsk og ville have holdt en fil i live på en grund
+  den ikke har: gaten sammenligner `app/build.gradle` med `P_xplat`s `HUSK_VERSION_CODE`.
