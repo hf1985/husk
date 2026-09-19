@@ -6,9 +6,56 @@ accessibility-automationsmotor plus scrcpy/adb-bro over eget Tailscale-net, uden
 root. Overblik: `README.md`. Agent-kontekst, invarianter og release-pligten:
 `CLAUDE.md` – **læs release-blokken øverst i den før du rører app-koden**.
 
-## Status
+## ✅ 2026-09-19: 1.1 ER UDGIVET, og F-Droid-fundene er lukket
 
-**Udgivet og i drift.** Nuværende version **1.0 / versionCode 51** (2026-09-07, bygget og
+Kørt på `HFs_Dell` efter `_styresystem/planer/2026-09-18-husk-webcam-produkt-plan.md`,
+sporene H1-H7. **Afsnittene nedenfor om de ni åbne fund og om MR !40810 er HISTORIK.**
+
+| Hvad | Tilstand |
+|---|---|
+| Version | **1.1 / versionCode 52**, tagget på byggecommiten `eddaa23` |
+| Signatur | `96195cfd...c17d`, verificeret på den HENTEDE fil fra GitHub |
+| De ni fejl | lukket i 1.1. Fund 1 er dog stadig åbent for **1.0-entryen** - se MR'en |
+| Advarsel 10 + spørgsmål 11-15 | besvaret i butiksteksten, vært for vært |
+| F-Droid | **MR !49350** åbnet mod fdroid/fdroiddata. Fork-pipelinen grøn, og BEGGE entries reproducerede mod referencebinæren med den tilladte signer |
+| Flåden | ⚠️ **kun spare SM-A102U1 (.101.102) er på 1.1.** Note10 og Sony 702SO er stadig på 1.0 |
+
+### ⛔ To ting der kræver et menneske, og som IKKE er gjort
+
+1. **Note10 og A9 er ikke opgraderet, og det var et VALG.** Note10 er kontor-mødekameraet: en
+   opdatering dræber app-processen, og DeX-rig'en har historik for at tabe a11y, scrcpy og
+   Discord. A9 (Sony 702SO) kan afbinde a11y ved en opdatering og har **ingen Wireless
+   Debugging**, så en fejl kræver et USB-kabel på stedet. Planlæg dem fysisk, ikke remote.
+2. **`latest.json` kan først slettes når HELE flåden er på 1.1.** Målingen der frigiver den:
+   `/info` viser 52 eller derover på hver enhed. Se tabellen i `CLAUDE.md`.
+
+### Bolden hos F-Droid
+
+MR !49350 indeholder ét åbent spørgsmål til anmelderen: **skal 1.0-entryen pege tilbage på
+`v1.0` (`02e069b`)?** `app/` er byte-identisk mellem `02e069b` og entryens `b75af7a`, så APK'en
+er den samme - men `02e069b`s changelog for 51 påstår at server-svar og kontrolsider følger
+enhedens sprog, hvilket ikke passer. Det er derfor entryen IKKE blev flyttet. Svarer anmelderen
+at de hellere vil have `Builds.commit` = tagget, er det én linje.
+
+### Sådan blev 1.1 prøvet (så en genlæser ikke skal gætte)
+
+Spare SM-A102U1 (Android 11) over Tailscale, både som opgradering fra 1.0 **uden tab af
+konfiguration** (en bevidst ikke-default motion-config overlevede) og som **frisk installation**
+(hvor den samme config forsvandt - kontrollen der gør opgraderings-benet troværdigt).
+`/set?front=1` → `/flags.front` sand → `/snapshot` fra forsidekameraet, bevist reproducerbart
+på lysstyrke. ⚠️ **Skærmdeling overlever IKKE en frisk installation** - MediaProjection-samtykket
+skal gives igen, og det blev gjort med et adb-tap.
+
+⚠️ **Ny adb-parring på `HFs_Dell`.** Maskinen var ikke parret med spare-telefonen. Parringen
+sker over Tailscale: `/pair` giver adresse og kode, og `adb pair <tailscale-ip>:<port> <kode>`
+virker - pairing-porten er nåelig over tailnettet, ikke kun på LAN. Derefter både
+`adb connect <ts-ip>:15557` (Husks egen bro) og **direkte til WD-porten**. Den sidste er vigtig:
+broen dør med en afinstallation, så en frisk installation kun kan gennemføres over den direkte
+forbindelse.
+
+## Status (historik frem til 1.0)
+
+**Udgivet og i drift.** Tidligere version **1.0 / versionCode 51** (2026-09-07, bygget og
 signeret på `HFs-lenovo`). Udgives på GitHub-releases (`hf1985/husk`) og `xplat.co/husk`;
 **F-Droid er endnu IKKE udgivet** - fdroiddata-MR !40810 er ÅBEN og afventer anmelderne.
 Pure framework, ingen AndroidX, ingen afhængigheder.
@@ -235,8 +282,10 @@ midlertidigt fra. Verificér i stedet via `/snapshot` (to kald - kameraet er dov
 `/flags`s `camera`-felt**, som er målt ubrugeligt som diagnose (se advarslen ovenfor).
 
 
+## 📜 HISTORIK: F-Droid MR !40810 (1.0, indsendt 07-09-2026)
 
-## F-Droid MR !40810: 1.0 er indsendt 07-09-2026, bolden ligger hos F-Droid
+> ⛔ **FORÆLDET.** !40810 blev MERGET 15-09-2026, og 1.1 gik gennem den NYE MR !49350
+> 19-09-2026. Alt herunder gælder 1.0-indsendelsen og er bevaret som historik.
 
 **Aktuel tilstand (målt 2026-09-08):** recipe'ens build-entry peger på `02e069b` (1.0 / 51),
 fork-head er `e430655`, pipeline **2827292807** er grøn med reproducerbar byte-match, og
@@ -268,30 +317,22 @@ MR-labelen er `review-requested`. Svaret til `linsui` blev postet 07-09 kl. 18:1
   er fri), men `tokenOk()` returnerer true når tokenet er tomt. Obligatorisk token + en
   skarpere `peerAllowed` hører sammen i én release, fordi det bryder hver eksisterende enhed
   indtil den er re-paret.
-- **Ingen fejlsignal når »Installer ukendte apps« er slået fra.** `Updater` bør kalde
-  `canRequestPackageInstalls()` FØR den henter, og sætte fx `ERR unknown-sources-off` i
-  `lastUpdate`. I dag står feltet på »install requested« for evigt, og `/flags` ser sund ud.
-- **`ControlServer.java:225`: `dparam(query,"server") != null`.** `dparam` returnerer `""` og
-  aldrig `null`, så guarden er ALTID sand - præcis 0.9.31's `topic`-fejl. I dag ufarlig, fordi
-  https-præfikstesten redder den, men én refaktor fra at bide.
+- ✅ **BORTFALDET i 1.1:** »ingen fejlsignal når Installer ukendte apps er slået fra«.
+  Hele updateren er fjernet, så tilstanden kan ikke opstå.
+- ✅ **RETTET i 1.1:** `dparam(query,"server") != null` var altid sand, fordi `dparam` giver
+  `""` og aldrig `null` - præcis 0.9.31's `topic`-fejl. Genmålt 2026-09-19, stadig til stede,
+  og skrevet om til `param(...)`.
 
 > ✅ **Udkom i 1.0:** `Net.tailscaleIp()`s carrier-CGNAT-mislabel og de danske strenge i
 > HTTP-svar. Stod her som kø-punkter indtil 2026-09-08.
 
-## Åbne spor fra runde-planer
 
-<!-- SPOR-POINTERE: genereret af check-plan-pointers.sh - rediger ikke her -->
-- [ ] SPOR: `2026-08-19-infra-docs-d04-plan.md` margen-S2 – Synk-gaten standser fem portefølje-tjek, fordi tre repoer er bagud
-- [ ] SPOR: `2026-08-19-infra-docs-d06-plan.md` HF6 – Bring `gradle-build.sh` tilbage til ren ASCII
-- [ ] SPOR: `2026-08-19-infra-docs-d07-plan.md` HF8 – Efterprøv F-Droids publicerede beskrivelse efter merge
-- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S1 – Afpublicér de gamle GitHub-releases (B1)
-- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S2 – Sæt et token på de to spares (B3)
-- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S4 – `peerAllowed` og obligatorisk token: design og forelæg
-- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S8 – Næste Husk-release: tre målte kode-fund
-- [ ] SPOR: `2026-09-07-husk-fdroid-restfund-plan.md` S9 – Hvorfor kom kamera- og skærmtjenesten ikke op efter opdateringen?
-<!-- /SPOR-POINTERE -->
 
-## ⛔ 2026-09-18: MR'en er MERGET, men F-Droids review-kit melder ni fejl - og kuren fjerner flådens selv-opdatering
+## 📜 HISTORIK 2026-09-18: MR'en er MERGET, men F-Droids review-kit melder ni fejl
+
+> ✅ **LUKKET 2026-09-19 i 1.1.** Alt herunder er bevaret som historik. De ni fejl er rettet,
+> MR !49350 er åbnet, og status står i afsnittet øverst. Læs det FØRST - dette afsnit
+> beskriver en tilstand der ikke findes mere.
 
 Skrevet af en ad hoc-runde på `HFs-lenovo` der arbejdede i `P_app_husk-viewer`. Runden rørte
 **ingen** kode her; den målte tilstanden og lagde arbejdet i en plan.
