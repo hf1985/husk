@@ -19,9 +19,17 @@ opdatering kræver sin egen MR.
 Exit 0 = pipelinen blev grøn (og MR'en oprettet, hvis der blev bedt om en).
 Exit 1 = den fejlede. Exit 2 = brugsfejl.
 
-⛔ `--opret-mr` er UDADVENDT og kan ikke kaldes tilbage. Samme regel som
-`fdroid-mr-comment.py`: kør en frisk, adversarisk gennemgang over titel og beskrivelse
-OG det bevis de hviler på, før du kalder den.
+⛔ `--opret-mr` er UDADVENDT og kan ikke kaldes tilbage, og gaten er nu MEKANISK:
+`--adversarisk` er PÅKRÆVET sammen med `--opret-mr`, og en beskrivelse over
+`mr-beskrivelse-loft` tegn afvises. Begge dele håndhæves i `pc/udadvendt.py`, som
+`fdroid-mr-comment.py` deler. Ejerbeslutning 2026-09-19, verbatim: »Regel +
+tegn-lofter + udvid gaten til al udadvendt tekst«.
+
+Kør altså en frisk, adversarisk gennemgang over titel og beskrivelse OG det bevis
+de hviler på, og skriv i `--adversarisk` hvad den så og hvad den fandt.
+
+En kørsel UDEN `--opret-mr` skriver kun til vores egen fork og er ikke omfattet:
+den spejler en recipe op og venter på pipelinen.
 
 Tokenet læses KUN fra miljøet, aldrig fra argv: en hemmelighed i en
 kommandolinje er offentlig, så længe processen kører (måleregel 185).
@@ -35,6 +43,9 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from udadvendt import Afvist, doem_adversarisk, doem_laengde, kvitter, laes_loft  # noqa: E402
 
 PROJEKT = "hf16%2Ff-droid"
 BRANCH = "co.xplat.husk"
@@ -69,12 +80,17 @@ def main():
     p.add_argument("--opret-mr", metavar="FIL",
                    help="åbn en NY merge request mod upstream når pipelinen er grøn; "
                         "filens første linje er titlen, resten beskrivelsen")
+    # PAAKRAEVET sammen med --opret-mr fra 2026-09-19. Se docstring og pc/udadvendt.py.
+    p.add_argument("--adversarisk", metavar="TEKST", default="",
+                   help="PAAKRAEVET ved --opret-mr: hvad gennemgangen saa, og hvad den fandt")
     a = p.parse_args()
 
     # Forudsætnings-tjek FØR der skrives noget: et --opret-mr der peger på en tom eller
     # manglende fil må ikke opdages EFTER commit og en kvarters pipeline, hvor det eneste
-    # der er tilbage er at gøre det i hånden.
-    titel = beskrivelse = None
+    # der er tilbage er at gøre det i hånden. DE UDADVENDTE VAGTER HØRER SAMME STED, og af
+    # samme grund: en beskrivelse over loftet eller en manglende adversarisk kvittering må
+    # ikke opdages når commiten allerede ligger på forken.
+    titel = beskrivelse = note = None
     if a.opret_mr:
         tekst = io.open(a.opret_mr, encoding="utf-8").read().strip()
         if not tekst:
@@ -86,6 +102,14 @@ def main():
         if not titel:
             print("--opret-mr: første linje (titlen) er tom", file=sys.stderr)
             return 2
+        try:
+            note = doem_adversarisk(a.adversarisk)
+            loft = laes_loft("mr-beskrivelse-loft")
+            n = doem_laengde(beskrivelse, loft, "MR-BESKRIVELSEN")
+        except Afvist as e:
+            print(e, file=sys.stderr)
+            return 2
+        print("beskrivelse: %d tegn (loft %d)" % (n, loft))
 
     token = os.environ.get("GL_TOKEN", "").strip()
     if not token:
@@ -188,6 +212,7 @@ def main():
         "remove_source_branch": False,
     })
     print("MR oprettet: !%s  %s" % (mr.get("iid"), mr.get("web_url")))
+    kvitter(note)
     return 0
 
 
