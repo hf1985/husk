@@ -112,7 +112,7 @@ public class CameraService extends Service {
             camHandler = new Handler(camThread.getLooper());
             startServer();
             registerCameraAvailability();   // foelg om en anden app holder kameraet (saa vi ALDRIG evicter)
-            camHandler.post(demandCheck);   // DOVEN: aaben/luk kameraet efter faktisk efterspoergsel + ledighed
+            planlaegDemandCheck();          // DOVEN: aaben/luk kameraet efter faktisk efterspoergsel + ledighed
             maybeReconnectDex();
             maybeAutoScreenShare();
         }
@@ -221,6 +221,20 @@ public class CameraService extends Service {
         if (!destroyed && camHandler != null) camHandler.postDelayed(this, 1000);
     } };
 
+    // ENESTE lovlige maade at planlaegge demandCheck paa. Den genplanlaegger SIG SELV med
+    // postDelayed(this, 1000) ovenfor, saa et bart post() starter en LOEKKE TIL frem for at koere
+    // tjekket en ekstra gang: N kald gav N+1 samtidige 1-sekunds-loekker, hvilket bryder invariant
+    // C i docs/YDELSE-OG-DRIFT.md ("praecis een doven loekke"). removeCallbacks FOERST kollapser
+    // dem til een. Traadsikker: Handler.removeCallbacks/post maa kaldes fra enhver traad, og de
+    // tre kaldesteder sidder paa hver sin (onCreate, availability-callback, requestFront).
+    // Maalt 2026-09-19 af en adversarisk verifikator.
+    private void planlaegDemandCheck() {
+        Handler h = camHandler;
+        if (h == null) return;
+        h.removeCallbacks(demandCheck);
+        h.post(demandCheck);
+    }
+
     // ---- Kameraside (front/bag) skiftet i farten over HTTP (/set?front=0|1) ----------------------
     //
     // Hele grunden til at PC-viewer'en kan blive et produkt: foer 1.1 var forsidekameraet kun
@@ -258,7 +272,7 @@ public class CameraService extends Service {
                 targetCamId = pickCamera(cameraManager, front);
             } catch (Throwable ignored) {}
             Log.i(TAG, "kameraside skiftet -> " + (front ? "front" : "bag") + " (id " + targetCamId + ")");
-            h.post(demandCheck);
+            planlaegDemandCheck();
         } });
     }
 
@@ -269,7 +283,7 @@ public class CameraService extends Service {
             try { targetCamId = pickCamera(cameraManager, Rig.useFront); } catch (Throwable ignored) {}
             availCb = new CameraManager.AvailabilityCallback() {
                 @Override public void onCameraAvailable(String id) {
-                    if (id.equals(targetCamId)) { othersHaveCamera = false; if (camHandler != null) camHandler.post(demandCheck); }
+                    if (id.equals(targetCamId)) { othersHaveCamera = false; planlaegDemandCheck(); }
                 }
                 @Override public void onCameraUnavailable(String id) {
                     // "unavailable" gaelder ogsaa naar VI har det aabent -> kun en ANDEN app hvis vi IKKE har det.

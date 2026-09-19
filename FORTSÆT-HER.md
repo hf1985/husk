@@ -29,6 +29,78 @@ sporene H1-H7. **Afsnittene nedenfor om de ni åbne fund og om MR !40810 er HIST
 2. **`latest.json` kan først slettes når HELE flåden er på 1.1.** Målingen der frigiver den:
    `/info` viser 52 eller derover på hver enhed. Se tabellen i `CLAUDE.md`.
 
+## ⛔ Tre BESLUTTEDE opgaver der mistede deres eneste levende peger 2026-09-19
+
+Disse tre stod som `SPOR:`-punkter i en genereret blok øverst i denne fil. Blokken blev fjernet
+af `check-plan-pointers.sh` i commit `4cb5b24`, fordi generatoren ikke længere kunne se deres
+plan: `2026-09-07-husk-fdroid-restfund-plan.md` blev arkiveret med hele plankøringssystemet til
+`_arkiv/2026-09-13-plankoeringssystemet/planer/lukkeplaner/`. **Generatoren regenererer dem
+derfor aldrig.** De er skrevet ud i fuld form her, fordi en peger til en arkiveret plan ikke er
+en udgang. Fundet af den adversariske verifikator 2026-09-19.
+
+**Alle tre er BESLUTTET** (B1 og B3 i den arkiverede plan); det der mangler, er udførelsen.
+
+### 1. Afpublicér APK-assets til og med `v0.9.30` (var `S1`) - SIKKERHED
+
+Kodeordet til den pensionerede signeringsnøgle (`CN=Debug, O=KHFRB`, alias `ad`, SHA-256
+`1b89a920...62af59`) kan hentes fra det OFFENTLIGE repos git-historik. Keystore-filen selv har
+aldrig været committet, men **alle releases til og med `v0.9.30` er signeret med den nøgle og er
+stadig downloadbare**, så enhver kan signere en APK der ser gyldig ud for en gammel installation.
+
+⚠️ **Ikke udført, og bevidst ikke udført af en uovervåget session:** det er en irreversibel
+bulk-sletning af offentlige artefakter. Beslutningen er truffet; udførelsen kræver et menneske
+der siger ja, og en session der måler FØRST.
+
+1. Opregn før du sletter: `gh release list --repo hf1985/husk --limit 60`, og pr. release
+   `gh release view <tag> --repo hf1985/husk --json assets -q '.assets[].name'`. Skriv listen
+   til en fil og TÆL den. Forventet: 28 releases `v0.9.1`-`v0.9.30`.
+2. **Fjern APK-ASSETTET, ikke release-noten** - assettet bærer angrebsfladen, noten er historik:
+   `gh release delete-asset <tag> <asset-navn> --repo hf1985/husk --yes`.
+3. Skriv én linje i hver berørt note om hvorfor assettet er væk (`gh release edit <tag> --notes-file <fil>`).
+4. ⛔ **Rør ALDRIG `v0.9.31`** - den er signeret med den nye nøgle, og F-Droids `Binaries:` henter
+   `husk-v0.9.31.apk` derfra. Sletter du det asset, brækker du indsendelsen.
+5. Ryd modsigelsen i `docs/BUILD.md` (~l. 438-440 mod ~l. 247-253) om hvor længe debug-keystoren
+   skal blive. Flåden ER geninstalleret. Slet restkopier med
+   `bash _styresystem/scripts/safe-delete.sh --shred <sti>`.
+
+**Verifikation:** `v0.9.30` viser ingen APK-assets, `v0.9.31` viser stadig sin, og
+`curl -sI .../v0.9.31/husk-v0.9.31.apk` svarer 302.
+
+### 2. Sæt et token på de to spares (var `S2`) - SIKKERHED
+
+Tokenet er tomt som standard, så kilde-IP-ACL'en er eneste spærre - og den lukker hele
+`100.64.0.0/10` ind, ikke kun vores eget tailnet. **Det står nu offentligt i MR-tråden.**
+Genmålt 2026-09-19: `/info` og `/flags` svarer stadig 200 uden token på begge spares.
+
+1. Generér ét token pr. enhed (mindst 24 tegn, alfanumerisk - `ControlServer.sanitizeToken`
+   stripper alt andet).
+2. Gem dem i vaulten som login-items **FØR** du sætter dem:
+   `bash Tools/vault2/vault2.sh put-login "Husk token 702SO" husk <fil>` (og for `SM-A102U1`).
+   Aldrig i en fil i repoet.
+3. `adb -s <serial> shell settings put global husk_token '<token>'` - værdien bor i
+   `Settings.Global` og **overlever en afinstallation**.
+4. Læs tilbage, og efterprøv **begge retninger**: `/info` skal svare **401 uden** token og 200
+   med. Den negative probe er hele pointen (måleregel 1).
+5. Ret `pc/spare.sh` og `pc/spare.ps1` så de sender tokenet. Søg efter flere forbrugere med
+   `grep -rn "8090" P_app_husk/pc P_kontor` før du erklærer dig færdig.
+
+### 3. Hvorfor kom kamera- og skærmtjenesten ikke op efter opdateringen? (var `S9`)
+
+MÅLT 2026-09-07: efter in-app-opdateringen til 1.0 svarede `/snapshot` 503 på BEGGE spares (også
+på andet kald), og `/screen.jpg` var uden frame på SM-A102U1. Porten var oppe hele tiden, så
+flåden så sund ud udefra. Et tap på »Camera streaming« kurerede kameraet.
+
+⛔ **Årsagen er IKKE målt.** Den første forklaring (»ScreenService hostede 8090 alene«) er en
+hypotese der er trukket tilbage: `BootReceiver` starter `CameraService` ubetinget ved
+`MY_PACKAGE_REPLACED`. Og fordelingen taler imod den: det ramte A9 og A11, ikke A12.
+
+⚠️ **Reproduktionen fra den arkiverede plan kan ikke længere køres som skrevet.** Trin 1 var
+»opdatér en spare in-app«, og `/update` er FJERNET i Husk 1.1 (F-Droid-fund 3-9). Tilstanden må
+nu fremprovokeres med en almindelig `adb install -r` eller en F-Droid-opdatering. Mål derefter
+med `adb shell dumpsys activity services co.xplat.husk` og `adb logcat -d` umiddelbart efter,
+og afgør om det er Android 12+'s baggrunds-FGS-restriktion eller noget andet. Resultatet hører i
+`docs/fleet-tailnet-transport.md` §5, som i dag påstår at J4-self-healen er komplet.
+
 ### Bolden hos F-Droid
 
 MR !49350 indeholder ét åbent spørgsmål til anmelderen: **skal 1.0-entryen pege tilbage på

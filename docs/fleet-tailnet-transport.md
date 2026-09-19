@@ -124,7 +124,14 @@ ping/find/click/dump/tap/launch/state/gettext/global/wake/…), samt kamera/skæ
 endpointet. Advarslerne om note10 (DeX-churn) og A9 (kan afbinde a11y, intet Wireless Debugging)
 gjaldt HANDLINGEN, ikke transporten, og gælder derfor stadig.
 
-## 2. Flåde-inventar (alle på Husk 0.9.25 / versionCode 44, 2026-07-02)
+## 2. Flåde-inventar (transport og hardware; målt 2026-07-02)
+
+⛔ **VERSIONS-KOLONNEN ER FLYTTET UD AF DETTE AFSNIT, og overskriften her lovede engang noget
+falsk.** Indtil 2026-09-19 stod der »alle på Husk 0.9.25 / versionCode 44«. Flåden har ikke
+været ensartet siden Husk 1.1: `100.100.101.102` kører 1.1 / 52, mens Note10 og `.101` bevidst
+står på 1.0 / 51. Kanonisk versionstabel med begrundelsen pr. enhed:
+`_styresystem/infra/enheder.md`. **Rollerne, adresserne og transporten nedenfor er uændrede** -
+det var kun versionen der drev.
 
 | Rolle | Tailscale-IP | Model | Android | DeX | Token | Transport |
 |---|---|---|---|---|---|---|
