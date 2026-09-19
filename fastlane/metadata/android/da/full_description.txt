@@ -1,44 +1,28 @@
-Husk laver en gammel Android-telefon om til et fjernstyret kamera og en kontrol-rig på dit
-eget private netværk (Tailscale), uden root.
+Husk gør en gammel Android-telefon til et fjernstyret kamera og kontrol-rig på dit eget LAN
+eller Tailscale-net, uden root.
 
-Funktioner:
-* Kamera-streaming (MJPEG) du kan se i en browser eller bruge som webcam i et møde.
-* For- eller bagkamera, skiftbart over HTTP mens strømmen kører - uden kabel og uden adb.
-* En accessibility-automations-motor til håndfri, scriptede skærm-handlinger.
-* Genopretning af Trådløs fejlfinding i appen efter en genstart.
-* En app-native adb-bro så du kan spejle og styre telefonen fra en PC med scrcpy
-  (en lille PC-companion findes på xplat.co/husk).
-* Bevægelses-alarm: en gratis, privat sikkerhedskamera-tilstand der sender en push (via ntfy)
-  med et live-snapshot, når kameraet eller skærmen ser bevægelse.
-* Valgfri "hold Samsung DeX forbundet"-toggle (vises kun på DeX-kapable telefoner).
-* Starter automatisk efter en genstart.
+Funktioner: kamera-streaming (MJPEG) i browser eller som webcam via PC-værktøj;
+for-/bagkamera, skiftbart over HTTP mens strømmen kører; en accessibility-motor til scriptede
+skærm-handlinger; genopretning af Trådløs fejlfinding i appen efter genstart; en adb-bro til
+scrcpy fra PC; bevægelses-alarm på kamera/skærm med push og live-snapshot; Samsung
+DeX-toggle på DeX-telefoner. Starter automatisk efter genstart.
 
-Opdateringer: Husk har ingen indbygget updater. Opdatér den fra F-Droid, eller installér selv
-en ny APK med adb. Appen tjekker, henter og installerer aldrig noget af sig selv.
+Husk har ingen indbygget updater og tjekker, henter eller installerer aldrig noget selv.
+Opdatér fra F-Droid, eller installér en APK med adb.
 
-Netværk: hver vært Husk overhovedet kan tale med står her, sammen med hvad der udløser den.
+Hver vært Husk kan tale med, og hvad der udløser den:
+* 0.0.0.0 - her LYTTER appen, den forbinder aldrig ud: HTTP-kontrolserveren på 8090 og
+  adb-broen på 15557, så længe tjenesten kører, begge bag en kilde-IP-tilladelsesliste.
+* 127.0.0.1 - kun loopback, inde i telefonen: tilgængeligheds-motoren på 8127, og adb-broen
+  der sender videre til den lokale Trådløs fejlfinding-port.
+* ntfy.sh - kun når bevægelses-alarmen er tændt og du har sat et emne; én push pr. alarm.
+  Serveren kan pege på din egen.
+* xplat.co - projektets website og PC-companion. Appen selv kontakter den aldrig; 1.1
+  fjernede updateren der læste den.
 
-* 0.0.0.0 - her LYTTER appen; det er ikke en udgående forbindelse. To lyttere: HTTP-kontrol-
-  serveren på port 8090 og adb-broen på port 15557. Begge kører så længe tjenesten kører, og
-  begge er beskyttet af en kilde-IP-tilladelsesliste (se nedenfor).
-* 127.0.0.1 - kun loopback, inde i telefonen. Tilgængeligheds-motoren tager kommandoer på
-  port 8127, og adb-broen sender accepterede forbindelser videre til den lokale port for
-  Trådløs fejlfinding. Intet forlader enheden.
-* ntfy.sh - valgfri, og slået fra med mindre du sætter den op. Den kontaktes kun når
-  bevægelses-alarmen er tændt OG du har indtastet et emne; så sendes én push pr. alarm.
-  Serveren kan konfigureres, så du kan pege på din egen ntfy-installation i stedet.
-* xplat.co - projektets website og download af den valgfri PC-companion. Appen selv kontakter
-  den aldrig. Indtil version 1.1 læste den indbyggede updater en versionsfil derfra; den
-  updater findes ikke mere.
+Listen lukker loopback, private LAN-adresser, fc00::/7 og Tailscales 100.64.0.0/10 ind; nogle
+operatører bruger også området, så på mobildata er den bredere end dit tailnet alene. En
+valgfri token er et ekstra lag, slået fra som standard. Begræns adgang med Tailscale-ACL.
 
-Privatliv: de to lyttere er beskyttet af en kilde-IP-tilladelsesliste, der lukker loopback,
-private LAN-adresser og hele det 100.64.0.0/10-område ind, som Tailscale bruger. Vær
-opmærksom på at nogle mobiloperatører også uddeler adresser fra netop det område, så på
-mobildata er listen bredere end dit Tailscale-net alene, og IPv6-ULA (fc00::/7, som Tailscale
-også bruger) lukkes ind på samme måde. En valgfri token er et ekstra lag, og den er slået fra
-som standard. Appen er 100% open source (GPLv3) og bruger kun AOSP-framework-API'er (ingen
-trackere, ingen reklamer).
-
-Bemærk: Husk bruger AccessibilityService-API'et til at automatisere skærm-handlinger og
-eksponerer en adb-bro over dit Tailscale-netværk til fjernstyring. Begræns adgang med en
-Tailscale-ACL. Disse evner er selve formålet med appen og dokumenteres her for gennemsigtighed.
+Husk bruger AccessibilityService-API'et og eksponerer en adb-bro med vilje. 100% open source
+(GPLv3), kun AOSP-API'er: ingen trackere, ingen reklamer, ingen lukket kode.

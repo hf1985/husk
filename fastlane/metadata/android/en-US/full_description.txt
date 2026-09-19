@@ -1,44 +1,28 @@
-Husk turns a spare Android phone into a remote camera and control rig on your own
-private network (Tailscale), without root.
+Husk turns a spare Android phone into a remote camera and control rig on your own LAN or
+Tailscale network, without root.
 
-Features:
-* Camera streaming (MJPEG) you can view in a browser or feed into a meeting as a webcam.
-* Front or back camera, switchable over HTTP while the stream is running - no cable, no adb.
-* An accessibility automation engine for hands-free, scripted on-screen actions.
-* In-app recovery of Wireless Debugging after a reboot.
-* An app-native adb bridge so you can mirror and control the phone from a PC with scrcpy
-  (a small PC companion is available at xplat.co/husk).
-* Motion alerts: a free, private security-camera mode that pushes a notification (via ntfy)
-  with a live snapshot when the camera or screen sees movement.
-* Optional "keep Samsung DeX connected" toggle (shown only on DeX-capable phones).
-* Starts automatically after a reboot.
+Features: camera streaming (MJPEG) in a browser, or as a webcam via a PC tool; front or back
+camera, switchable over HTTP while the stream runs; an accessibility engine for scripted
+on-screen actions; in-app recovery of Wireless Debugging after a reboot; an adb bridge for
+scrcpy from a PC; camera or screen motion alerts with a push and a live snapshot; a Samsung
+DeX toggle on DeX phones. It starts automatically after a reboot.
 
-Updates: Husk has no built-in updater. Update it from F-Droid, or install a new APK yourself
-with adb. The app never checks for, downloads or installs anything on its own.
+Husk has no built-in updater and never checks for, downloads or installs anything on its own.
+Update from F-Droid, or install an APK with adb.
 
-Network: every host Husk can talk to is listed here, together with what triggers it.
+Every host Husk can talk to, and what triggers it:
+* 0.0.0.0 - it LISTENS, it never connects out: the HTTP control server on 8090 and the adb
+  bridge on 15557, while the service runs, both behind a source-IP allowlist.
+* 127.0.0.1 - loopback only, inside the phone: the accessibility engine on 8127, and the adb
+  bridge forwarding to the local Wireless Debugging port.
+* ntfy.sh - only when motion alerts are enabled and you have set a topic; one push per alert.
+  The server is configurable - use your own instance.
+* xplat.co - project website and PC companion download. The app itself never contacts it;
+  1.1 removed the updater that read it.
 
-* 0.0.0.0 - the app LISTENS here; it is not an outbound connection. Two listeners: the HTTP
-  control server on port 8090, and the adb bridge on port 15557. Both run for as long as the
-  service runs. Both are protected by a source-IP allowlist (see below).
-* 127.0.0.1 - loopback only, inside the phone. The accessibility engine takes commands on
-  port 8127, and the adb bridge forwards accepted connections to the local Wireless
-  Debugging port. Nothing leaves the device.
-* ntfy.sh - optional, and off unless you set it up. It is contacted only when motion alerts
-  are enabled AND you have entered a topic; then one push is sent per alert. The server is
-  configurable, so you can point it at your own ntfy instance instead.
-* xplat.co - the project website and the download for the optional PC companion. The app
-  itself never contacts it. Until version 1.1 the built-in updater read a version file from
-  it; that updater is gone.
+The allowlist admits loopback, private LAN ranges, fc00::/7 and Tailscale's 100.64.0.0/10;
+some carriers use that range too, so on mobile data it is wider than your tailnet alone. An
+optional token adds a second layer, off by default. Restrict access with a Tailscale ACL.
 
-Privacy: the two listeners are protected by a source-IP allowlist that admits loopback,
-private LAN ranges, and the 100.64.0.0/10 range Tailscale uses. Be aware that some mobile
-carriers also hand out addresses from that same range, so on mobile data the allowlist is
-wider than your Tailscale network alone. IPv6 ULA addresses (fc00::/7, which Tailscale also
-uses) are admitted the same way. An optional token adds a second layer, and it is off by
-default. The app is 100% open source (GPLv3) and uses only AOSP framework APIs (no trackers,
-no ads, no proprietary dependencies).
-
-Note: Husk uses the AccessibilityService API to automate on-screen actions, and exposes an
-adb bridge over your Tailscale network for remote control. Restrict access with a Tailscale
-ACL. These capabilities are the whole point of the app and are documented here for transparency.
+Husk uses the AccessibilityService API and exposes an adb bridge by design. 100% open source
+(GPLv3), AOSP framework APIs only: no trackers, no ads, no proprietary code.
