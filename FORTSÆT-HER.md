@@ -17,7 +17,7 @@ sporene H1-H7. **Afsnittene nedenfor om de ni åbne fund og om MR !40810 er HIST
 | Signatur | `96195cfd...c17d`, verificeret på den HENTEDE fil fra GitHub |
 | De ni fejl | lukket i 1.1. Fund 1 er dog stadig åbent for **1.0-entryen** - se MR'en |
 | Advarsel 10 + spørgsmål 11-15 | besvaret i butiksteksten, vært for vært |
-| F-Droid | **MR !49350** åbnet mod fdroid/fdroiddata. Fork-pipelinen grøn, og BEGGE entries reproducerede mod referencebinæren med den tilladte signer |
+| F-Droid | **MR !49350** åbnet mod fdroid/fdroiddata. Fork-pipelinen var grøn, og BEGGE entries reproducerede mod referencebinæren med den tilladte signer. ⛔ **MEN MR'en er BLOKERET siden 2026-09-19 – se registret nederst** |
 | Flåden | ⚠️ **kun spare SM-A102U1 (.101.102) er på 1.1.** Note10 og Sony 702SO er stadig på 1.0 |
 
 ### ⛔ To ting der kræver et menneske, og som IKKE er gjort
@@ -103,7 +103,12 @@ og afgør om det er Android 12+'s baggrunds-FGS-restriktion eller noget andet. R
 
 ### Bolden hos F-Droid
 
-MR !49350 indeholder ét åbent spørgsmål til anmelderen: **skal 1.0-entryen pege tilbage på
+> ⛔ **AFLØST 2026-09-19. Spørgsmålet er BESVARET af ejeren og skal FJERNES fra MR-beskrivelsen.**
+> `M-2026-09-19-04`, verbatim: »Lad entryen stå på b75af7a, og fjern spørgsmålet fra MR'en«.
+> Entryen bliver altså stående, og anmelderen skal ikke afgøre det.
+> Afsnittet nedenfor er bevaret som begrundelsen, ikke som en åben sag.
+
+MR !49350 indeholdt ét åbent spørgsmål til anmelderen: **skal 1.0-entryen pege tilbage på
 `v1.0` (`02e069b`)?** `app/` er byte-identisk mellem `02e069b` og entryens `b75af7a`, så APK'en
 er den samme - men `02e069b`s changelog for 51 påstår at server-svar og kontrolsider følger
 enhedens sprog, hvilket ikke passer. Det er derfor entryen IKKE blev flyttet. Svarer anmelderen
@@ -454,3 +459,47 @@ kamera-enhed ved et SKIFT, ellers slår valget først igennem ved næste dovne g
 ⚠️ **Rækkefølgen er bindende:** `P_xplat`s `HUSK_API`-katalog skal ændres FØR releasen, fordi
 `pc/check-api-parity.sh` er en release-gate der læser katalogfilen og sammenligner både endpoints
 og versionCode med appen. Planens spor `X1`-`X2` kommer derfor før `H5`-`H6`.
+
+## Register 2026-09-19 (ad hoc-runde `husk-loekkefix-og-korthed`, `HFs-lenovo`): MR'en er blokeret, og 1.1 bar TO fejl
+
+**Arbejdet er lagt i to planer, ikke her:**
+`_styresystem/planer/2026-09-19-husk-udgiv-loekkefix-plan.md` (spor `H1`-`H8`) og
+`_styresystem/planer/2026-09-19-korthed-med-et-maalt-loft-plan.md` (spor `K1`-`K7`).
+
+### 1. MR !49350 er BLOKERET, og reviewerens besked er en generel rettelse
+
+linsui skrev 2026-09-19 kl. 07:58 UTC, verbatim: »Please take a look at
+https://gitlab.com/fdroid/wiki/-/wikis/Tips-for-fdroiddata-contributors/Git-Usage and rebase the
+branch.« og »Don't write so long description. We can't read it.«
+
+Målt samme dag (anonymt – GitLabs API svarer 200 uden token på metadata, 401 kun på noter):
+`state=opened`, `detailed_merge_status=conflict`, beskrivelsen **6.193 tegn over 87 linjer**, og
+grenen bærer **52 commits** – 49 fra den squash-mergede !40810 plus tre dubletter af
+»Husk 1.1 (52)«. **Konflikten er HISTORIK, ikke indhold.** Kuren er et force-push af en gren
+genskabt oven på upstream master; se `H1`, og fælden i `_styresystem/infra/gitlab.md`.
+
+### 2. 1.1 indførte TO fejl i den samme funktion, ikke én
+
+Den første – `requestFront`s dobbelte demand-løkke – er rettet på `main` i `1bcd31b` og
+**aldrig udgivet**; den ligger i `H3`.
+
+Den anden er ⛔ **en KODELÆSNING, ikke en måling**, fundet af den adversariske verifikator og
+efterprøvet på disk: `requestFront` sætter `othersHaveCamera = false` ubetinget
+(`CameraService.java` l. 268) og vælger derefter et nyt `targetCamId`, mens
+availability-callbacken (l. 283-290) kun latcher for det id der ER `targetCamId` når hændelsen
+kommer. Holder en anden app allerede den NYE sides kamera, siger flaget »ledig«, og `demandCheck`
+kalder `openCamera` på et optaget kamera. Det ligger i `H3b`, som **måler før den retter**.
+
+### 3. `Rig.useFront` persisteres ikke – et sideskift tabes ved procesgenstart
+
+`Rig.java` l. 39 er en bar `static volatile boolean`, og den sættes kun tre steder:
+intent-extraet i `CameraService` l. 105, `/set` i `ControlServer` l. 480, og `requestFront`.
+Ingen af dem skriver til `Settings.Global` eller til en preference.
+
+**Det betyder at installationen af 1.2 selv nulstiller valget:** `MY_PACKAGE_REPLACED` genstarter
+processen, og kameraet er tilbage på bagsiden uden at nogen rørte `/set`.
+
+⚠️ **Det er IKKE en invariant-fejl, og det bestod ikke nødvendigheds-prøven** – ingen af de to
+planers spor kan fejle uden det. Det står her frem for i en plan, fordi det er ægte, udførbart
+arbejde på denne flade som ingen har besluttet skal gøres. Kuren ville være den samme kanal som
+`husk_token` bruger: `Settings.Global`, som overlever en afinstallation.
