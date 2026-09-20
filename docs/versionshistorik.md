@@ -17,8 +17,14 @@ Tidligere: **1.0 / versionCode 51** (2026-09-07, bygget på `HFs-lenovo`. Tre ti
 
 # Arkiveret fra FORTSÆT-HER.md 2026-09-20
 
-Flyttet hertil ORDRET, uden at slette noget, af spor `H7` i
+Flyttet hertil ORDRET af spor `H7` i
 `_styresystem/planer/2026-09-19-husk-udgiv-loekkefix-plan.md`.
+
+⛔ **Her stod »uden at slette noget«. Det var FALSK, og rettelsen står i »anden del« nederst i
+filen.** Flytningen tog linje 133-477 af en fil på 520 linjer; linje 104-132 og 478-520 blev
+skrevet om i den nye handoff, og tre ting faldt ud undervejs - heriblandt en ejerbeslutning der
+kun levede i en planfil. Den adversariske verifikation i rundens eget `/luk-runde` fandt det.
+**Læs derfor denne overskrift som »linje 133-477«, ikke som »alt«.**
 
 **Hvorfor:** `FORTSÆT-HER.md` auto-loades ved hver sessionsstart på denne flade og var vokset til
 36.204 bytes. Ejerbeslutningen 2026-09-19 lyder »Gate nyt, ryd kun det der læses udefra eller ved
@@ -404,3 +410,101 @@ skulle under 12.000 bytes. Intet krav er ændret, kun beviserne er flyttet.
 - **`check-api-parity.sh` læser IKKE `latest.json`.** Indtil 2026-09-19 stod der i `CLAUDE.md` at
   gaten var en af `latest.json`s læsere. Det var falsk og ville have holdt en fil i live på en grund
   den ikke har: gaten sammenligner `app/build.gradle` med `P_xplat`s `HUSK_VERSION_CODE`.
+
+---
+
+# Arkiveret fra FORTSÆT-HER.md 2026-09-20, anden del
+
+⛔ **Denne del findes fordi den FØRSTE flytning ikke var udtømmende, og fordi den påstod at være det.**
+Afsnittet ovenfor skriver »linje 133-477 af filen som den så ud før flytningen« og »uden at slette
+noget«. Den gamle fil havde **520 linjer**. Linje 104-132 og 478-520 blev hverken arkiveret eller
+båret ordret med over i den nye handoff - de blev skrevet om, og tre ting faldt ud undervejs.
+Fundet af den adversariske verifikation i samme rundes `/luk-runde`, målt med `grep -F` mod alle
+tre filer: nul træf.
+
+**Det der var ved at gå tabt, og hvorfor det betyder noget:**
+
+1. **Ejerens beslutning `M-2026-09-19-04` ordret.** Den levede kun i planfilen
+   `2026-09-19-husk-udgiv-loekkefix-plan.md` (`B3`), og en plan slettes ved sit runde-luk. En
+   beslutning skal stå dér hvor den bliver LÆST (måleregel 66), og den næste der kigger på
+   1.0-entryen, kigger her - ikke i en slettet plan.
+2. **Begrundelsen for at 1.0-entryen ikke flyttes.** Uden den ser beslutningen vilkårlig ud, og
+   næste session kan »rette« den i god tro.
+3. **To målte kapabiliteter om flåden** som ikke står andre steder: at skærmdeling IKKE overlever
+   en frisk installation, og at `adb pair` virker over tailnettet mens Husks egen bro dør med en
+   afinstallation.
+
+Blokkene står ORDRET som de stod i `1116a84`.
+
+### Bolden hos F-Droid
+
+> ⛔ **AFLØST 2026-09-19. Spørgsmålet er BESVARET af ejeren og skal FJERNES fra MR-beskrivelsen.**
+> `M-2026-09-19-04`, verbatim: »Lad entryen stå på b75af7a, og fjern spørgsmålet fra MR'en«.
+> Entryen bliver altså stående, og anmelderen skal ikke afgøre det.
+> Afsnittet nedenfor er bevaret som begrundelsen, ikke som en åben sag.
+
+MR !49350 indeholdt ét åbent spørgsmål til anmelderen: **skal 1.0-entryen pege tilbage på
+`v1.0` (`02e069b`)?** `app/` er byte-identisk mellem `02e069b` og entryens `b75af7a`, så APK'en
+er den samme - men `02e069b`s changelog for 51 påstår at server-svar og kontrolsider følger
+enhedens sprog, hvilket ikke passer. Det er derfor entryen IKKE blev flyttet. Svarer anmelderen
+at de hellere vil have `Builds.commit` = tagget, er det én linje.
+
+### Sådan blev 1.1 prøvet (så en genlæser ikke skal gætte)
+
+Spare SM-A102U1 (Android 11) over Tailscale, både som opgradering fra 1.0 **uden tab af
+konfiguration** (en bevidst ikke-default motion-config overlevede) og som **frisk installation**
+(hvor den samme config forsvandt - kontrollen der gør opgraderings-benet troværdigt).
+`/set?front=1` → `/flags.front` sand → `/snapshot` fra forsidekameraet, bevist reproducerbart
+på lysstyrke. ⚠️ **Skærmdeling overlever IKKE en frisk installation** - MediaProjection-samtykket
+skal gives igen, og det blev gjort med et adb-tap.
+
+⚠️ **Ny adb-parring på `HFs_Dell`.** Maskinen var ikke parret med spare-telefonen. Parringen
+sker over Tailscale: `/pair` giver adresse og kode, og `adb pair <tailscale-ip>:<port> <kode>`
+virker - pairing-porten er nåelig over tailnettet, ikke kun på LAN. Derefter både
+`adb connect <ts-ip>:15557` (Husks egen bro) og **direkte til WD-porten**. Den sidste er vigtig:
+broen dør med en afinstallation, så en frisk installation kun kan gennemføres over den direkte
+forbindelse.
+
+## Register 2026-09-19 (ad hoc-runde `husk-loekkefix-og-korthed`, `HFs-lenovo`): MR'en er blokeret, og 1.1 bar TO fejl
+
+**Arbejdet er lagt i to planer, ikke her:**
+`_styresystem/planer/2026-09-19-husk-udgiv-loekkefix-plan.md` (spor `H1`-`H8`) og
+`_styresystem/planer/2026-09-19-korthed-med-et-maalt-loft-plan.md` (spor `K1`-`K7`).
+
+### 1. MR !49350 er BLOKERET, og reviewerens besked er en generel rettelse
+
+linsui skrev 2026-09-19 kl. 07:58 UTC, verbatim: »Please take a look at
+https://gitlab.com/fdroid/wiki/-/wikis/Tips-for-fdroiddata-contributors/Git-Usage and rebase the
+branch.« og »Don't write so long description. We can't read it.«
+
+Målt samme dag (anonymt – GitLabs API svarer 200 uden token på metadata, 401 kun på noter):
+`state=opened`, `detailed_merge_status=conflict`, beskrivelsen **6.193 tegn over 87 linjer**, og
+grenen bærer **52 commits** – 49 fra den squash-mergede !40810 plus tre dubletter af
+»Husk 1.1 (52)«. **Konflikten er HISTORIK, ikke indhold.** Kuren er et force-push af en gren
+genskabt oven på upstream master; se `H1`, og fælden i `_styresystem/infra/gitlab.md`.
+
+### 2. 1.1 indførte TO fejl i den samme funktion, ikke én
+
+Den første – `requestFront`s dobbelte demand-løkke – er rettet på `main` i `1bcd31b` og
+**aldrig udgivet**; den ligger i `H3`.
+
+Den anden er ⛔ **en KODELÆSNING, ikke en måling**, fundet af den adversariske verifikator og
+efterprøvet på disk: `requestFront` sætter `othersHaveCamera = false` ubetinget
+(`CameraService.java` l. 268) og vælger derefter et nyt `targetCamId`, mens
+availability-callbacken (l. 283-290) kun latcher for det id der ER `targetCamId` når hændelsen
+kommer. Holder en anden app allerede den NYE sides kamera, siger flaget »ledig«, og `demandCheck`
+kalder `openCamera` på et optaget kamera. Det ligger i `H3b`, som **måler før den retter**.
+
+### 3. `Rig.useFront` persisteres ikke – et sideskift tabes ved procesgenstart
+
+`Rig.java` l. 39 er en bar `static volatile boolean`, og den sættes kun tre steder:
+intent-extraet i `CameraService` l. 105, `/set` i `ControlServer` l. 480, og `requestFront`.
+Ingen af dem skriver til `Settings.Global` eller til en preference.
+
+**Det betyder at installationen af 1.2 selv nulstiller valget:** `MY_PACKAGE_REPLACED` genstarter
+processen, og kameraet er tilbage på bagsiden uden at nogen rørte `/set`.
+
+⚠️ **Det er IKKE en invariant-fejl, og det bestod ikke nødvendigheds-prøven** – ingen af de to
+planers spor kan fejle uden det. Det står her frem for i en plan, fordi det er ægte, udførbart
+arbejde på denne flade som ingen har besluttet skal gøres. Kuren ville være den samme kanal som
+`husk_token` bruger: `Settings.Global`, som overlever en afinstallation.

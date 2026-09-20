@@ -106,6 +106,9 @@ def main():
             note = doem_adversarisk(a.adversarisk)
             loft = laes_loft("mr-beskrivelse-loft")
             n = doem_laengde(beskrivelse, loft, "MR-BESKRIVELSEN")
+            # Filens FOERSTE linje er titlen, og den er lige saa udadvendt som kroppen.
+            # Den var ugatet indtil 2026-09-20; se noten i fdroid-mr-comment.py.
+            doem_laengde(titel, laes_loft("mr-titel-loft"), "MR-TITLEN")
         except Afvist as e:
             print(e, file=sys.stderr)
             return 2

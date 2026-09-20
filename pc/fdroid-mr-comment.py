@@ -43,7 +43,8 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from udadvendt import Afvist, doem_adversarisk, doem_laengde, kvitter, laes_loft  # noqa: E402
 
-# fdroid/fdroiddata har numerisk projekt-id 36528; MR'en for Husk er !40810.
+# fdroid/fdroiddata har numerisk projekt-id 36528. Den levende MR er !49350; !40810 blev
+# MERGET 15-09-2026 og er ikke en adresse mere - derfor er --mr paakraevet, se nedenfor.
 URL = "https://gitlab.com/api/v4/projects/36528/merge_requests/{mr}/notes"
 URL_MR = "https://gitlab.com/api/v4/projects/36528/merge_requests/{mr}"
 
@@ -84,6 +85,12 @@ def main():
         note = doem_adversarisk(a.adversarisk)
         loft = laes_loft(navn)
         n = doem_laengde(krop, loft, hvad)
+        # TITLEN ER OGSAA UDADVENDT, og den var ugatet indtil 2026-09-20: en adversarisk
+        # verifikation paapegede at baade --titel og foerste linje i --opret-mr-filen kunne
+        # baere 800+ tegn forbi en gate der hed "udadvendt tekst". Et vaern der daekker
+        # kroppen og ikke overskriften, daekker praecis den tekst anmelderen ser FOERST.
+        if a.titel:
+            doem_laengde(a.titel, laes_loft("mr-titel-loft"), "MR-TITLEN")
     except Afvist as e:
         print(e, file=sys.stderr)
         return 2

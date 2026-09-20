@@ -23,11 +23,11 @@ sys.path.insert(0, HER)
 import udadvendt  # noqa: E402
 
 # Talt i HAANDEN fra kilden (7 om laes_loft, 6 om doem_laengde/doem_adversarisk,
-# 5 om fdroid-mr-comment.py's kommentar-CLI, 5 om dens --beskrivelse-tilstand,
-# 5 om fdroid-fork-update.py's CLI). Tallet maa IKKE afledes af en koersel - saa
+# 5 om fdroid-mr-comment.py's kommentar-CLI, 7 om dens --beskrivelse- og titel-tilstand,
+# 6 om fdroid-fork-update.py's CLI). Tallet maa IKKE afledes af en koersel - saa
 # kunne et ben der falder ud ikke skelnes fra et ben der aldrig fandtes
 # (maaleregel 232).
-FORVENTEDE_BEN = 28
+FORVENTEDE_BEN = 31
 resultater = []
 
 
@@ -44,11 +44,20 @@ def skriv(mappe, navn, tekst):
     return sti
 
 
+REGISTER_FIKSTUR = None   # sættes i main(); se noten dér
+
+
 def koer(script, *args, token=""):
     """Kald et af værktøjerne via CLI'en. Returnerer (rc, stdout+stderr)."""
     miljoe = dict(os.environ)
     miljoe["GL_TOKEN"] = token
     miljoe["PYTHONIOENCODING"] = "utf-8"
+    # FIKSTUREN ER PINNET (måleregel 382). Uden den læste CLI-benene husets rigtige
+    # `konstanter.tsv`, som (a) ligger uden for det offentlige repo filerne udgives i, så
+    # ti ben fejlede i en klon, og (b) får sine tal sat af et spor i en ANDEN plan, så
+    # benet »500 > 400« ville gå rødt den dag tallet ændres, uden at koden var forkert.
+    if REGISTER_FIKSTUR:
+        miljoe["HUSK_KONSTANTER"] = REGISTER_FIKSTUR
     p = subprocess.run([sys.executable, os.path.join(HER, script)] + list(args),
                        capture_output=True, text=True, encoding="utf-8",
                        errors="replace", env=miljoe)
@@ -56,13 +65,16 @@ def koer(script, *args, token=""):
 
 
 def main():
+    global REGISTER_FIKSTUR
     with tempfile.TemporaryDirectory() as td:
 
         # ---- laes_loft -----------------------------------------------------------
         reg_ok = skriv(td, "reg-ok.tsv",
                        "# kommentar\nnavn\tvaerdi\tmoenster\tforklaring\n"
                        "mr-beskrivelse-loft\t800\tx\tfoo\n"
-                       "mr-kommentar-loft\t400\tx\tbar\n")
+                       "mr-kommentar-loft\t400\tx\tbar\n"
+                       "mr-titel-loft\t200\tx\tbaz\n")
+        REGISTER_FIKSTUR = reg_ok
         ben("laes_loft laeser beskrivelses-loftet",
             udadvendt.laes_loft("mr-beskrivelse-loft", sti=reg_ok) == 800)
         ben("laes_loft laeser kommentar-loftet",
@@ -154,6 +166,15 @@ def main():
                         "--adversarisk", "x")
         ben("--titel uden --beskrivelse afvises", rc != 0, "rc=%d" % rc)
 
+        # ---- TITLEN er ogsaa gatet (hullet fundet af Trin 3 den 2026-09-20) --------
+        lang_titel = "T" * 250
+        rc, ud12 = koer("fdroid-mr-comment.py", mellem, "--mr", "49350", "--beskrivelse",
+                        "--titel", lang_titel, "--adversarisk", "x")
+        ben("--titel over titel-loftet afvises", rc != 0 and "250" in ud12, ud12[:160])
+        rc, ud13 = koer("fdroid-mr-comment.py", mellem, "--mr", "49350", "--beskrivelse",
+                        "--titel", "Update Husk to 1.2 (53)", "--adversarisk", "x")
+        ben("en normal titel slipper igennem", "GL_TOKEN mangler" in ud13, ud13[:160])
+
         # ---- CLI: fdroid-fork-update.py ------------------------------------------
         recipe = skriv(td, "recipe.yml", "AutoName: Husk\n")
         mr_kort = skriv(td, "mr-kort.md", "Titel\n\n" + "y" * 400 + "\n")
@@ -171,6 +192,12 @@ def main():
         rc, ud6 = koer("fdroid-fork-update.py", recipe, "-m", "b", "--opret-mr", mr_kort,
                        "--adversarisk", "gennemgik udkastet, rettede et tal")
         ben("kort MR-tekst MED kvittering naar forbi vagterne", "GL_TOKEN mangler" in ud6, ud6[:120])
+
+        # Filens FOERSTE linje er MR-titlen, og den skal gates som titel, ikke som krop.
+        mr_langtitel = skriv(td, "mr-langtitel.md", "T" * 250 + "\n\n" + "y" * 400 + "\n")
+        rc, ud14 = koer("fdroid-fork-update.py", recipe, "-m", "b", "--opret-mr", mr_langtitel,
+                        "--adversarisk", "x")
+        ben("--opret-mr med for lang FOERSTE linje afvises", rc != 0 and "250" in ud14, ud14[:160])
 
     gode = sum(1 for _, ok, _ in resultater if ok)
     print("\n%d af %d ben groenne (forventet %d)" % (gode, len(resultater), FORVENTEDE_BEN))

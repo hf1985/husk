@@ -34,15 +34,23 @@ import sys
 # hardkodet rod er en TAVS no-op frem for en fejl.
 #   .../<drev-rod>/10_PROJEKTER/P_app_husk/pc/udadvendt.py
 #   parents:            [2]        [1]      [0]
-REGISTER = os.path.join(
+REGISTER = os.environ.get("HUSK_KONSTANTER") or os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     "_styresystem", "konstanter.tsv")
+
+# `HUSK_KONSTANTER` findes FOR TESTENE, og det er ikke en bekvemmelighed.
+# Registret bor i governance-træet, altså UDEN FOR det offentlige repo disse filer
+# udgives i, og dets tal sættes af en anden plans spor. En testsuite der læser det
+# rigtige register, måler derfor noget der kan ændre sig under den uden at koden gør:
+# målt 2026-09-20 fejlede ti CLI-ben i en klon uden for porteføljen, og de ville gå røde
+# igen den dag en række får en anden værdi (måleregel 382 - en fikstur skal pinnes).
+# Sæt variablen i en test, aldrig i drift.
 
 # Midlertidige defaults indtil spor K1 i
 # `_styresystem/planer/2026-09-19-korthed-med-et-maalt-loft-plan.md` har lagt rækkerne
 # i registret. De MELDES HØJLYDT hver gang de bruges (`laes_loft`), fordi en tavs
 # fallback er den fælde registret findes for at lukke.
-MIDLERTIDIGE = {"mr-beskrivelse-loft": 800, "mr-kommentar-loft": 400}
+MIDLERTIDIGE = {"mr-beskrivelse-loft": 800, "mr-kommentar-loft": 400, "mr-titel-loft": 200}
 
 
 class Afvist(Exception):

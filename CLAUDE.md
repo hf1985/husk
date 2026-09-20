@@ -35,7 +35,8 @@
 > 3b. **Skriv `fastlane/metadata/android/{en-US,da}/changelogs/<versionCode>.txt`** (maks 500
 >     tegn). Med `AutoUpdateMode: Version` lander en release UDEN denne fil med et tomt
 >     »What's New« i F-Droid.
-> 4. Opdatér `fdroid/co.xplat.husk.yml` (+ fork-metadata, MR !40810).
+> 4. Opdatér `fdroid/co.xplat.husk.yml` og spejl den op i forken. ⛔ **!40810 er MERGET 15-09;
+>    den levende MR er `!49350`.** Værktøjerne kræver `--adversarisk` og har et tegn-loft.
 > 5. Opdatér HUSK-konstanterne (`HUSK_VERSION_*`) i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
 > 6. **API-DOK-GATE (obligatorisk):** ændrer releasen endpoints/params/respons/adgangsmodel? Ajourfør
 >    `HUSK_API`-kataloget (+ OpenAPI-beskrivelsen) i `P_xplat/hosting/app.py` (driver BÅDE `/husk/api`
@@ -70,19 +71,18 @@ F-Droid-build. Kilderne ligger i `app/src/main/java/co/xplat/husk/`.
   intet derfra; transporten er hvordan man NÅR telefonen.
 - **`husk-overbygning`** (privat, `$env:USERPROFILE\repos\husk-overbygning`) – ubemandet
   Discord-mødekamera. Bruger 8127-RPC + kamera, og har INGEN motor-/kamera-/WD-logik.
-- **`P_app_phone-devbox`** (8127 passivt) og **`P_kontor`** (Medlyt/EPOS/SMTP/RB5009).
+- **`P_app_phone-devbox`** (8127 passivt) og **`P_kontor`** (office-consumer).
 
 ## Komponenter + porte (én proces)
 - **8127** `RigAccessibilityService` – loopback-RPC, linjebaseret (tap/swipe/find/state/dump/launch/
-  text/global/devoptions + in-process WD-recovery). Tom `onAccessibilityEvent`; noder hentes on-demand.
+  text/global + in-process WD-recovery). Tom `onAccessibilityEvent`; noder hentes on-demand.
 - **8090** `ControlServer` – HTTP på `0.0.0.0` bag kilde-IP-ACL: kamera, skærm, input-proxy til 8127,
   hardware, mgmt og motion. Hostes af CameraService/ScreenService (`Rig.ensureControlServer`),
-  proces-singleton. ⛔ **Det kanoniske endpoint-katalog er `HUSK_API` i `P_xplat/hosting/app.py`**,
-  ikke denne fil: det driver `/husk/api` og `/husk/openapi.json`, og `pc/check-api-parity.sh` gater
-  det mod appen.
+  proces-singleton. ⛔ **Endpoint-kataloget er `HUSK_API` i `P_xplat/hosting/app.py`**, ikke denne
+  fil: det driver `/husk/api` + `/husk/openapi.json`, og `check-api-parity.sh` gater det.
 - **15557** `AdbForward` – app-native scrcpy/adb-bro over Tailscale (Termux-uafhængig).
 - `BootReceiver` (boot + `MY_PACKAGE_REPLACED`), `CameraService`, `ScreenService`, `MainActivity`,
-  `Motion`/`Ntfy`. De to selv-opdaterings-klasser er slettet i 1.1.
+  `Motion`/`Ntfy`. Selv-opdaterings-klasserne er slettet i 1.1.
 
 ## MUST-NOT-REGRESS-invarianter (LÆS docs/YDELSE-OG-DRIFT.md før du rører Screen/Camera/a11y)
 Husk er idle det meste af tiden og må KUN bruge ressourcer on-demand. Alle blev indført efter
@@ -101,16 +101,17 @@ og postmortem'et står i `docs/YDELSE-OG-DRIFT.md` §1.
 
 ## Build, signering, release
 Kanonisk build = Gradle `assembleRelease` i WSL (`~/android-build`, env21.sh = JDK21+SDK);
-een-kommando `gradle-build.sh`. Fuld procedure: **`docs/BUILD.md`**.
+een-kommando `gradle-build.sh`. Fuld procedure: `docs/BUILD.md`.
 **Byg IKKE via `/mnt/g`** (Drive i WSL flaky) – stage til `C:` og lad WSL læse `/mnt/c`, eller kald
-med `MSYS_NO_PATHCONV=1`. ⛔ **Git Bash ekspanderer `$VAR` selv inde i `wsl.exe -- bash -c '...'`**,
-så `$ANDROID_HOME` ankom TOM og `local.properties` blev skrevet tom (målt 2026-09-19). Læg WSL-trin
-i en FIL og kør filen.
+med `MSYS_NO_PATHCONV=1`. ⛔ **`wsl.exe -- bash -c '<streng>'` ekspanderer strengen ÉN GANG FOR
+MEGET**, i et miljø hvor strengens egne tildelinger endnu ikke er kørt: `source env21.sh;
+echo $ANDROID_HOME` gav TOM, og `local.properties` blev skrevet tom. Enkeltcitater hjælper ikke.
+**Læg WSL-trin i en FIL og kør filen.** Målt 2026-09-20, se måleregel 474.
 **Signeringsnøglen** (alias `husk`, SHA-256 `96195cfd…c17d`) og dens kodeord ligger i **vaulten** som
 login-item `Husk release-signeringsnoegle (keystore husk-release.jks, base64)`; arbejdskopi i WSL
 `~/android-build/husk-signing/husk-release.jks`. Kodeordet står ALDRIG i en fil i repoet og aldrig i
 argv. `.gitignore` dækker `*.keystore` OG `*.jks`. Nøgleskiftet: `docs/BUILD.md` §5.
-Nuværende: **1.2 / versionCode 53** (2026-09-20, `hfs-dell`, tagget på byggecommiten `390d9c5e`).
+Nuværende: **1.2 / versionCode 53** (2026-09-19, `hfs-dell`, tagget på byggecommiten `390d9c5e`).
 1.2 retter én fejl i den udgivne 1.1: `requestFront` startede en ekstra 1-sekunds-løkke pr.
 kameraside-skift, i strid med invariant C. `ControlServer.java` er byte-uændret fra `v1.1`, så
 API-fladen er den samme, og F-Droids CI har reproduceret 52 og 53 mod referencebinæren.
@@ -118,24 +119,16 @@ Alle tidligere udgaver: `docs/versionshistorik.md`.
 
 ## Flåde, tailnet-transport og deploy til en KØRENDE rig
 Fuld tekst: `docs/fleet-tailnet-transport.md` og `docs/YDELSE-OG-DRIFT.md` §3.
-- **Deploy til den kørende rig:** `adb install -r <apk>` når adb/WD er sund – a11y/8127 re-binder
-  selv på ~4 s og kameraet røres ikke; derefter `adb reboot` for ren fuld-tilstand. **Launch IKKE
-  `MainActivity` via `am start`**, heller ikke som test: det forgrunder Husk nær DeX og slår
-  midlertidigt a11y fra. Verificér via `/flags` og `dumpsys media.camera`-ejer i stedet.
 - **Husk er selv en tailnet-tjeneste:** 8090 + 15557 binder `0.0.0.0` bag kilde-IP-ACL
-  (`Net.peerAllowed`) + valgfrit token, så enhver peer styrer en enhed DIREKTE
-  (`curl http://<ts-ip>:8090/…`, `/rpc?cmd=ping`→PONG, `adb connect <ts-ip>:15557`) **uden Termux**.
-- **Enhederne:** Note10 SM-N975U1 (A12, DeX, token, .103.102) + spare Sony **702SO** (A9, tokenløs,
-  .101.101) + spare Samsung **SM-A102U1** (A11, tokenløs, .101.102). ⛔ **Flåden er IKKE ensartet**,
-  og versionen pr. enhed står i `FORTSÆT-HER.md` – to kilder til samme tal driver fra hinanden.
-- **Efter enhver opdatering SKAL `/snapshot` OG `/screen.jpg` efterprøves pr. enhed.** Porten
-  kommer op uanset, så `/healthz` og `rpc ping` kan være grønne mens kamera- eller skærmtjenesten
-  ligger nede (måleregel 422).
-- **Spares KAN itereres fuldt**, men **`wake` FØRST**: en idle spare sover skærmen, så a11y kun ser
-  navbaren og gestus svarer `ERR cancelled` – hvilket engang blev fejltolket som en død motor.
-  Node-læsning er flaky på A9, så begge drives via syn+koordinat-tap. Harness: `pc/spare.*`;
-  interaktivt `http://<ts-ip>:8090/control`. En ren `adb reboot` kræver stadig éngangs-USB.
-- ⚠️ Den gamle headless-deployvej gik gennem `/update?force=1`, som er FJERNET i 1.1.
+  (`Net.peerAllowed`), så enhver peer styrer en enhed DIREKTE, **uden Termux**.
+- **Deploy til den kørende rig:** `adb install -r <apk>`, derefter `adb reboot`. **Launch IKKE
+  `MainActivity` via `am start`**, heller ikke som test: det slår midlertidigt a11y fra.
+- **Efter enhver opdatering SKAL `/snapshot` OG `/screen.jpg` efterprøves pr. enhed** – porten
+  kommer op uanset, så `/healthz` kan være grøn mens kameraet ligger nede (måleregel 422).
+- **`wake` FØRST på en spare:** en sovende skærm får a11y til at se kun navbaren og gestus til at
+  svare `ERR cancelled`, hvilket engang blev fejltolket som en død motor. Harness: `pc/spare.*`.
+- ⛔ **Flåden er IKKE ensartet.** Enheder og version pr. enhed står i `FORTSÆT-HER.md`; to kilder
+  til ét tal driver fra hinanden. Den gamle `/update?force=1`-deployvej er FJERNET i 1.1.
 
 ## Faste regler
 - **Dansk** i docs/kommentarer/commits med ÆGTE æ/ø/å (husets almene regel) – men **ASCII-ificér

@@ -6,20 +6,29 @@ at gætte. Den **kanoniske** build er Gradle `assembleRelease` kørt i WSL – n
 vej som F-Droids byggeserver. Der findes også en hurtig on-phone dev-build, men den er
 **ikke** den officielle vej.
 
-> TL;DR – byg den aktuelle kilde til en unsigned release-APK (validerede kommandoer,
-> kørt fra Bash-toolet / git-bash, jf. memory [[ps-wsl-quoting]]):
+> ⛔ **RETTET 2026-09-19: den gamle TL;DR virkede IKKE fra denne maskine, og den fejlede TAVST.**
+> To ting blev målt under 1.2-releasen på `hfs-dell`:
+> 1. **`//wsl.localhost/Ubuntu/...` er ikke nåelig fra Git Bash her** (`ls: cannot access`), så
+>    kopi-trinnet ramte forbi.
+> 2. **En `wsl.exe -- bash -c '<streng>'` ekspanderer strengen ÉN GANG FOR MEGET**, i et miljø
+>    hvor strengens egne tildelinger endnu ikke er kørt: `source env21.sh; echo "sdk.dir=$ANDROID_HOME"`
+>    skrev `sdk.dir=`, altså ni bytes med et tomt felt. Filen stod sådan på disken fra en tidligere
+>    session hvis build var meldt grønt. Enkeltcitater hjælper ikke. **Måleregel 474.**
+>
+> **Læg derfor WSL-trinnene i en FIL og kør filen** (samme kur som husets heredoc-forbud):
 > ```bash
-> # A) kopiér kilde G: -> WSL (git-bash læser G: stabilt; /mnt/g i WSL er upålideligt):
-> wsl.exe --cd '~' -- bash -lc 'rm -rf ~/android-build/husk-build && mkdir -p ~/android-build/husk-build'
-> cp -r "/g/My Drive/10_PROJEKTER/P_app_husk/"{app,gradle,*.gradle,gradle.properties,gradlew} \
->       "//wsl.localhost/Ubuntu/home/hf198/android-build/husk-build/"
-> # B) byg i WSL:
-> wsl.exe --cd '~' -- bash -lc 'source ~/android-build/env21.sh
->   echo "sdk.dir=$ANDROID_HOME" > ~/android-build/husk-build/local.properties
->   cd ~/android-build/husk-build && chmod +x gradlew && ./gradlew --no-daemon assembleRelease'
+> # A) stage kilden fra G: til C:, og lad WSL laese /mnt/c (stabil, i modsaetning til /mnt/g):
+> #    kopiér git-sporede filer under app/ og gradle/ plus gradle-rodfilerne, og
+> #    VERIFICÉR pr. fil med md5sum bagefter - Drive kan tabe en netop skrevet fil.
+> # B) skriv et byggescript med Write-vaerktoejet og koer FILEN:
+> wsl.exe --cd '~' -- bash -c 'sed -i "s/\r$//" /mnt/c/<sti>/byg.sh; bash /mnt/c/<sti>/byg.sh'
 > ```
+> Scriptet gør selv `source ~/android-build/env21.sh`, skriver `local.properties`, og kører
+> `./gradlew --no-daemon assembleRelease`. Kun STIEN står i `-c`-strengen, og den indeholder
+> ingen `$`.
+>
 > Output: `~/android-build/husk-build/app/build/outputs/apk/release/app-release-unsigned.apk`
-> (= præcis det F-Droid producerer). Med varm cache ~40 s. Signering: se afsnit 5.
+> (= præcis det F-Droid producerer). Med varm cache ~34 s målt 2026-09-19. Signering: afsnit 5.
 >
 > Når `/mnt/g` tilfældigvis er læsbar fra WSL kan helper-scriptet gøre A+B i ét:
 > `wsl.exe --cd '~' -- bash -lc 'bash "/mnt/g/My Drive/10_PROJEKTER/P_app_husk/gradle-build.sh"'`
@@ -34,16 +43,18 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
 (git-bash), ikke PowerShell.**
 
 **Windows/WSL-gotchas der bider (med fix):**
-1. **`wsl.exe` inline med metakarakterer mangler.** En kommando med `|`, `(`, `)`, `;`, `&&` eller `"`
-   sendt som `wsl.exe -- bash -lc '... | grep ...'` brækkes på vej over git-bash -> wsl.exe ->
-   WSL-bash. Symptom: `bash: line N: : command not found`. **Fix:** skriv logikken til en fil og kald
-   den metakarakter-frit. Robust mønster (LF-heredoc direkte til WSL-fs, kør via `~`):
+1. **`wsl.exe` inline mangler BÅDE metakarakterer OG variabler.** En kommando med `|`, `(`, `)`,
+   `;`, `&&` eller `"` brækkes (symptom: `bash: line N: : command not found`), og en `$VAR` bliver
+   ekspanderet én gang for meget, så en variabel strengen selv sætter, ankommer TOM (måleregel 474).
+   Det andet er værre, fordi det fejler TAVST.
+   **Fix:** skriv logikken til en FIL og kald filen metakarakter-frit.
+   ⛔ **Skriv filen med Write-værktøjet, ALDRIG med en heredoc** (ejerbeslutning 2026-09-04: en
+   heredoc har tre lag, og hvert lag æder backslashes; en PreToolUse-vagt afviser formen).
+   ⛔ **Og skriv den ikke til `//wsl.localhost/...`** - den sti var ikke nåelig fra Git Bash på
+   `hfs-dell` 2026-09-19 (`ls: cannot access`). Stage til `C:` og lad WSL læse `/mnt/c`:
    ```bash
-   cat > "//wsl.localhost/Ubuntu/home/hf198/x.sh" <<'EOF'
-   #!/usr/bin/env bash
-   ... din logik med pipes/parens frit ...
-   EOF
-   wsl.exe --cd '~' -- bash -lc 'bash ~/x.sh'
+   # filen er skrevet med Write til C:\...\x.sh (LF ikke garanteret fra Windows):
+   wsl.exe --cd '~' -- bash -c 'sed -i "s/\r$//" /mnt/c/<sti>/x.sh; bash /mnt/c/<sti>/x.sh'
    ```
 2. **MSYS path-conversion.** `wsl.exe -- bash /home/hf198/x.sh` -> git-bash omskriver `/home/...` til
    `C:/Program Files/Git/home/...` -> "No such file or directory". **Fix:** brug `~/x.sh` INDE i den
@@ -329,8 +340,19 @@ Dette er det tjek der **altid** skal laves efter en udgivelse, så vi aldrig eft
 failed pipeline. Stående regel: erklær aldrig "færdig" før pipelinen er grøn (memory
 [[verify-ci-after-push]]).
 
-**Kontekst.** F-Droid-indsendelsen er MR **!40810** fra forken **hf16/f-droid** (branch
-`co.xplat.husk`) ind i `fdroid/fdroiddata`. Repo'ets `fdroid/co.xplat.husk.yml` er KILDEN
+> ⛔ **RETTET 2026-09-19: !40810 er MERGET, og arbejdsgangen nedenfor er FORÆLDET på tre punkter.**
+> `!40810` (»New app«) blev merget 15-09-2026. Den levende MR er **`!49350`**, og en opdatering
+> kræver sin egen MR: hverken en ny commit på forkens gren eller en kommentar på den lukkede MR
+> fører ændringen videre til upstream.
+> **Værktøjerne er desuden gatet:** `pc/fdroid-mr-comment.py` og
+> `pc/fdroid-fork-update.py --opret-mr` kræver nu `--adversarisk "<hvad blev gennemgået, og hvad
+> fandt den>"` og afviser en tekst over sit loft (`pc/udadvendt.py`). `fdroid-mr-comment.py`
+> har tilstanden `--beskrivelse` der ERSTATTER MR'ens beskrivelse og læser den tilbage.
+> **Og en squash-merget MR efterlader kildegrenen konfliktende:** kuren er en gren genskabt oven
+> på upstream master, ikke en ekstra commit. Fremgangsmåden står i `_styresystem/infra/gitlab.md`.
+
+**Kontekst.** F-Droid-indsendelsen skete oprindeligt som MR **!40810** fra forken
+**hf16/f-droid** (branch `co.xplat.husk`) ind i `fdroid/fdroiddata`. Repo'ets `fdroid/co.xplat.husk.yml` er KILDEN
 som kopieres til `hf16/f-droid:metadata/co.xplat.husk.yml` på forken (notationen er
 `repo:sti-i-det-repo`; den sti findes kun i forken, ikke i dette repo). GitLab kører F-Droids CI (bl.a.
 `fdroid lint` + `fdroid rewritemeta`/checkupdates + build-recipe-checks) på hver push til
@@ -377,8 +399,13 @@ curl -s --header "$H" "https://gitlab.com/api/v4/projects/$FORK/jobs/<JOB_ID>/tr
 1. `fdroid/co.xplat.husk.yml` i repo'et: tilføj `Builds`-entry (versionName/versionCode/`commit: vX`)
    og bump `CurrentVersion` + `CurrentVersionCode`.
 2. Kopiér samme indhold til `hf16/f-droid:metadata/co.xplat.husk.yml` på forken og push til
-   `co.xplat.husk`.
-3. Opdater MR !40810 (note/beskrivelse) så maintaineren ser den nye version.
+   `co.xplat.husk`. Værktøjet er `py -3.11 pc/fdroid-fork-update.py <recipe> -m "<besked>"`, som
+   også venter på pipelinen.
+3. Opdatér den LEVENDE MR (i dag `!49350`) med
+   `py -3.11 pc/fdroid-mr-comment.py <fil> --mr <nr> --beskrivelse --adversarisk "<fund>"`, eller
+   post en note uden `--beskrivelse`. Begge kræver `--adversarisk` og har et tegn-loft.
+   ⛔ Er den levende MR merget, så åbn en NY med `--opret-mr` fra en gren der er frisk fra
+   upstream master.
 4. Poll pipelinen til **success**.
 
 **Øvrige post-publish-tjek** (ikke GitLab, men hører til samme runde):
