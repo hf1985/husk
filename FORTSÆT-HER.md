@@ -15,6 +15,29 @@ app-koden**.
 > på 520, og tre ting faldt ud i omskrivningen af resten. Den adversariske verifikation fandt det,
 > og »anden del« i historikfilen bærer dem nu ordret.
 
+
+## Aflevering 2026-09-20 fra governance-runden `korthed-med-et-maalt-loft`: død peger i `pc/udadvendt.py`
+
+`laes_loft`s `MIDLERTIDIGE`-blok (l. 53) og dens advarselstekst navngiver »spor `K1` i
+`_styresystem/planer/2026-09-19-korthed-med-et-maalt-loft-plan.md`« som sin kur.
+**Sporet er lukket, og planen er retireret** (slettet ved runde-lukket samme dag), så pegeren er død.
+
+**Målt 2026-09-20 på `HFs_Dell` efter at `K1` lagde rækkerne ind:** alle tre defaults resolver nu
+fra registret uden en advarsel – `mr-beskrivelse-loft` 800, `mr-kommentar-loft` 400,
+`mr-titel-loft` 200 (den sidste blev lagt ind netop fordi denne kode navngav sporet som kur for
+alle tre). Blokken er altså død kode med en død peger.
+
+**Kuren, når nogen alligevel rører filen:** fjern `MIDLERTIDIGE` og den gren der læser den, så et
+manglende loft bliver en ren `Afvist` frem for en tavs default. Behold `laes_loft`s øvrige tre
+udfald. Er blokken i stedet ment som et værn mod at registret mangler en ny klasse, så skriv det
+som DET frem for som en henvisning til et lukket spor.
+
+**Og et beslægtet fund til samme fil:** `laes_loft` (python) og
+`_styresystem/scripts/check-claudemd-size.sh --loft` (bash) er nu TO læsere af samme kolonne i
+`konstanter.tsv`, med hver sin parser og hver sin fejlbesked. Ingen vagt måler at de bliver enige
+(måleregel 15). Kuren kræver en runde der ejer begge flader; den er registreret i
+`_styresystem/FORTSÆT-HER.md` 2026-09-20 som fund 2.
+
 ## ✅ 2026-09-19: 1.2 ER UDGIVET
 
 Kørt på `hfs-dell` efter `_styresystem/planer/2026-09-19-husk-udgiv-loekkefix-plan.md`.
