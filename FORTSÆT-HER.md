@@ -52,8 +52,11 @@ Selve lukningen løb ind i den 20., og her stod først den dato.
 | Hvad 1.2 IKKE ændrer | `ControlServer.java` er byte-uændret fra `v1.1`, så ingen nye endpoints, params, respons eller adgangsmodel. `AndroidManifest.xml` og `MainActivity.java` ændrer kun kommentarer. Tilladelses-listen er identisk: **16 mod 16** `uses-permission`. ⚠️ Her stod »17 mod 17«, målt med `grep -c permission`, som også tæller `android:permission=` på servicen. Tæl `uses-permission`. |
 | Signatur | `96195cfd…c17d`. Den HENTEDE fil fra GitHub er sha256-identisk med den signerede. |
 | xplat.co | deployet; `https://xplat.co/husk/latest.json` viser 53, `check-api-parity.sh` grøn (43 endpoints). |
-| F-Droid | **MR !49350** er åben, `mergeable`, 2 commits, og bærer entries for 52 OG 53. Fork-pipelinen reproducerede begge mod referencebinæren med den tilladte signer (job `16607081166`). |
+| F-Droid | ✅ **MR !49350 er MERGET 2026-09-20 kl. 07:33:11Z** af `linsui` (squash-commit `60e114ae`, head `9961872f`). ⚠️ **52 nåede ALDRIG ind:** `linsui` lagde en `suggestion:-6+0` på 1.1-entryen og merged derefter, så upstream master bærer kun 51 og 53. F-Droid PUBLICERER 53 (målt 2026-09-22): `/api/v1/packages/co.xplat.husk` giver `suggestedVersionCode: 53`; `co.xplat.husk_53.apk` → 200, `_52.apk` → **404**. Den publicerede APK er sha256-identisk med GitHub-releasens (`54b5e2d0…0158`). **Der er dermed INGEN levende MR** – næste release kræver en NY fra en gren frisk fra upstream master. |
 | Flåden | ⚠️ **ingen enhed er på 1.2.** Kun spare SM-A102U1 (.101.102) er på 1.1; Note10 og Sony 702SO er på 1.0. |
+
+**Recipen er synkroniseret 2026-09-22:** `fdroid/co.xplat.husk.yml` bar stadig 52-entryen, og en ny MR oven på den ville have genindført præcis det `linsui` fjernede.
+Den er nu diff-identisk med upstream master; forløbet står i `docs/versionshistorik.md`.
 
 ### ⛔ To ting der kræver et menneske, og som IKKE er gjort
 

@@ -35,8 +35,9 @@
 > 3b. **Skriv `fastlane/metadata/android/{en-US,da}/changelogs/<versionCode>.txt`** (maks 500
 >     tegn). Med `AutoUpdateMode: Version` lander en release UDEN denne fil med et tomt
 >     »What's New« i F-Droid.
-> 4. Opdatér `fdroid/co.xplat.husk.yml` og spejl den op i forken. ⛔ **!40810 er MERGET 15-09;
->    den levende MR er `!49350`.** Værktøjerne kræver `--adversarisk` og har et tegn-loft.
+> 4. Opdatér `fdroid/co.xplat.husk.yml` og spejl den op i forken.
+>    ⛔ **Både !40810 (15-09) og !49350 (20-09) er MERGET, så der er INGEN levende MR: en opdatering kræver en NY MR fra en gren frisk fra upstream master.**
+>    Værktøjerne kræver `--adversarisk` og har et tegn-loft.
 > 5. Opdatér HUSK-konstanterne (`HUSK_VERSION_*`) i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
 > 6. **API-DOK-GATE (obligatorisk):** ændrer releasen endpoints/params/respons/adgangsmodel? Ajourfør
 >    `HUSK_API`-kataloget (+ OpenAPI-beskrivelsen) i `P_xplat/hosting/app.py` (driver BÅDE `/husk/api`

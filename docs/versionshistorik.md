@@ -316,9 +316,11 @@ MR-labelen er `review-requested`. Svaret til `linsui` blev postet 07-09 kl. 18:1
 
 ## 📜 HISTORIK 2026-09-18: MR'en er MERGET, men F-Droids review-kit melder ni fejl
 
-> ✅ **LUKKET 2026-09-19 i 1.1.** Alt herunder er bevaret som historik. De ni fejl er rettet,
-> MR !49350 er åbnet, og status står i afsnittet øverst. Læs det FØRST - dette afsnit
-> beskriver en tilstand der ikke findes mere.
+> ✅ **LUKKET 2026-09-19 i 1.1.** Alt herunder er bevaret som historik. De ni fejl er rettet.
+> ⛔ **Her stod »MR !49350 er åbnet, og status står i afsnittet øverst«.** Begge dele er nu
+> vildledende: MR'en blev MERGET 20-09-2026, og »afsnittet øverst« er i DENNE fil historikken
+> frem til 1.0, som stadig kalder !40810 åben. Nutiden står i `FORTSÆT-HER.md` og i registeret
+> 2026-09-22 nederst i denne fil. Læs dem FØRST.
 
 Skrevet af en ad hoc-runde på `HFs-lenovo` der arbejdede i `P_app_husk-viewer`. Runden rørte
 **ingen** kode her; den målte tilstanden og lagde arbejdet i en plan.
@@ -473,6 +475,9 @@ forbindelse.
 
 ### 1. MR !49350 er BLOKERET, og reviewerens besked er en generel rettelse
 
+> ⛔ **AFLØST 20-09-2026: MR'en er merget, og uden 52.** Blokeringen blev ryddet samme aften med
+> en rebase (`1899e4c9`), og forløbet står i registeret 2026-09-22 nederst i denne fil.
+
 linsui skrev 2026-09-19 kl. 07:58 UTC, verbatim: »Please take a look at
 https://gitlab.com/fdroid/wiki/-/wikis/Tips-for-fdroiddata-contributors/Git-Usage and rebase the
 branch.« og »Don't write so long description. We can't read it.«
@@ -508,3 +513,60 @@ processen, og kameraet er tilbage på bagsiden uden at nogen rørte `/set`.
 planers spor kan fejle uden det. Det står her frem for i en plan, fordi det er ægte, udførbart
 arbejde på denne flade som ingen har besluttet skal gøres. Kuren ville være den samme kanal som
 `husk_token` bruger: `Settings.Global`, som overlever en afinstallation.
+
+
+## Register 2026-09-22 (`HFs-lenovo`): MR !49350 er MERGET, og 52 nåede aldrig ind i F-Droid
+
+Anledningen er `linsui`s mails i tråd `1a0bdbb11861d4c3` på `hf@brobjerg.dk`.
+**Datoerne er artefakternes, ikke sessionens** (måleregel 274/469): merget skete 20-09, og denne nedskrivning 22-09.
+
+**Forløbet, hentet fra GitLab-API'et 2026-09-22.**
+⚠️ **Hver række bærer sit kilde-felt**, fordi de to kilder er forskudt: notifikations-mailen om merget har `Date: 07:33:13`, altså to sekunder efter MR'ens `merged_at`.
+Her stod først »44 sekunder«, regnet fra en mail-`Date` til et API-felt, hvilket er præcis den blanding måleregel 469 forbyder.
+
+| Tidspunkt (UTC) | Kilde-felt | Hvad |
+|---|---|---|
+| 18-09 23:52:06 | MR `created_at` | MR !49350 oprettes fra `hf16/f-droid:co.xplat.husk` |
+| 19-09 07:58:13 | note `created_at` | `linsui`: rebase grenen efter wiki'ens Git-Usage, og »Don't write so long description. We can't read it.« (allerede måleregel 476) |
+| 19-09 21:22:32 | system-note | vi rebaser oven på `fdroid:master`, så MR'en bliver én commit der kun rører `metadata/co.xplat.husk.yml` |
+| 19-09 21:40:49 | note `created_at` | vores svar: »Thanks. Rebased onto master ...«, altså begge anmodninger efterkommet |
+| 19-09 21:46:37 | system-note | commiten `1899e4c9` »Update Husk (co.xplat.husk) to 1.2 (53)« lægges på |
+| 20-09 07:32:24.5 | note `created_at` | `linsui` lægger en `suggestion:-6+0` på 1.1-entryen, altså en ren SLETNING af de seks linjer |
+| 20-09 07:32:44 | system-note | alle tråde markeres løst af `linsui` selv |
+| 20-09 07:32:51 | system-note | `linsui` pusher `9961872f` »Apply 1 suggestion(s) to 1 file(s)« |
+| 20-09 07:33:11.2 | MR `merged_at` | **MR !49350 er merget** af `linsui` som squash-commit `60e114ae` ind i `fdroid/fdroiddata:master` |
+
+Fra forslaget til merget gik der **46,7 sekunder**, så forslaget blev hverken begrundet eller afventet.
+Anmelderen rettede altså selv frem for at bede om en ny runde.
+Det er n=1 og ikke en regel om F-Droid, men formen er værd at kende: en entry kan forsvinde ud af en MR uden en kommentar der forklarer det, og uden at vi når at se den.
+
+**Hvad der faktisk står i upstream nu (målt 2026-09-22 mod den rå fil på `master`):**
+`Builds:` bærer **kun 1.0/51 og 1.2/53**, og `CurrentVersion: '1.2'` / `CurrentVersionCode: 53`.
+1.1/52 findes ikke, og bliver ikke bygget medmindre en senere MR lægger entryen ind igen: F-Droid bygger kun det der står i recipen.
+
+**Reproducerbarheden er målt FØR fjernelsen, og den holdt for begge.**
+Fork-jobbet `16607081166` (»fdroid build«, ref `co.xplat.husk`) kørte på `1899e4c9`, altså på den udgave der stadig bar BÅDE 52 og 53, og endte `success` 19-09 21:50:47Z.
+Trace'en siger `supplied reference binary has allowed signer 96195cfd540e75f8a34dfc08764438769d4bc3e5d7970a9527d97004d4f2c17d` og producerer reproducerbarheds-artefakter for begge: `co.xplat.husk_52.binary.apk.json` og `_53.binary.apk.json`.
+Det er dermed ikke en fejlet reproduktion der kostede 52 sin plads.
+
+**F-Droid har PUBLICERET 53** (målt 2026-09-22):
+- `https://f-droid.org/api/v1/packages/co.xplat.husk` → `suggestedVersionCode: 53`, og `packages` er 53 + 51.
+- `co.xplat.husk_53.apk` → HTTP 200, `co.xplat.husk_51.apk` → 200, `co.xplat.husk_52.apk` → **404**.
+- Den publicerede APK er **sha256-identisk med GitHub-releasens**: `54b5e2d00f5e9d4cdcc052a2948e4f74d76c359cfe414eb1c1b3ba7707b30158`, begge 86.738 bytes.
+  Det er `Binaries:`-vejen der virker efter hensigten: F-Droid serverer vores eget signerede binære, ikke sit eget genbyg.
+  ⛔ **Størrelsen alene kan ikke bruges som tjek** – `v1.1` og `v1.2` har SAMME bytestørrelse, så sammenlign altid sha256.
+
+**Hvad runden rettede her:**
+1. `fdroid/co.xplat.husk.yml` bar stadig 52-entryen og var dermed drevet fra det der blev merget.
+   Den er nu bragt i overensstemmelse og verificeret med `diff` mod den rå upstream-fil: **identisk**.
+   Havde den fået lov at stå, ville næste opdaterings-MR have genindført præcis de seks linjer `linsui` fjernede.
+2. `CLAUDE.md` trin 4 og `docs/BUILD.md` afsnit 7 sagde begge at »den levende MR er `!49350`«.
+   Det er falsk siden 20-09, og formuleringen er den samme fælde som `!40810` var før 15-09: en merget MR der læses som en åben kanal.
+   **Der findes ingen levende MR nu**, og næste release kræver en NY fra en gren der er frisk fra upstream master.
+
+**Hvorfor 52 blev fjernet, står ingen steder, og det ER målt.**
+Med husets GitLab-token (`bash ~/Tools/vault2/vault2.sh get 'tool: gitlab/token.txt'`) svarer `/merge_requests/49350/notes` **HTTP 200 med 11 notes**, og `linsui`s eneste to menneskeskrevne er rebase-beskeden 19-09 og selve forslaget, hvis body er `suggestion:-6+0` og intet andet.
+Der findes altså ingen begrundelse at læse, hverken i MR'en eller i mailene.
+Den nærliggende læsning er at en allerede overhalet version ikke er værd at bygge, men det er en formodning, ikke en måling.
+⛔ **Her stod først at endpointet »svarer 401 Unauthorized uden token«.** Det er sandt og irrelevant: huset HAR tokenet, og `docs/BUILD.md` afsnit 7 citerer selv kommandoen der henter det.
+En adgang jeg selv kunne have skaffet, er ikke en umålelighed - den er en måling jeg ikke tog.
