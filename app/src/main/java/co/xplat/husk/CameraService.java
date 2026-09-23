@@ -64,6 +64,9 @@ public class CameraService extends Service {
     private volatile boolean opening = false;            // aabning i gang (async) -> undgaa dobbelt-aabning fra demandCheck
     private volatile String  targetCamId = null;          // id'et vi vil bruge (til availability-matchning)
     private CameraManager.AvailabilityCallback availCb;
+    // Id'er systemet sidst meldte UTILGAENGELIGE (af os selv eller en anden app). Roeres kun paa
+    // camHandler: availability-callbacken er registreret dér, og requestFront poster dertil.
+    private final java.util.Set<String> unavailableIds = new java.util.HashSet<>();
     // Generation for det AKTUELLE kameravalg. Enhver aabning faar sit eget nummer, og et sideskift
     // (requestFront) bumper det. Async-callbacks fra en aabning der tilhoerte det GAMLE valg maa
     // ikke naa at saette cameraDevice/captureSession - de ville ellers levere frames fra den side
@@ -102,7 +105,7 @@ public class CameraService extends Service {
             if (tok != null) Rig.token = tok;
             if (intent.hasExtra("rotation")) Rig.rotation = intent.getIntExtra("rotation", 0);
             if (intent.hasExtra("flip"))     Rig.flip = intent.getBooleanExtra("flip", false);
-            if (intent.hasExtra("front"))    Rig.useFront = intent.getBooleanExtra("front", false);
+            if (intent.hasExtra("front"))    Rig.setUseFront(this, intent.getBooleanExtra("front", false));
             if (intent.hasExtra("fps"))      Rig.targetFps = intent.getIntExtra("fps", 10);
         }
         if (!started) {
@@ -258,19 +261,25 @@ public class CameraService extends Service {
     // og kameraet er ledigt (invariant: vi evicter aldrig en anden app).
     void requestFront(final boolean front) {
         final Handler h = camHandler;
-        if (h == null) { Rig.useFront = front; return; }   // servicen er ikke naaet at starte endnu
+        if (h == null) { Rig.setUseFront(this, front); return; }   // servicen er ikke naaet at starte endnu
         h.post(new Runnable() { public void run() {
             if (destroyed) return;
             if (Rig.useFront == front) return;             // no-op: luk IKKE en koerende session
             camGen++;                                      // fra nu af er igangvaerende aabninger forael dede
-            Rig.useFront = front;
+            Rig.setUseFront(CameraService.this, front);
             opening = false;                               // en aabning i flugt tilhoerer det GAMLE valg
-            othersHaveCamera = false;                      // ledigheds-flaget gjaldt det GAMLE id
             closeCameraDevice();                           // lukker session+device+reader og rydder latestJpeg
             try {
                 if (cameraManager == null) cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
                 targetCamId = pickCamera(cameraManager, front);
             } catch (Throwable ignored) {}
+            // Ledigheds-flaget gjaldt det GAMLE id. Det nye ids tilstand er KENDT fra availability-
+            // callbacken (unavailableIds), og maa ikke antages ledigt: holder en anden app allerede
+            // den nye sides kamera, kommer der ingen ny onCameraUnavailable, og et ubetinget false
+            // lod demandCheck aabne et optaget kamera - invariant C's egen graense. Er id'et vores
+            // eget (pickCamera faldt tilbage til samme id), rydder dets onCameraAvailable flaget
+            // straks efter closeCameraDevice ovenfor.
+            othersHaveCamera = targetCamId != null && unavailableIds.contains(targetCamId);
             Log.i(TAG, "kameraside skiftet -> " + (front ? "front" : "bag") + " (id " + targetCamId + ")");
             planlaegDemandCheck();
         } });
@@ -283,9 +292,11 @@ public class CameraService extends Service {
             try { targetCamId = pickCamera(cameraManager, Rig.useFront); } catch (Throwable ignored) {}
             availCb = new CameraManager.AvailabilityCallback() {
                 @Override public void onCameraAvailable(String id) {
+                    unavailableIds.remove(id);
                     if (id.equals(targetCamId)) { othersHaveCamera = false; planlaegDemandCheck(); }
                 }
                 @Override public void onCameraUnavailable(String id) {
+                    unavailableIds.add(id);   // ALLE id'er, saa et sideskift kender den nye sides tilstand
                     // "unavailable" gaelder ogsaa naar VI har det aabent -> kun en ANDEN app hvis vi IKKE har det.
                     if (id.equals(targetCamId) && cameraDevice == null) othersHaveCamera = true;
                 }

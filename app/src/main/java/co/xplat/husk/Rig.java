@@ -36,7 +36,11 @@ public final class Rig {
     // Kamera-config (kan saettes via control-endpoint /set). Rotation = JPEG_ORIENTATION i grader.
     public static volatile int     rotation = 0;       // 0|90|180|270
     public static volatile boolean flip     = false;   // horisontal spejling
-    public static volatile boolean useFront = false;   // false = bagkamera (default)
+    // false = bagkamera (default). Skriv den KUN via setUseFront(): valget er PERSISTERET, fordi
+    // en bar static nulstilles af hver procesgenstart, og MY_PACKAGE_REPLACED genstarter processen
+    // ved hver opdatering. Uden persistens satte en ny version selv kameraet tilbage paa bagsiden,
+    // og PC-webcam-produktet saelger sideskift som en funktion. Fjern den ikke som "overfloedig tilstand".
+    public static volatile boolean useFront = false;
     public static volatile int     targetFps = 10;     // oevre graense for MJPEG-afsendelse
 
     // DOVEN kamera (samme princip som skaerm-gaten): CameraService holder kun kamera-ENHEDEN aaben naar
@@ -130,6 +134,7 @@ public final class Rig {
             ntfyServer = p.getString("ntfy_server", "https://ntfy.sh");
             ntfyTopic = p.getString("ntfy_topic", "");
             motionSensitivity = p.getInt("motion_sensitivity", 5);
+            useFront = p.getBoolean(KEY_USE_FRONT, false);   // kameraside overlever procesgenstart (se useFront)
         } catch (Throwable ignored) {}
         // Delt token (v0.9.24): laes persistent fra Settings.Global "husk_token". Det er den
         // eneste UI-frie, reboot-sikre maade at saette token paa en koerende rig (MainActivity
@@ -140,6 +145,19 @@ public final class Rig {
         try {
             String t = android.provider.Settings.Global.getString(c.getContentResolver(), "husk_token");
             if (t != null && !t.isEmpty()) token = t;
+        } catch (Throwable ignored) {}
+    }
+
+    // Kanalen er appens egne prefs, IKKE Settings.Global som husk_token: den kan appen kun LAESE
+    // (skrivning kraever WRITE_SECURE_SETTINGS, som en butiks-app ikke har). Prefs overlever en
+    // opdatering, men ikke en afinstallation - det er opdateringen fundet handlede om.
+    static final String KEY_USE_FRONT = "use_front";
+
+    public static void setUseFront(android.content.Context c, boolean front) {
+        useFront = front;
+        try {
+            if (c != null) c.getSharedPreferences("husk", android.content.Context.MODE_PRIVATE).edit()
+                            .putBoolean(KEY_USE_FRONT, front).apply();
         } catch (Throwable ignored) {}
     }
 

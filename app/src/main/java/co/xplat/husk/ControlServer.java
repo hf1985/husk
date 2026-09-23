@@ -477,7 +477,7 @@ public class ControlServer {
             // Uaendret vaerdi er en no-op HELE vejen ned: requestFront roerer ikke en koerende
             // session. Koerer servicen ikke, saettes flaget alligevel, saa naeste start bruger det.
             if (cs != null) cs.requestFront(wantFront.booleanValue());
-            else Rig.useFront = wantFront.booleanValue();
+            else Rig.setUseFront(Rig.ctx(), wantFront.booleanValue());
         }
         try { if (rot != null) Rig.rotation = Integer.parseInt(rot); } catch (Throwable ignored) {}
         if (flip != null) Rig.flip = flip.equals("1") || flip.equalsIgnoreCase("true");
