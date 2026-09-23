@@ -196,7 +196,13 @@ def main():
     # En ALLEREDE åben MR fra samme gren må ikke blive til to. GitLab afviser dubletten
     # med 409, men fejlen ville stå som en rød kørsel frem for som den normale tilstand
     # den er, så vi spørger først.
-    aabne = kald(token, UPSTREAM_API + "/merge_requests?state=opened&source_branch=" + BRANCH)
+    # Kun MR'er fra FORKEN tæller: F-Droids `checkupdates-bot` åbner sine egne MR'er fra en
+    # gren med SAMME navn (appens id) i sit eget projekt. Målt 2026-09-23: bot-MR !49420
+    # (»Update Husk to 52«, projekt 37197382) fik værktøjet til at melde »findes allerede«
+    # og springe vores MR over med exit 0.
+    fork_id = kald(token, API)["id"]
+    aabne = [m for m in kald(token, UPSTREAM_API + "/merge_requests?state=opened&source_branch=" + BRANCH)
+             if m.get("source_project_id") == fork_id]
     if aabne:
         print("MR findes allerede - opretter ikke en ny:")
         for m in aabne:

@@ -46,11 +46,10 @@ REGISTER = os.environ.get("HUSK_KONSTANTER") or os.path.join(
 # igen den dag en række får en anden værdi (måleregel 382 - en fikstur skal pinnes).
 # Sæt variablen i en test, aldrig i drift.
 
-# Midlertidige defaults indtil spor K1 i
-# `_styresystem/planer/2026-09-19-korthed-med-et-maalt-loft-plan.md` har lagt rækkerne
-# i registret. De MELDES HØJLYDT hver gang de bruges (`laes_loft`), fordi en tavs
-# fallback er den fælde registret findes for at lukke.
-MIDLERTIDIGE = {"mr-beskrivelse-loft": 800, "mr-kommentar-loft": 400, "mr-titel-loft": 200}
+# Her stod indtil 2026-09-23 en tabel med midlertidige defaults for de tre lofter, brugt
+# mens registret manglede rækkerne. Alle tre står i registret nu (målt 2026-09-23: de
+# resolver uden fallback), så en manglende række er en ren `Afvist` - en tavs eller
+# højlydt default er den fælde registret findes for at lukke.
 
 
 class Afvist(Exception):
@@ -65,8 +64,7 @@ def laes_loft(navn, sti=None, ud=None):
       2. Registret findes ikke, eller kan ikke læses, eller rækkens værdi er ikke et
          tal -> `Afvist`. Der fejles LUKKET, og beskeden NAVNGIVER filen: kan
          måleredskabet ikke måle, er svaret ikke »så send bare«.
-      3. Registret kan læses, men rækken mangler endnu -> den midlertidige default,
-         meldt HØJLYDT med navnet på det spor der fjerner den.
+      3. Registret kan læses, men rækken mangler -> `Afvist`, med konstantens navn.
     """
     sti = sti or REGISTER
     ud = ud if ud is not None else sys.stderr
@@ -95,19 +93,10 @@ def laes_loft(navn, sti=None, ud=None):
                 "  Et loft der ikke kan læses som et tal, er ikke et loft." % (navn, vaerdi, sti))
         return int(vaerdi)
 
-    if navn not in MIDLERTIDIGE:
-        raise Afvist(
-            "KONSTANTEN %r findes ikke i registret, og der er ingen midlertidig default.\n"
-            "  fil: %s" % (navn, sti))
-    standard = MIDLERTIDIGE[navn]
-    print(
-        "ADVARSEL: %r står endnu ikke i konstant-registret; bruger den MIDLERTIDIGE\n"
-        "          default %d. Registret findes og kunne læses - rækken mangler.\n"
-        "          fil : %s\n"
-        "          kur : spor K1 i _styresystem/planer/2026-09-19-korthed-med-et-maalt-loft-plan.md\n"
-        "          Når rækken er lagt ind, gælder registrets tal automatisk."
-        % (navn, standard, sti), file=ud)
-    return standard
+    raise Afvist(
+        "KONSTANTEN %r findes ikke i registret, og så sendes der ingenting.\n"
+        "  fil: %s\n"
+        "  Registret kunne læses - rækken mangler. Læg den ind dér." % (navn, sti))
 
 
 def doem_laengde(tekst, loft, hvad):

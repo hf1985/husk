@@ -90,13 +90,15 @@ def main():
             ben("ulaeseligt register fejler lukket", True)
             ben("ulaeseligt register navngiver filen", "findes-ikke.tsv" in str(e), str(e)[:80])
 
-        # Raekken mangler -> MIDLERTIDIG default, og den MELDES.
+        # Raekken mangler -> fejl LUKKET (ingen default, hverken tavs eller hoejlydt).
         reg_tom = skriv(td, "reg-tom.tsv", "navn\tvaerdi\tmoenster\tforklaring\n")
-        ud = io.StringIO()
-        v = udadvendt.laes_loft("mr-kommentar-loft", sti=reg_tom, ud=ud)
-        ben("manglende raekke giver den midlertidige default", v == 400, "fik %r" % v)
-        ben("den midlertidige default MELDES hoejlydt",
-            "ADVARSEL" in ud.getvalue() and "K1" in ud.getvalue(), ud.getvalue()[:80])
+        try:
+            udadvendt.laes_loft("mr-kommentar-loft", sti=reg_tom)
+            ben("manglende raekke fejler lukket", False, "kastede ikke")
+            ben("manglende raekke navngiver konstanten", False, "kastede ikke")
+        except udadvendt.Afvist as e:
+            ben("manglende raekke fejler lukket", True)
+            ben("manglende raekke navngiver konstanten", "mr-kommentar-loft" in str(e), str(e)[:80])
 
         # En vaerdi der ikke er et tal -> fejl LUKKET (ikke en tavs default).
         reg_skrald = skriv(td, "reg-skrald.tsv",
