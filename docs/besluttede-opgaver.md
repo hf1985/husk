@@ -27,6 +27,9 @@ aldrig.** De er skrevet ud i fuld form her, fordi en peger til en arkiveret plan
 
 ### 1. Afpublicér APK-assets til og med `v0.9.30` (var `S1`) – SIKKERHED
 
+✅ **UDFØRT 2026-09-23 på `HFs_Dell`** efter ejerens ja: 42 assets slettet, releases og tags står.
+Liste, værn og eftermåling: `docs/afpubliceret-2026-09-23.txt`. Opskriften nedenfor er historik.
+
 Kodeordet til den pensionerede signeringsnøgle (`CN=Debug, O=KHFRB`, alias `ad`, SHA-256
 `1b89a920…62af59`) kan hentes fra det OFFENTLIGE repos git-historik. Keystore-filen selv har aldrig
 været committet, men **alle releases til og med `v0.9.30` er signeret med den nøgle og er stadig
@@ -75,6 +78,8 @@ Tokenet er tomt som standard, så kilde-IP-ACL'en er eneste spærre – og den l
    `grep -rn "8090" P_app_husk/pc P_kontor` før du erklærer dig færdig.
 
 ### 3. Hvorfor kom kamera- og skærmtjenesten ikke op efter opdateringen? (var `S9`)
+
+⛔ **AFSKREVET af ejeren 2026-09-23**, verbatim: »Den er overflødig.« Genrejs den ikke.
 
 MÅLT 2026-09-07: efter in-app-opdateringen til 1.0 svarede `/snapshot` 503 på BEGGE spares (også på
 andet kald), og `/screen.jpg` var uden frame på SM-A102U1. Porten var oppe hele tiden, så flåden så

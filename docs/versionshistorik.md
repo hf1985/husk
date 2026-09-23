@@ -574,3 +574,57 @@ Der findes altså ingen begrundelse at læse, hverken i MR'en eller i mailene.
 Den nærliggende læsning er at en allerede overhalet version ikke er værd at bygge, men det er en formodning, ikke en måling.
 ⛔ **Her stod først at endpointet »svarer 401 Unauthorized uden token«.** Det er sandt og irrelevant: huset HAR tokenet, og `docs/BUILD.md` afsnit 7 citerer selv kommandoen der henter det.
 En adgang jeg selv kunne have skaffet, er ikke en umålelighed - den er en måling jeg ikke tog.
+
+# Arkiveret fra FORTSÆT-HER.md 2026-09-23 (1.3 udgivet), ordret
+
+## ✅ 2026-09-19: 1.2 ER UDGIVET
+
+Kørt på `hfs-dell` efter `_styresystem/planer/2026-09-19-husk-udgiv-loekkefix-plan.md`.
+**Datoen er artefakternes, ikke sessionens** (måleregel 274/469): byggecommiten `390d9c5`
+bærer `2026-09-19 23:33 +0200`, og GitHub-releasens `published_at` er `2026-09-19T21:37:20Z`.
+Selve lukningen løb ind i den 20., og her stod først den dato.
+
+| Hvad | Tilstand |
+|---|---|
+| Version | **1.2 / versionCode 53**, tagget på byggecommiten `390d9c5e` |
+| Hvad 1.2 retter | `CameraService.requestFront` kaldte `h.post(demandCheck)`, og `demandCheck` genplanlægger sig selv med `postDelayed(this, 1000)`. N sideskift gav N+1 samtidige 1-sekunds-løkker, i strid med invariant C. Kuren er ét kodested, `planlaegDemandCheck()`, som fjerner ventende kald før den poster. Fejlen sad i den UDGIVNE 1.1-APK. |
+| Hvad 1.2 IKKE ændrer | `ControlServer.java` er byte-uændret fra `v1.1`, så ingen nye endpoints, params, respons eller adgangsmodel. `AndroidManifest.xml` og `MainActivity.java` ændrer kun kommentarer. Tilladelses-listen er identisk: **16 mod 16** `uses-permission`. ⚠️ Her stod »17 mod 17«, målt med `grep -c permission`, som også tæller `android:permission=` på servicen. Tæl `uses-permission`. |
+| Signatur | `96195cfd…c17d`. Den HENTEDE fil fra GitHub er sha256-identisk med den signerede. |
+| xplat.co | deployet; `https://xplat.co/husk/latest.json` viser 53, `check-api-parity.sh` grøn (43 endpoints). |
+| F-Droid | ✅ **MR !49350 er MERGET 2026-09-20 kl. 07:33:11Z** af `linsui` (squash-commit `60e114ae`, head `9961872f`). ⚠️ **52 nåede ALDRIG ind:** `linsui` lagde en `suggestion:-6+0` på 1.1-entryen og merged derefter, så upstream master bærer kun 51 og 53. F-Droid PUBLICERER 53 (målt 2026-09-22): `/api/v1/packages/co.xplat.husk` giver `suggestedVersionCode: 53`; `co.xplat.husk_53.apk` → 200, `_52.apk` → **404**. Den publicerede APK er sha256-identisk med GitHub-releasens (`54b5e2d0…0158`). **Der er dermed INGEN levende MR** – næste release kræver en NY fra en gren frisk fra upstream master. |
+| Flåden | ⚠️ **ingen enhed er på 1.2.** Kun spare SM-A102U1 (.101.102) er på 1.1; Note10 og Sony 702SO er på 1.0. |
+
+**Recipen er synkroniseret 2026-09-22:** `fdroid/co.xplat.husk.yml` bar stadig 52-entryen, og en ny MR oven på den ville have genindført præcis det `linsui` fjernede.
+Den er nu diff-identisk med upstream master; forløbet står i `docs/versionshistorik.md`.
+
+### ⛔ To ting der kræver et menneske, og som IKKE er gjort
+
+1. **Note10 og A9 er ikke opgraderet, og det var et VALG.** Note10 er kontor-mødekameraet: en
+   opdatering dræber app-processen, og DeX-rig'en har historik for at tabe a11y, scrcpy og
+   Discord. A9 (Sony 702SO) kan afbinde a11y ved en opdatering og har **ingen Wireless
+   Debugging**, så en fejl kræver et USB-kabel på stedet. Planlæg dem fysisk, ikke remote.
+2. **`latest.json` kan først slettes når HELE flåden er på 1.1 eller derover.** Målingen der
+   frigiver den: `/info` viser 52 eller derover på hver enhed. Se tabellen i `CLAUDE.md`.
+
+## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-19, `hfs-dell`)
+
+Frisk sub-agent (`fable`) over rundens diff, gate-definitionerne ordret, og uden orkestratorens
+konklusioner. Planen `2026-09-19-husk-udgiv-loekkefix-plan.md` retireres, så dommene står her.
+**Dertil tre gennemgange af udadvendt tekst før afsendelse** (MR-beskrivelse, MR-kommentar,
+butikstekst), som hører til den gate runden selv indførte.
+
+| Linse | Dom | Målt |
+|---|---|---|
+| Planens 8 lukke-betingelser | **nej** | Alle mod artefakter. Ekstra: `v1.1`- og `v1.2`-APK'en har SAMME bytestørrelse (86.738), forskellig sha256. Et størrelses-tjek kan ikke skelne dem. |
+| Gate 1-3 (modul/template) | **nej** | `udadvendt.py` er en CLI-gate, ikke et webmodul. Sidefund: `doem_adversarisk` findes nu i `gmail.py` OG her. |
+| Gate 4 (læring routet) | **ja** | `CLAUDE.md` pegede på »måleregel 474«, som ikke fandtes. Nu skrevet. |
+| Gate 5 (markør) | ikke rel. | En release efter release-pligten er rutine; rutine stempler ikke. |
+| Gate 7 (handoff/docs) | **ja** | Fire: »intet slettet« var falsk (linje 104-132 + 478-520 af 520 hverken arkiveret eller båret med); `!40810` stod tre steder som levende MR; »17 mod 17« var 16; datoen 09-20 modsagde `390d9c5` (09-19 23:33). Alle rettet. |
+| Gate 8 (PII) | **nej** | Ingen ny persondata, auth eller angrebsflade. Sikkerhedspåstandene efterprøvet mod `Net.peerAllowed`. |
+| Gate 9 (blast-radius) | **delvist** | `infra/enheder.md` pegede på et flyttet afsnit; rettet. Forbrugerne upåvirkede: `ControlServer.java` byte-uændret. |
+| Gate 11 (infra) | **delvist** | Fire uskrevne kapabiliteter: GitLabs `force`-commit, `merge_ref`-genberegningen, `PUT` på fremmed MR, og `gh`-tokenets ugyldighed mod `git credential fill`. Alle skrevet. |
+| Testsuiten | **ja** | Suiten var ikke selvstændig: 21 af 28 uden for porteføljen, fordi den læste husets rigtige `konstanter.tsv`. Og titlen var ugatet i begge værktøjer. Nu 31 af 31 begge steder. |
+| Udadvendt tekst (3 gennemgange) | **ja** | MR-teksten bar 2 fejl, butiksteksten 10. Ni af de ti var et FORBEHOLD hængt på en term der overlevede snittet - se måleregel 475. |
+
+⚠️ **Ikke rettet:** `docs/versionshistorik.md` er nu 38 KB og vokser med hver nedskæring. Den
+auto-loades ikke og har derfor intet loft i dag.

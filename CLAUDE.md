@@ -36,7 +36,7 @@
 >     tegn). Med `AutoUpdateMode: Version` lander en release UDEN denne fil med et tomt
 >     »What's New« i F-Droid.
 > 4. Opdatér `fdroid/co.xplat.husk.yml` og spejl den op i forken.
->    ⛔ **Både !40810 (15-09) og !49350 (20-09) er MERGET, så der er INGEN levende MR: en opdatering kræver en NY MR fra en gren frisk fra upstream master.**
+>    ⛔ **!40810 (15-09) og !49350 (20-09) er MERGET; 1.3's MR er `!49892` (åbnet 23-09). Er den også merget, kræver en opdatering en NY MR fra en gren frisk fra upstream master.**
 >    Værktøjerne kræver `--adversarisk` og har et tegn-loft.
 > 5. Opdatér HUSK-konstanterne (`HUSK_VERSION_*`) i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
 > 6. **API-DOK-GATE (obligatorisk):** ændrer releasen endpoints/params/respons/adgangsmodel? Ajourfør
@@ -112,10 +112,10 @@ echo $ANDROID_HOME` gav TOM, og `local.properties` blev skrevet tom. Enkeltcitat
 login-item `Husk release-signeringsnoegle (keystore husk-release.jks, base64)`; arbejdskopi i WSL
 `~/android-build/husk-signing/husk-release.jks`. Kodeordet står ALDRIG i en fil i repoet og aldrig i
 argv. `.gitignore` dækker `*.keystore` OG `*.jks`. Nøgleskiftet: `docs/BUILD.md` §5.
-Nuværende: **1.2 / versionCode 53** (2026-09-19, `hfs-dell`, tagget på byggecommiten `390d9c5e`).
-1.2 retter én fejl i den udgivne 1.1: `requestFront` startede en ekstra 1-sekunds-løkke pr.
-kameraside-skift, i strid med invariant C. `ControlServer.java` er byte-uændret fra `v1.1`, så
-API-fladen er den samme, og F-Droids CI har reproduceret 52 og 53 mod referencebinæren.
+Nuværende: **1.3 / versionCode 54** (2026-09-23, `HFs_Dell`, tagget på byggecommiten `4c42206`).
+1.3 husker kamerasiden over en opdatering (prefs `husk`/`use_front`, IKKE `Settings.Global`, som
+appen kun kan læse), og et sideskift åbner ikke længere et kamera en anden app holder. API-fladen
+er den samme som i 1.2. F-Droid-MR `!49892` er åben; forkens pipeline reproducerede 54.
 Alle tidligere udgaver: `docs/versionshistorik.md`.
 
 ## Flåde, tailnet-transport og deploy til en KØRENDE rig
