@@ -16,7 +16,17 @@ app-koden**.
 > og »anden del« i historikfilen bærer dem nu ordret.
 > **2026-09-23:** 1.2-afsnittet og verifikationen af 2026-09-19 er flyttet ordret til
 > `docs/versionshistorik.md` (»Arkiveret fra FORTSÆT-HER.md 2026-09-23«). De to kodefund og
-> afleveringen om `pc/udadvendt.py` er slettet her, fordi de er udført: `e5bacb9` og `S7`-commiten.
+> afleveringen om `pc/udadvendt.py` er slettet her: de to fund og `MIDLERTIDIGE` er udført
+> (`e5bacb9`, `757f5f7`). Afleveringens »beslægtede fund« (to læsere af `konstanter.tsv`) er IKKE
+> udført; det står som fund 2 i `_styresystem/FORTSÆT-HER.md` 2026-09-20.
+
+## Åbne småting fra runde-luk 2026-09-23
+
+- **`docs/versionshistorik.md` har 247 bytes tilbage** til `projekt-historik-loft` (50000).
+  Næste flytning af historik dertil gør den rød; retirér da ældre historik til et arkiv.
+- **`P_xplat/FORTSÆT-HER.md` siger stadig »Husk-kataloget er på 1.2/53«**, mens koden er 1.3/54
+  (`e779e06`). Ikke rettet, fordi filen bar en nabosessions uncommittede paysync-arbejde.
+- `pc/udadvendt.py`: `laes_loft`s `ud`-parameter bruges ikke længere efter `757f5f7`. Kosmetisk.
 
 ## ✅ 2026-09-23: 1.3 ER UDGIVET (`HFs_Dell`)
 
@@ -60,6 +70,19 @@ Opskrifterne står i `docs/besluttede-opgaver.md`.
    Eftermålt: tre stikprøver 404, `v0.9.31`/`v1.0`/`v1.1`/`v1.2`/`v1.3` alle 200.
 2. **Token på spares – ÅBEN**, blokeret af at ingen spare kan nås (se flåde-afsnittet).
 3. **503-årsagen fra 2026-09-07 – AFSKREVET af ejeren 2026-09-23** (»Den er overflødig«). Genrejs den ikke.
+
+## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-23, `HFs_Dell`)
+
+Frisk `fable`-agent over rundens diff, planens lukke-betingelser og PLAN.md 4A.
+
+| Linse | REFUTERET | Målt |
+|---|---|---|
+| S1, S2, S4-S7, S9 | nej | artefakter + live (begge `latest.json` 54, MR `!49892` mergeable, 42 releases uden assets, 31/31) |
+| S3 | delvist | `grep -c Settings.Global` = 1 var sandt før rettelsen; ægte bevis: dex i 1.3 bærer `use_front` |
+| S8 | delvist | registrets tekst sagde »ca. 5700 tilbage«; reelt 247. Rettet |
+| Java (invariant C, tråde) | nej | `unavailableIds` kun på `camHandler`; ingen clobber via `loadMotionPrefs` |
+| Gate 7, 9, 11 | delvist | handoff-overdrivelse, `P_xplat`-handoff på 1.2, Note10-token-vejen manglede i `infra/enheder.md`. Rettet / noteret ovenfor |
+| Gate 1-4, 8 | nej | intet modul/template; læring skrevet; ingen ny PII eller flade |
 
 ## Hvor resten står
 
