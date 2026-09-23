@@ -1,0 +1,9 @@
+To kamera-rettelser.
+
+Den valgte kameraside (for eller bag) huskes nu, så en opdatering af appen ikke længere sætter
+kameraet tilbage på bagsiden.
+
+Et sideskift åbner ikke længere den nye sides kamera mens en anden app bruger det. Husk venter
+til det er ledigt, som den allerede gjorde for den gamle side.
+
+Ingen nye tilladelser eller endpoints; HTTP-fladen er den samme som i 1.2.

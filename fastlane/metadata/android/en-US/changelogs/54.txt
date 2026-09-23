@@ -1,0 +1,9 @@
+Two camera fixes.
+
+The chosen camera side (front or back) is now remembered, so an app update no longer switches
+the camera back to the rear side.
+
+Switching side no longer opens the new side's camera while another app is using it. Husk waits
+until it is free, as it already did for the old side.
+
+No new permissions or endpoints; the HTTP interface is the same as in 1.2.
