@@ -303,6 +303,10 @@ MR-labelen er `review-requested`. Svaret til `linsui` blev postet 07-09 kl. 18:1
   er fri), men `tokenOk()` returnerer true når tokenet er tomt. Obligatorisk token + en
   skarpere `peerAllowed` hører sammen i én release, fordi det bryder hver eksisterende enhed
   indtil den er re-paret.
+  ⛔ **»Hver eksisterende enhed« omfatter enhver PC der bruger telefonen som webcam** – det
+  produkt beskriver i dag tokenet som valgfrit, og en obligatorisk token gør `401` til den
+  almindelige tilstand dér frem for undtagelsen. Skrevet ind i dets handoff 2026-09-22, så
+  ændringen ikke kommer bagfra. Releasen er altså IKKE kun et flåde-anliggende.
 - ✅ **BORTFALDET i 1.1:** »ingen fejlsignal når Installer ukendte apps er slået fra«.
   Hele updateren er fjernet, så tilstanden kan ikke opstå.
 - ✅ **RETTET i 1.1:** `dparam(query,"server") != null` var altid sand, fordi `dparam` giver

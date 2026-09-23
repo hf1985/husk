@@ -107,11 +107,13 @@ er invariant C's egen grænse. **Mål før du retter**, og husk at linjenumrene 
 ### 2. `Rig.useFront` persisteres ikke – et sideskift tabes ved procesgenstart
 
 `Rig.java` l. 39 er en bar `static volatile boolean`, og den sættes kun tre steder: intent-extraet i
-`CameraService`, `/set` i `ControlServer`, og `requestFront`. Ingen af dem skriver til
-`Settings.Global` eller til en preference. **Installationen af en ny version nulstiller derfor selv
-valget:** `MY_PACKAGE_REPLACED` genstarter processen, og kameraet er tilbage på bagsiden uden at
-nogen rørte `/set`. Kuren ville være den samme kanal som `husk_token` bruger: `Settings.Global`, som
-overlever en afinstallation.
+`CameraService`, `/set` i `ControlServer`, og `requestFront`. **Installationen af en ny version
+nulstiller derfor selv valget:** `MY_PACKAGE_REPLACED` genstarter processen, og kameraet er tilbage
+på bagsiden uden at nogen rørte `/set`. Kuren ville være den samme kanal som `husk_token` bruger:
+`Settings.Global`, som overlever en afinstallation.
+⛔ **Fundet har en forbruger uden for dette repo:** PC-webcam-produktet sælger kameraside-skift som
+en funktion, og dets bruger ser valget forsvinde efter hver opdatering af denne app. Det er skrevet
+i dets README 2026-09-22.
 
 ## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-19, `hfs-dell`)
 
