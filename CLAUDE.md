@@ -127,6 +127,8 @@ Fuld tekst: `docs/fleet-tailnet-transport.md` og `docs/YDELSE-OG-DRIFT.md` §3.
   ⛔ **`adb reboot` gælder Note10-riggen, ikke en spare:** 2026-09-24 kom A10e hverken op på 8090
   eller på Tailscale efter en genstart, og den kræver nu nogen ved telefonen. Genstart kun en spare
   når nogen er fysisk til stede.
+- **Tokenet: prefs (`husk`/`token`) er ENESTE kilde fra 1.4**, sat i appen eller via `/token/request`,
+  skrevet kun af `Rig.setToken`. Adb-vejen er fjernet uden migrering (ejer 2026-09-24); ingen fallback.
 - **Efter enhver opdatering SKAL `/snapshot` OG `/screen.jpg` efterprøves pr. enhed** – porten
   kommer op uanset, så `/healthz` kan være grøn mens kameraet ligger nede (måleregel 422).
 - **`wake` FØRST på en spare:** en sovende skærm får a11y til at se kun navbaren og gestus til at

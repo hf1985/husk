@@ -69,4 +69,26 @@
     <string name="ntfy_title">Husk: motion detected</string>
     <string name="ntfy_msg_camera">The camera detected movement (%1$d%% change)</string>
     <string name="ntfy_msg_screen">The screen detected movement (%1$d%% change)</string>
+
+    <!-- Access token (1.4): set here or via /token/request with approval on the phone -->
+    <string name="token_heading">Access token</string>
+    <string name="token_field_hint">Token (empty = no token)</string>
+    <string name="token_show">Show</string>
+    <string name="token_generate">Generate</string>
+    <string name="token_copy">Copy</string>
+    <string name="token_save">Save</string>
+    <string name="token_hint">Other devices must send this token to control the phone. Empty means anyone on your Tailscale network can control it. A PC app can also ask for the token; you then approve on this phone. That approval only protects once a token is set.</string>
+    <string name="token_invalid">Not saved: the token must be empty or at least 24 letters and digits (A-Z, a-z, 0-9).</string>
+    <string name="token_saved">Token saved. It applies right away.</string>
+    <string name="token_cleared">Token removed. Anyone on your Tailscale network can now control the phone.</string>
+    <string name="token_empty">The field is empty.</string>
+    <string name="token_changed">The token was changed from another device meanwhile. The field now shows the current one.</string>
+    <string name="token_copied">Token copied.</string>
+    <string name="token_copy_failed">Could not copy.</string>
+    <string name="token_notif_channel">Access token requests</string>
+    <string name="token_notif_title">%1$s asks for the access token</string>
+    <string name="token_notif_text_set">No token is set. Approve to set one and share it with this device.</string>
+    <string name="token_notif_text_get">Approve to share the token with this device.</string>
+    <string name="token_approve">Approve</string>
+    <string name="token_deny">Deny</string>
 </resources>

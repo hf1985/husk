@@ -70,8 +70,10 @@ Tokenet er tomt som standard, så kilde-IP-ACL'en er eneste spærre – og den l
 2. Gem dem i vaulten som login-items **FØR** du sætter dem:
    `bash Tools/vault2/vault2.sh put-login "Husk token 702SO" husk <fil>` (og for `SM-A102U1`).
    Aldrig i en fil i repoet.
-3. `adb -s <serial> shell settings put global husk_token '<token>'` – værdien bor i
-   `Settings.Global` og **overlever en afinstallation**.
+3. Fra 1.4: sæt tokenet i appens felt »Adgangstoken« (Gem), eller hent/sæt det med
+   `/token/request` og godkend på telefonen. Værdien bor i appens prefs (`husk`/`token`) og
+   overlever en opdatering, **ikke** en afinstallation. Den gamle adb-vej (en global
+   systemindstilling) læses ikke længere; den er fjernet uden migrering.
 4. Læs tilbage, og efterprøv **begge retninger**: `/info` skal svare **401 uden** token og 200 med.
    Den negative probe er hele pointen (måleregel 1).
 5. Ret `pc/spare.sh` og `pc/spare.ps1` så de sender tokenet. Søg efter flere forbrugere med

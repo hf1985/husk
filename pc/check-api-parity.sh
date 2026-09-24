@@ -22,11 +22,13 @@ APP="$XPLAT/hosting/app.py"
 
 # Appens faktiske endpoints: path.equals("/x") i ControlServer. Undtag "/" (HTML-viewer-rod, ikke et
 # dokumenteret API-endpoint).
-app_eps=$(grep -oE 'path\.equals\("/[a-zA-Z0-9._]*"\)' "$CS" \
-          | grep -oE '"/[a-zA-Z0-9._]*"' | tr -d '"' | grep -vx '/' | sort -u)
+# '/' er med i tegnklassen: indtil 1.4 var den det ikke, saa en rute med to segmenter
+# (/token/request) matchede i INGEN af siderne, og gaten var groen uden at have set den.
+app_eps=$(grep -oE 'path\.equals\("/[a-zA-Z0-9._/]*"\)' "$CS" \
+          | grep -oE '"/[a-zA-Z0-9._/]*"' | tr -d '"' | grep -vx '/' | sort -u)
 # Katalogets endpoints: "p": "/x" i HUSK_API.
-cat_eps=$(grep -oE '"p": "/[a-zA-Z0-9._]*"' "$APP" \
-          | grep -oE '/[a-zA-Z0-9._]*' | sort -u)
+cat_eps=$(grep -oE '"p": "/[a-zA-Z0-9._/]*"' "$APP" \
+          | grep -oE '/[a-zA-Z0-9._/]*' | sort -u)
 
 missing=$(comm -23 <(printf '%s\n' "$app_eps") <(printf '%s\n' "$cat_eps"))   # i app, ikke i katalog
 stale=$(comm -13 <(printf '%s\n' "$app_eps") <(printf '%s\n' "$cat_eps"))     # i katalog, ikke i app

@@ -63,4 +63,26 @@
     <string name="ntfy_title">Husk: bevægelse registreret</string>
     <string name="ntfy_msg_camera">Kameraet registrerede bevægelse (%1$d%% ændring)</string>
     <string name="ntfy_msg_screen">Skærmen registrerede bevægelse (%1$d%% ændring)</string>
+
+    <!-- Adgangstoken (1.4): saettes her eller via /token/request med godkendelse paa telefonen -->
+    <string name="token_heading">Adgangstoken</string>
+    <string name="token_field_hint">Token (tomt = intet token)</string>
+    <string name="token_show">Vis</string>
+    <string name="token_generate">Generér</string>
+    <string name="token_copy">Kopiér</string>
+    <string name="token_save">Gem</string>
+    <string name="token_hint">Andre enheder skal sende dette token for at styre telefonen. Tomt betyder at enhver på dit Tailscale-net kan styre den. En PC-app kan også bede om tokenet; du godkender så på denne telefon. Den godkendelse beskytter først når et token er sat.</string>
+    <string name="token_invalid">Ikke gemt: tokenet skal være tomt eller mindst 24 bogstaver og cifre (A-Z, a-z, 0-9).</string>
+    <string name="token_saved">Token gemt. Det gælder med det samme.</string>
+    <string name="token_cleared">Token fjernet. Enhver på dit Tailscale-net kan nu styre telefonen.</string>
+    <string name="token_empty">Feltet er tomt.</string>
+    <string name="token_changed">Tokenet blev ændret fra en anden enhed imens. Feltet viser nu det gældende.</string>
+    <string name="token_copied">Token kopieret.</string>
+    <string name="token_copy_failed">Kunne ikke kopiere.</string>
+    <string name="token_notif_channel">Anmodninger om adgangstoken</string>
+    <string name="token_notif_title">%1$s beder om adgangstokenet</string>
+    <string name="token_notif_text_set">Der er intet token. Godkend for at sætte et og dele det med denne enhed.</string>
+    <string name="token_notif_text_get">Godkend for at dele tokenet med denne enhed.</string>
+    <string name="token_approve">Godkend</string>
+    <string name="token_deny">Afvis</string>
 </resources>

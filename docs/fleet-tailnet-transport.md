@@ -37,10 +37,10 @@ flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-mem
 >   udokumenterede indtil 2026-07-13.)
 > - **Note10 (SM-N975U1/A12, DeX, TOKEN, `100.100.103.102`) står nu på 0.9.31/50** (geninstalleret
 >   2026-09-04 pga. nøgleskiftet; a11y, DeX, kamera og skærmdeling verificeret bagefter).
->   Token findes BÅDE i overbygningens `~/husk-overbygning/config.sh` (`HUSK_TOKEN=…`) **og i
->   `Settings.Global husk_token`** - påstanden »IKKE i `Settings.Global`« var falsk og er rettet
->   2026-09-04: `Rig.java` har læst det derfra siden 0.9.24, det blev målt til stede med 48 tegn,
->   og det **overlever en afinstallation**, hvilket er grunden til at geninstallationen ikke tabte det. **Opdatér den ALDRIG via `/update`**
+>   Token findes i overbygningens `~/husk-overbygning/config.sh` (`HUSK_TOKEN=…`) og, fra 1.4, i
+>   appens prefs (`husk`/`token`), sat i appen eller via `/token/request`. Til og med 1.3 læste
+>   appen det fra en global systemindstilling sat med adb; den kanal er fjernet i 1.4 uden
+>   migrering, så en enhed der opdateres fra 1.3 står UDEN token til det sættes igen. **Opdatér den ALDRIG via `/update`**
 >   (foregrunder MainActivity → Samsung »restart on another display«-churn på DeX → a11y/scrcpy/Discord-
 >   crash; docs/YDELSE-OG-DRIFT.md §3). **Rig-sikker vej (virkede):** `/wd?token=…` (cacher WD-porten
 >   for adb-broen) → `adb connect <ts-ip>:15557` → `adb push <apk> /data/local/tmp/` → `adb shell pm
@@ -95,8 +95,9 @@ via `/screen` + tapbart via gestus nu hvor skærmen vækkes) er blevet plausibel
 
 `ControlServer` (**8090**, HTTP) og `AdbForward` (**15557**, adb/scrcpy-bro) binder begge til
 `0.0.0.0` – ikke kun loopback. De beskyttes af en delt **kilde-IP-ACL** (`Net.peerAllowed`:
-loopback + RFC1918 + Tailscale-CGNAT 100.64/10) plus et **valgfrit token** (`Rig.token` /
-`Settings.Global husk_token`; tomt token → kun IP-ACL'en beskytter).
+loopback + RFC1918 + Tailscale-CGNAT 100.64/10) plus et **valgfrit token** (`Rig.token`, fra 1.4
+kun fra appens prefs: feltet i appen eller `/token/request` med godkendelse på telefonen; tomt
+token → kun IP-ACL'en beskytter, og så kan enhver peer også selv trykke Godkend via `/rpc`).
 
 hfs-dell er selv en peer på samme tailnet. Derfor kan PC'en nå enhver Husk-enhed **direkte**:
 

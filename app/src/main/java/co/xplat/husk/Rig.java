@@ -52,8 +52,53 @@ public final class Rig {
     public static volatile long    lastCameraClientMs = 0;
     public static final  int       CAMERA_IDLE_MS     = 4000;   // bliv ved ~4s efter sidste klient-tick
 
-    // Delt token. Tom = ingen token sat (kun loopback+Tailscale-bind beskytter da, jf. ACL-laget).
+    // Delt token. Tom = ingen token sat (kun kilde-IP-ACL'en beskytter da: enhver peer paa det
+    // private net/Tailscale kan styre telefonen). Skriv den KUN via setToken().
     public static volatile String token = "";
+
+    // Fra 1.4 er appens prefs ("husk"/"token") den ENESTE kilde til tokenet. Indtil 1.3 kunne det
+    // ogsaa saettes med adb (en global systemindstilling) og via et intent-extra; begge veje er fjernet
+    // med vilje uden migrering (ejerbeslutning 2026-09-24): en butiks-app skal kunne saettes op af
+    // brugeren selv, i appen eller via /token/request med godkendelse paa telefonen. To kilder til
+    // eet token gav desuden en tilstand hvor feltet og den virkelige vaerdi kunne vaere uenige.
+    static final String KEY_TOKEN = "token";
+    static final int TOKEN_MIN_LEN = 24;
+    static final int TOKEN_MAX_LEN = 128;
+    static final int TOKEN_GEN_LEN = 32;
+    private static final String TOKEN_ALFABET =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    // Gyldigt at GEMME: tomt (= slaa token fra) eller alfanumerisk med TOKEN_MIN_LEN..TOKEN_MAX_LEN tegn.
+    // Alfanumerisk fordi tokenet reflekteres i /control-HTML'en og sendes i URL'er uden kodning.
+    public static boolean tokenValid(String t) {
+        if (t == null) return false;
+        if (t.isEmpty()) return true;
+        if (t.length() < TOKEN_MIN_LEN || t.length() > TOKEN_MAX_LEN) return false;
+        for (int i = 0; i < t.length(); i++) {
+            char ch = t.charAt(i);
+            if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9'))) return false;
+        }
+        return true;
+    }
+
+    public static String generateToken() {
+        java.security.SecureRandom rnd = new java.security.SecureRandom();
+        StringBuilder b = new StringBuilder(TOKEN_GEN_LEN);
+        for (int i = 0; i < TOKEN_GEN_LEN; i++) b.append(TOKEN_ALFABET.charAt(rnd.nextInt(TOKEN_ALFABET.length())));
+        return b.toString();
+    }
+
+    // Den ENE skrivevej (UI-feltet og token-API'et). Virker straks: ControlServer.tokenOk laeser
+    // Rig.token ved hver request, saa ingen genstart kraeves. Returnerer false ved en ugyldig vaerdi.
+    public static synchronized boolean setToken(android.content.Context c, String t) {
+        if (!tokenValid(t)) return false;
+        token = t;
+        try {
+            if (c != null) c.getSharedPreferences("husk", android.content.Context.MODE_PRIVATE).edit()
+                            .putString(KEY_TOKEN, t).commit();
+        } catch (Throwable ignored) {}
+        return true;
+    }
 
     // FAKTISK koerende-tilstand (ikke bare den gemte toggle) - status/UI/flags SKAL vise sandt.
     // cameraRunning saettes af CameraService naar capture reelt koerer; screenRunning af ScreenService.
@@ -135,20 +180,11 @@ public final class Rig {
             ntfyTopic = p.getString("ntfy_topic", "");
             motionSensitivity = p.getInt("motion_sensitivity", 5);
             useFront = p.getBoolean(KEY_USE_FRONT, false);   // kameraside overlever procesgenstart (se useFront)
-        } catch (Throwable ignored) {}
-        // Delt token (v0.9.24): laes persistent fra Settings.Global "husk_token". Det er den
-        // eneste UI-frie, reboot-sikre maade at saette token paa en koerende rig (MainActivity
-        // maa ALDRIG launches paa DeX-riggen, og service-intents er ikke exported for shell):
-        //   adb shell settings put global husk_token <token>
-        // Kaldes ved service-start (Camera-/ScreenService.onCreate); et token-intent-extra via
-        // MainActivity (onStartCommand) saettes SENERE og vinder derfor i sessionen som hidtil.
-        try {
-            String t = android.provider.Settings.Global.getString(c.getContentResolver(), "husk_token");
-            if (t != null && !t.isEmpty()) token = t;
+            token = p.getString(KEY_TOKEN, "");                // eneste kilde fra 1.4 (se KEY_TOKEN)
         } catch (Throwable ignored) {}
     }
 
-    // Kanalen er appens egne prefs, IKKE Settings.Global som husk_token: den kan appen kun LAESE
+    // Kanalen er appens egne prefs, ikke en global systemindstilling: den kan appen kun LAESE
     // (skrivning kraever WRITE_SECURE_SETTINGS, som en butiks-app ikke har). Prefs overlever en
     // opdatering, men ikke en afinstallation - det er opdateringen fundet handlede om.
     static final String KEY_USE_FRONT = "use_front";

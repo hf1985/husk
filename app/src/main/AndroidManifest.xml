@@ -105,5 +105,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- Godkend/Afvis fra token-notifikationen (/token/request, 1.4). IKKE eksporteret: kun appens
+             egne PendingIntents naar hertil, saa intet andet end notifikationen kan godkende. -->
+        <receiver
+            android:name=".TokenReceiver"
+            android:exported="false" />
+
     </application>
 </manifest>

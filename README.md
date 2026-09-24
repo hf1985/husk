@@ -57,6 +57,21 @@ winget, pairs the PC hands-free via `/pair`, creates desktop shortcuts). See **x
 · `/pair` (WD pairing for a new PC) · `/flags` (read-only state) · `/set` (camera params) · `/` (viewer).
 adb bridge on port **15557**. Automation RPC on loopback **8127**.
 
+## Access token (since 1.4)
+Other devices send the token as `?token=` to control the phone. There are two ways to set it:
+- **In the app:** the *Access token* field. *Generate* makes a random 32-character token, *Copy*
+  puts it on the clipboard, *Save* applies it right away (empty = no token).
+- **From another device:** `GET /token/request?client=<name>` shows a notification on the phone;
+  tap **Approve**, then poll `GET /token/status?id=<id>` (`pending`, `denied`, `expired`, or
+  `approved` with the token, handed out once). If no token is set, approving sets one
+  (`&new=<proposal>` if valid, otherwise generated). `GET /token/set?token=<current>&new=<new>`
+  changes an existing token.
+
+**A device without a token is open:** anyone on your Tailscale network can control it, and can
+therefore also tap *Approve* on the phone themselves (through the accessibility API). The approval
+only protects once a token is set. Until 1.3 the token could be set with adb as a global system
+setting; 1.4 no longer reads it, so set the token again after updating.
+
 ## Permissions (and why)
 INTERNET (local HTTP + adb bridge, loopback/Tailscale only), CAMERA, FOREGROUND_SERVICE(_CAMERA),
 RECEIVE_BOOT_COMPLETED, WAKE_LOCK, POST_NOTIFICATIONS, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, and the
@@ -67,6 +82,7 @@ Husk's accepted-risk model, in one place:
 - **8090 (HTTP)** binds all interfaces but is gated by a source-IP allowlist (loopback,
   RFC1918/LAN, Tailscale `100.64.0.0/10`) and an optional shared `?token=`. When no token is
   set, the IP allowlist is the only gate -- keep it tight (Tailscale ACL) on untrusted LANs.
+  `/token/request` and `/token/status` are open by design; see *Access token* above.
   CSRF and DNS-rebinding defenses are applied to state-changing endpoints.
 - **8127 (automation RPC)** binds **only** `127.0.0.1` -- never a network address -- so it is
   unreachable from other devices. It has no token or app-level auth: any other app installed

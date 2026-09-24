@@ -62,10 +62,18 @@ public class MainActivity extends Activity {
         Rig.loadMotionPrefs(this);   // bevaegelses-alarm-config til UI'en
         hasCamera = getPackageManager().hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY);
 
-        if (hasCamera && Build.VERSION.SDK_INT >= 23 &&
+        // Een samlet anmodning: to requestPermissions i traek viser kun den ene dialog.
+        java.util.List<String> perms = new java.util.ArrayList<String>();
+        if (hasCamera &&
             checkSelfPermission(android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{ android.Manifest.permission.CAMERA }, 1);
+            perms.add(android.Manifest.permission.CAMERA);
         }
+        // Android 13+: uden denne tilladelse kan godkendelses-notifikationen fra /token/request ikke vises.
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            perms.add(android.Manifest.permission.POST_NOTIFICATIONS);
+        }
+        if (!perms.isEmpty()) requestPermissions(perms.toArray(new String[0]), 1);
 
         Intent in = getIntent();
         // Hovedloest sat DeX-reconnect (office-deploy: am start ... --ez dexreconnect true).
@@ -103,6 +111,9 @@ public class MainActivity extends Activity {
         statusView = body("");
         root.addView(statusView);
         refreshStatus();
+        space(root, dp, 16);
+
+        buildTokenUi(root, dp);
         space(root, dp, 16);
 
         // Her sad indtil 1.1 en "Opdater Husk"-knap med en kilde-note og en bekraeftelses-dialog.
@@ -232,6 +243,97 @@ public class MainActivity extends Activity {
         return sv;
     }
 
+    // Adgangstoken (1.4): feltet er den ene brugervej til at saette tokenet (den anden er
+    // /token/request med godkendelse paa telefonen). Maskeret som et kodeord; "Vis" afslører det.
+    private void buildTokenUi(LinearLayout root, int dp) {
+        root.addView(title(getString(R.string.token_heading), 16, false));
+        final android.widget.EditText field = new android.widget.EditText(this);
+        final int skjult = android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD;
+        final int synlig = android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+        field.setInputType(skjult);
+        field.setHint(getString(R.string.token_field_hint));
+        field.setTextColor(Color.WHITE);
+        field.setHintTextColor(Color.parseColor("#6B7480"));
+        field.setSingleLine(true);
+        field.setText(Rig.token);
+        tokenField = field;
+        tokenVist = Rig.token;
+        root.addView(field);
+
+        android.widget.CheckBox vis = new android.widget.CheckBox(this);
+        vis.setText(getString(R.string.token_show));
+        vis.setTextColor(Color.WHITE);
+        vis.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton v, boolean on) {
+                field.setInputType(on ? synlig : skjult);
+                field.setSelection(field.getText().length());
+            }
+        });
+        root.addView(vis);
+
+        LinearLayout knapper = new LinearLayout(this);
+        knapper.setOrientation(LinearLayout.HORIZONTAL);
+        Button gen = new Button(this);
+        gen.setText(getString(R.string.token_generate));
+        gen.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { field.setText(Rig.generateToken()); }
+        });
+        Button kopi = new Button(this);
+        kopi.setText(getString(R.string.token_copy));
+        kopi.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { kopierToken(field.getText().toString().trim()); }
+        });
+        Button gem = new Button(this);
+        gem.setText(getString(R.string.token_save));
+        gem.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                String t = field.getText().toString().trim();
+                // Uaendret felt, men tokenet er skiftet over API'et imens: Gem ville skrive det gamle tilbage.
+                if (t.equals(tokenVist) && !tokenVist.equals(Rig.token)) {
+                    visToken();
+                    Toast.makeText(MainActivity.this, getString(R.string.token_changed), Toast.LENGTH_LONG).show();
+                    return;
+                }
+                boolean ok = Rig.setToken(MainActivity.this, t);
+                if (ok) { tokenVist = t; TokenRequests.invalidate(MainActivity.this); }
+                int msg = !ok ? R.string.token_invalid : (t.isEmpty() ? R.string.token_cleared : R.string.token_saved);
+                Toast.makeText(MainActivity.this, getString(msg), Toast.LENGTH_LONG).show();
+            }
+        });
+        knapper.addView(gen);
+        knapper.addView(kopi);
+        knapper.addView(gem);
+        root.addView(knapper);
+        root.addView(body(getString(R.string.token_hint)));
+    }
+
+    private android.widget.EditText tokenField;
+    private String tokenVist = "";   // den vaerdi feltet sidst blev fyldt med fra Rig.token
+
+    // Fyld feltet igen hvis brugeren ikke har rettet i det, men tokenet er skiftet over API'et.
+    private void visToken() {
+        if (tokenField == null) return;
+        if (!tokenField.getText().toString().trim().equals(tokenVist)) return;
+        tokenVist = Rig.token;
+        tokenField.setText(Rig.token);
+    }
+
+    private void kopierToken(String t) {
+        if (t.isEmpty()) { Toast.makeText(this, getString(R.string.token_empty), Toast.LENGTH_SHORT).show(); return; }
+        try {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            android.content.ClipData clip = android.content.ClipData.newPlainText("Husk token", t);
+            // Android 13+ skjuler da vaerdien i udklipsholder-forhaandsvisningen (EXTRA_IS_SENSITIVE).
+            android.os.PersistableBundle x = new android.os.PersistableBundle();
+            x.putBoolean("android.content.extra.IS_SENSITIVE", true);
+            clip.getDescription().setExtras(x);
+            cm.setPrimaryClip(clip);
+            Toast.makeText(this, getString(R.string.token_copied), Toast.LENGTH_SHORT).show();
+        } catch (Throwable t2) {
+            Toast.makeText(this, getString(R.string.token_copy_failed), Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void refreshStatus() {
         if (statusView == null) return;
         String on = getString(R.string.status_on), off = getString(R.string.status_off);
@@ -249,6 +351,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         refreshStatus();   // vis FAKTISK tilstand naar appen aabnes igen (ikke stale)
+        visToken();
     }
 
 
@@ -285,7 +388,6 @@ public class MainActivity extends Activity {
 
     private void forwardCameraExtras(Intent in) {
         Intent svc = new Intent(this, CameraService.class);
-        if (in.hasExtra("token")) svc.putExtra("token", in.getStringExtra("token"));
         if (in.hasExtra("rot"))   svc.putExtra("rotation", in.getIntExtra("rot", 0));
         if (in.hasExtra("flip"))  svc.putExtra("flip", in.getBooleanExtra("flip", false));
         if (in.hasExtra("front")) svc.putExtra("front", in.getBooleanExtra("front", false));

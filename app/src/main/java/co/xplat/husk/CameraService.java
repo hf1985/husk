@@ -101,8 +101,7 @@ public class CameraService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
-            String tok = intent.getStringExtra("token");
-            if (tok != null) Rig.token = tok;
+            // Intet token-extra fra 1.4: prefs er eneste kilde (Rig.KEY_TOKEN).
             if (intent.hasExtra("rotation")) Rig.rotation = intent.getIntExtra("rotation", 0);
             if (intent.hasExtra("flip"))     Rig.flip = intent.getBooleanExtra("flip", false);
             if (intent.hasExtra("front"))    Rig.setUseFront(this, intent.getBooleanExtra("front", false));

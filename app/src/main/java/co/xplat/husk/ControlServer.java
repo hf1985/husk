@@ -20,7 +20,8 @@ import java.util.List;
 // Lille HTTP-server (raa ServerSocket, ingen lib) til den samlede rig. Den binder 0.0.0.0 - se
 // begrundelsen i start() (enumereringen af Tailscale-IP'en er ustabil). Fjernfladen daekkes derfor
 // af KILDE-IP-ACL'en (Net.peerAllowed: loopback/RFC1918/CGNAT/IPv6-ULA) + en valgfri delt token
-// (?token=...), IKKE af bindingen. /healthz og / er de eneste ruter uden token-tjek.
+// (?token=...), IKKE af bindingen. /healthz, / og /token/request + /token/status er de eneste ruter
+// uden token-tjek.
 // Een traad pr. listener-adresse; hver forbindelse haandteres paa egen traad.
 // (Her stod indtil 1.0 "BINDER KUN til loopback + Tailscale-IP'en, ALDRIG 0.0.0.0". Kommentaren var
 // forkert - koden har bundet 0.0.0.0 siden 0.9.x. Det er KOMMENTAREN der er rettet, ikke bindingen.)
@@ -34,6 +35,9 @@ import java.util.List;
 //                                front=0|1 vaelger kameraside, 400 ved ugyldig vaerdi,
 //                                409 hvis enheden ikke HAR den side)
 //   GET /                        -> minimal browser-viewer (overvaagning, M2)
+//   GET /token/request?client=&new= -> {"id","expires_in"}  (ingen token; brugeren godkender paa telefonen)
+//   GET /token/status?id=        -> pending|denied|expired|approved+token (ingen token; udleveres een gang)
+//   GET /token/set?token=&new=   -> skift et eksisterende token (401/409/400)
 public class ControlServer {
     static final String TAG = "Husk";
     static final int PORT = 8090;   // IKKE 8127/5037/27183/8022 - undgaar konflikt med rig-portene
@@ -159,8 +163,17 @@ public class ControlServer {
     private void dispatch(OutputStream out, String path, String query) throws IOException {
         if (path.equals("/healthz")) { writeText(out, 200, "ok"); return; }
         if (path.equals("/")) { writeText(out, 200, viewerHtml(), "text/html; charset=utf-8"); return; }
+        // Token-API (1.4): de to eneste ruter der undtages fra tokenOk ud over de to ovenfor. De
+        // udleverer intet uden at brugeren trykker Godkend paa telefonen (se TokenRequests, ogsaa for
+        // hvorfor det IKKE er et vaern paa en tokenloes enhed).
+        if (path.equals("/token/request")) { writeTokenRequest(out, query); return; }
+        if (path.equals("/token/status"))  { writeText(out, 200, TokenRequests.status(Rig.ctx(), param(query, "id")), "application/json"); return; }
 
         if (!tokenOk(query)) { writeText(out, 401, "unauthorized"); return; }
+
+        // /token/set?token=<nuv>&new=<nyt>: skift et EKSISTERENDE token. tokenOk er allerede passeret;
+        // er intet token sat, har tokenOk sagt ja uden at noget blev bevist, saa det er 409 her.
+        if (path.equals("/token/set"))  { writeTokenSet(out, query); return; }
 
         // --- status / info ---
         if (path.equals("/info"))       { writeText(out, 200, infoJson(), "application/json"); return; }
@@ -253,6 +266,26 @@ public class ControlServer {
             }
         }
         return b.append("]").toString();
+    }
+
+    private void writeTokenRequest(OutputStream out, String query) throws IOException {
+        String id = TokenRequests.request(Rig.ctx(), dparam(query, "client"), param(query, "new"));
+        if (TokenRequests.BUSY.equals(id)) { writeText(out, 429, "{\"error\":\"another request is pending\"}", "application/json"); return; }
+        if (TokenRequests.NO_NOTIF.equals(id)) { writeText(out, 503, "{\"error\":\"notifications are off on the phone\"}", "application/json"); return; }
+        writeText(out, 200, "{\"id\":\"" + id + "\",\"expires_in\":" + (TokenRequests.TTL_MS / 1000) + "}", "application/json");
+    }
+
+    private void writeTokenSet(OutputStream out, String query) throws IOException {
+        if (Rig.token == null || Rig.token.isEmpty()) {
+            writeText(out, 409, "{\"error\":\"no token set; use /token/request\"}", "application/json"); return;
+        }
+        String nyt = param(query, "new");
+        if (nyt == null || nyt.isEmpty() || !Rig.tokenValid(nyt)) {
+            writeText(out, 400, "{\"error\":\"new must be alphanumeric, " + Rig.TOKEN_MIN_LEN + "-" + Rig.TOKEN_MAX_LEN + " chars\"}", "application/json"); return;
+        }
+        Rig.setToken(Rig.ctx(), nyt);
+        TokenRequests.invalidate(Rig.ctx());   // et uafhentet resultat baerer nu det gamle token
+        writeText(out, 200, "{\"ok\":true}", "application/json");
     }
 
     private boolean tokenOk(String query) {
