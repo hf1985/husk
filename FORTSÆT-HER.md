@@ -106,9 +106,8 @@ Planen `husk-token-i-appen` (1.4). Frisk `fable`-agent over de tre repoers diff 
 | Gate 11 | ja | `infra/enheder.md` sagde 1.3/54; rettet (kun rundens egen linje committet) |
 | `P_xplat` | ja | to manglende mellemrum i API-teksten; rettet, deployet, live-målt (`a9c3d4c`) |
 
-⚠️ **Forrige runde (`HFs-lenovo`) efterlod governance-ændringer UCOMMITTEDE på Drive:** `infra/enheder.md`s
-A10e-/genmålings-linjer og `laering/2026-09-24-adgang-maalt-fra-en-maskine.md` findes ikke på `origin`.
-Denne runde har ikke committet dem (fremmed arbejde, måleregel 60/163).
+⚠️ Rettet efter gate-9b: forrige rundes governance-ændringer ER på `origin` (`8d850f7`). De lignede
+ucommitteret WIP fordi dells governance-HEAD var bagud, og en `git fetch` fejlede tavst på credential-kæden (måleregel 453).
 
 ## Hvor resten står
 
