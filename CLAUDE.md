@@ -124,6 +124,9 @@ Fuld tekst: `docs/fleet-tailnet-transport.md` og `docs/YDELSE-OG-DRIFT.md` §3.
   (`Net.peerAllowed`), så enhver peer styrer en enhed DIREKTE, **uden Termux**.
 - **Deploy til den kørende rig:** `adb install -r <apk>`, derefter `adb reboot`. **Launch IKKE
   `MainActivity` via `am start`**, heller ikke som test: det slår midlertidigt a11y fra.
+  ⛔ **`adb reboot` gælder Note10-riggen, ikke en spare:** 2026-09-24 kom A10e hverken op på 8090
+  eller på Tailscale efter en genstart, og den kræver nu nogen ved telefonen. Genstart kun en spare
+  når nogen er fysisk til stede.
 - **Efter enhver opdatering SKAL `/snapshot` OG `/screen.jpg` efterprøves pr. enhed** – porten
   kommer op uanset, så `/healthz` kan være grøn mens kameraet ligger nede (måleregel 422).
 - **`wake` FØRST på en spare:** en sovende skærm får a11y til at se kun navbaren og gestus til at
