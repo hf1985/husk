@@ -24,39 +24,45 @@ app-koden**.
 
 - **`docs/versionshistorik.md` har 247 bytes tilbage** til `projekt-historik-loft` (50000).
   Næste flytning af historik dertil gør den rød; retirér da ældre historik til et arkiv.
-- **`P_xplat/FORTSÆT-HER.md` siger stadig »Husk-kataloget er på 1.2/53«**, mens koden er 1.3/54
-  (`e779e06`). Ikke rettet, fordi filen bar en nabosessions uncommittede paysync-arbejde.
 - `pc/udadvendt.py`: `laes_loft`s `ud`-parameter bruges ikke længere efter `757f5f7`. Kosmetisk.
+- `pc/fdroid-fork-update.py` genskaber IKKE forkgrenen oven på upstream master; efter en merget MR
+  skal det gøres først (1.4: et commits-API-kald med `force`, `start_project` 36528). Kan foldes ind.
 
-## ✅ 2026-09-23: 1.3 ER UDGIVET (`HFs_Dell`)
+## ✅ 2026-09-24: 1.4 ER UDGIVET (`HFs_Dell`)
 
 | Hvad | Tilstand |
 |---|---|
-| Version | **1.3 / versionCode 54**, tag `v1.3` på byggecommiten `4c42206`, bygget fra `git archive HEAD` |
-| Hvad 1.3 retter | Kameraside huskes over en opdatering (`Rig.setUseFront` → prefs `husk`/`use_front`), og `requestFront` sætter `othersHaveCamera` ud fra det nye ids KENDTE tilstand frem for ubetinget `false`. Begge fund fra 2026-09-19; kode i `e5bacb9`. |
-| Kanalen | ⚠️ Planen foreskrev `Settings.Global` som `husk_token`. Den kan appen kun LÆSE (skrivning kræver `WRITE_SECURE_SETTINGS`), så valget ligger i prefs: overlever en opdatering, ikke en afinstallation. |
-| Signatur | `96195cfd…c17d`; asset hentet fra GitHub er sha256-identisk (`39c95f9f…1ef3`). 16 `uses-permission` som i 1.2. |
-| xplat.co | deployet (`P_xplat` `e779e06`); begge `latest.json` viser 54; `check-api-parity.sh` grøn (43 endpoints). |
-| F-Droid | **Ny MR `!49892`** fra en gren genskabt oven på upstream master (1 commit). Forkens pipeline `2876338895` grøn: F-Droid byggede 54 og verificerede mod vores binær. **Merget 2026-09-24 07:34 UTC af `linsui`** (målt i GitLab-API'et fra `HFs-lenovo`). |
-| Ikke målt | Opstarts-læsningen af `use_front` på en enhed. Mål: `/set?front=1`, genstart, `/flags.front`. |
+| Version | **1.4 / versionCode 55**, tag `v1.4` på byggecommiten `237b7cb`, bygget fra `git archive HEAD`. Kode i `4a0c345` |
+| Hvad 1.4 gør | Token-felt i appen (Generér/Kopiér/Gem), `/token/request` + `/token/status` med Godkend på telefonen, `/token/set`. Prefs er eneste kilde; den globale systemindstilling læses ikke (ingen migrering) |
+| Signatur | `96195cfd…c17d`; asset hentet fra GitHub er sha256-identisk (`83a1ddf7…cfa3`). 16 `uses-permission` som i 1.3 |
+| xplat.co | deployet (`P_xplat` `0563aef`); `latest.json` viser 55, APK 200; `check-api-parity.sh` grøn (46 endpoints) |
+| Repoets `latest.json` | slettet; `CLAUDE.md` og `docs/BUILD.md` nævner den ikke mere |
+| F-Droid | **MR `!50000`** fra en gren genskabt oven på upstream master. Forkens pipeline `2880318030` grøn: F-Droid byggede 55 og verificerede mod vores binær. Ikke merget endnu |
 
-⚠️ `pc/fdroid-fork-update.py`s dublet-tjek matchede `checkupdates-bot`s MR `!49420` (»Update Husk
-to 52«, samme grennavn i botens eget projekt) og sprang vores MR over med exit 0. Rettet: kun MR'er
-fra forken tæller. Bot-MR'en står åben med `conflict`; den er F-Droids, ikke vores.
+⚠️ `check-api-parity.sh` så indtil 1.4 ikke ruter med to segmenter (tegnklassen manglede `/`); rettet.
+⚠️ `git grep -c '"/token/'` fra Git Bash taber det literale `"` på vej til `git.exe` og svarer 0; `grep -c` på filen svarer 3.
 
-## ⛔ Flåden 2026-09-24: alle tre på ≥52, A10e NEDE efter en genstart og kræver ejeren ved telefonen
+1.3 (2026-09-23, `4c42206`, MR `!49892` merget): kameraside huskes i prefs. Detaljer: `git show e650ff3`.
 
-Målt 2026-09-24 fra `HFs-lenovo`. 2026-09-23-målingen fra `HFs_Dell` står i `docs/flaade-2026-09-23.tsv`.
+## ⛔ Flåden 2026-09-24: Note10 på 1.4 med token; A10e NEDE; 702SO tokenløs
 
-- **Note10** `.103.102`: **1.2 / 53**, målt med `husk-rig-token` fra vaulten (uden token: `401`).
-- **Sony 702SO** `.101.101`: **1.3 / 54**, svarer `200` uden token. `/control` virker; adb-broen 15557 er `offline`
-  fra både lenovo og dell (intet Wireless Debugging på Android 9).
-- **SM-A102U1** `.101.102`: var **1.3 / 54**. ⛔ **NEDE siden `adb reboot` kl. 10:50** - hverken 8090 eller
-  Tailscale kommer op (`rx 0` på tailnettet). Formodning, ikke målt: telefonen venter på første oplåsning
-  efter boot, så hverken Husk eller Tailscale starter. Kræver ejeren fysisk ved telefonen.
-  `husk_token` ER sat i `Settings.Global` (32 tegn, læst tilbage, identisk med vault-itemet
-  `Husk token SM-A102U1`), men negativ/positiv probe er IKKE taget: før genstarten svarede `/info` 200
-  uden, med og med forkert token, fordi appen kun læser feltet ved service-start.
+- **Note10** `.103.102`: **1.4 / 55**, opdateret headless 2026-09-24 fra `HFs_Dell` (Termux-ADB:
+  `/wd`, `adb connect 127.0.0.1:15557`, `push` + `pm install -r`; ingen genstart, `MainActivity` ikke startet).
+  Tokenet sat igen med `/token/request?client=vagt&new=<husk-rig-token>` + Godkend; udleveret token =
+  `husk-rig-token`, id'et svarede `expired` bagefter. Målt efter: `/info` 401 uden og med forkert token,
+  200 med og viser 55; `/snapshot` 200 JPEG (to gange); `/screen.jpg` 503 »no screen frame« som FØR
+  opdateringen. Også målt: Afvis giver `denied` og derefter `expired`, en anden anmodning imens giver
+  429, `/token/set` uden token 401 og med ugyldigt `new` 400. Ikke målt: 409 og 503 (notifikationer fra).
+  ⚠️ **Godkend via a11y virker ikke direkte:** notifikationen er sammenfoldet, og `find Approve` rammer
+  brødteksten (»…Approve to set one…«), ikke knappen; klik gav intet. Det der virkede: Termux-ADB
+  `cmd statusbar expand-notifications`, swipe ned på notifikationen, `uiautomator dump`, `input tap`
+  på knappen (`text="Approve"`). Telefonens UI er engelsk.
+- **SM-A102U1 (A10e)** `.101.102`: var **1.3 / 54**. ⛔ **NEDE siden `adb reboot` 2026-09-24** - kræver
+  ejeren ved telefonen. Når den er oppe og har fået 1.4 (F-Droid kan selv opdatere den): sæt tokenet i
+  appens felt med værdien fra vault-itemet `Husk token SM-A102U1`. Den gamle adb-sætning læses ikke af 1.4.
+- **Sony 702SO** `.101.101`: **1.3 / 54**, tokenløs, ingen Wireless Debugging (Android 9). Når den har 1.4:
+  klik »Hent fra telefonen« i husk-webcam, godkend på telefonen, og læg tokenet i vaulten som
+  `Husk token 702SO` (`put-login`).
 
 ⛔ **Rettelse af handoff-commit `1e7aa0e`:** »headless adb findes ikke« og »/screen.jpg
 svarer No screen frame, så UI'et kan ikke ses« var FORKERT. `/control` (H.264) viser skærmen på begge
@@ -67,16 +73,8 @@ spares, og A10e er parret med `hf198@HFS_DELL`, så `adb connect 100.100.101.102
 deploy-opskrift (»`adb install -r`, derefter `adb reboot`«) er skrevet til Note10-riggen; brug den ikke
 på en spare uden at nogen er ved telefonen.
 
-Tilbage:
-1. **Husk 1.4 er PLANLAGT, ikke startet:** `_styresystem/planer/2026-09-24-husk-token-i-appen-plan.md`.
-   Token-felt i appen, et API med godkendelse på telefonen, `Settings.Global`-vejen fjernet uden
-   migrering (ejerens valg), »Hent fra telefonen« i husk-webcam, og Note10 opdateret headless.
-   Ejerens svar står verbatim i planens Beslutninger; genforeslå dem ikke.
-2. **A10e:** kræver ejeren ved telefonen. Når den er oppe, virker dens `Settings.Global`-token indtil
-   1.4; efter 1.4 skal tokenet sættes i appen (værdien fra `Husk token SM-A102U1`).
-   ⚠️ Tokenet lukker PC-webcam-klienten ude til den får det.
-3. **`latest.json` i repoet:** betingelsen for sletning er opfyldt (53, 54, 54, målt 2026-09-24); planens
-   `S6` sletter den.
+Ejerens svar om 1.4 (felt, API, ingen migrering) står verbatim i planen `2026-09-24-husk-token-i-appen-plan.md`,
+som efter runde-luk kun findes i `10_PROJEKTER`-repoets historik (`git log --all -- '*husk-token-i-appen*'`). Genforeslå dem ikke.
 
 ## BESLUTTEDE opgaver: status 2026-09-24
 
@@ -85,7 +83,7 @@ Opskrifterne står i `docs/besluttede-opgaver.md`.
 1. **Afpublicér APK-assets til og med `v0.9.30` – ✅ UDFØRT 2026-09-23** efter ejerens ja.
    42 assets slettet (releases og tags står); listen og værnene: `docs/afpubliceret-2026-09-23.txt`.
    Eftermålt: tre stikprøver 404, `v0.9.31`/`v1.0`/`v1.1`/`v1.2`/`v1.3` alle 200.
-2. **Token på spares – ÅBEN:** A10e har feltet sat men er nede efter en genstart; 702SO har intet. Kuren er et token-felt i appen (1.4), se flåde-afsnittet.
+2. **Token på spares – ÅBEN:** 1.4 er udgivet; A10e er nede og 702SO står på 1.3 uden token. Trinene pr. enhed står i flåde-afsnittet.
 3. **503-årsagen fra 2026-09-07 – AFSKREVET af ejeren 2026-09-23** (»Den er overflødig«). Genrejs den ikke.
 
 ## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-24, `HFs-lenovo`)
