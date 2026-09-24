@@ -58,7 +58,7 @@ Målt 2026-09-24 fra `HFs-lenovo`. 2026-09-23-målingen fra `HFs_Dell` står i `
   `Husk token SM-A102U1`), men negativ/positiv probe er IKKE taget: før genstarten svarede `/info` 200
   uden, med og med forkert token, fordi appen kun læser feltet ved service-start.
 
-⛔ **Rettelse af 2026-09-24-teksten ovenfor i historikken:** »headless adb findes ikke« og »/screen.jpg
+⛔ **Rettelse af handoff-commit `1e7aa0e`:** »headless adb findes ikke« og »/screen.jpg
 svarer No screen frame, så UI'et kan ikke ses« var FORKERT. `/control` (H.264) viser skærmen på begge
 spares, og A10e er parret med `hf198@HFS_DELL`, så `adb connect 100.100.101.102:15557` lykkes fra dell
 (ikke fra lenovo, hvis nøgle ikke er parret). `/screen.jpg` er MJPEG-vejen og var tom, mens H.264-vejen virkede.
@@ -68,18 +68,17 @@ deploy-opskrift (»`adb install -r`, derefter `adb reboot`«) er skrevet til Not
 på en spare uden at nogen er ved telefonen.
 
 Tilbage:
-1. **Token skal kunne sættes I HUSK** (ejerens ord 2026-09-24: »Token skal kunne sættes i HUSK. Hvordan
-   skal andre ellers sætte det? Brugervenlighed kommer altid først.«). I dag er `Settings.Global` via adb
-   eneste vej, og appen læser den kun ved service-start. Kuren er et felt i `MainActivity` (samme mønster
-   som ntfy-emnet), gemt i appens prefs og sat i `Rig.token` med det samme. Det er app-kode, så
-   release-pligten gælder: 1.4.
-2. **Token på begge spares**, når 1.4 er ude eller A10e er oppe igen. Vault-item til A10e findes;
-   702SO har intet endnu. Negativ probe (uden token) skal give 401, positiv 200.
+1. **Husk 1.4 er PLANLAGT, ikke startet:** `_styresystem/planer/2026-09-24-husk-token-i-appen-plan.md`.
+   Token-felt i appen, et API med godkendelse på telefonen, `Settings.Global`-vejen fjernet uden
+   migrering (ejerens valg), »Hent fra telefonen« i husk-webcam, og Note10 opdateret headless.
+   Ejerens svar står verbatim i planens Beslutninger; genforeslå dem ikke.
+2. **A10e:** kræver ejeren ved telefonen. Når den er oppe, virker dens `Settings.Global`-token indtil
+   1.4; efter 1.4 skal tokenet sættes i appen (værdien fra `Husk token SM-A102U1`).
    ⚠️ Tokenet lukker PC-webcam-klienten ude til den får det.
-3. **`latest.json` i repoet har ingen læser længere:** `/info` viser ≥52 på alle tre (54, 54, 53,
-   målt 2026-09-24), så betingelsen for at slette den er opfyldt. Ikke slettet endnu.
+3. **`latest.json` i repoet:** betingelsen for sletning er opfyldt (53, 54, 54, målt 2026-09-24); planens
+   `S6` sletter den.
 
-## BESLUTTEDE opgaver: status 2026-09-23
+## BESLUTTEDE opgaver: status 2026-09-24
 
 Opskrifterne står i `docs/besluttede-opgaver.md`.
 
@@ -89,18 +88,18 @@ Opskrifterne står i `docs/besluttede-opgaver.md`.
 2. **Token på spares – ÅBEN:** A10e har feltet sat men er nede efter en genstart; 702SO har intet. Kuren er et token-felt i appen (1.4), se flåde-afsnittet.
 3. **503-årsagen fra 2026-09-07 – AFSKREVET af ejeren 2026-09-23** (»Den er overflødig«). Genrejs den ikke.
 
-## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-23, `HFs_Dell`)
+## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-24, `HFs-lenovo`)
 
-Frisk `fable`-agent over rundens diff, planens lukke-betingelser og PLAN.md 4A.
+Ad hoc-runde (flåde-ajourføring, token på A10e, 1.4-planen). Frisk `fable`-agent over diffen og PLAN.md 4A. Runden 2026-09-23s tabel ligger i git (`e650ff3`).
 
-| Linse | REFUTERET | Målt |
+| Linse | REFUTERET | Målt og gjort |
 |---|---|---|
-| S1, S2, S4-S7, S9 | nej | artefakter + live (begge `latest.json` 54, MR `!49892` mergeable, 42 releases uden assets, 31/31) |
-| S3 | delvist | `grep -c Settings.Global` = 1 var sandt før rettelsen; ægte bevis: dex i 1.3 bærer `use_front` |
-| S8 | delvist | registrets tekst sagde »ca. 5700 tilbage«; reelt 247. Rettet |
-| Java (invariant C, tråde) | nej | `unavailableIds` kun på `camHandler`; ingen clobber via `loadMotionPrefs` |
-| Gate 7, 9, 11 | delvist | handoff-overdrivelse, `P_xplat`-handoff på 1.2, Note10-token-vejen manglede i `infra/enheder.md`. Rettet / noteret ovenfor |
-| Gate 1-4, 8 | nej | intet modul/template; læring skrevet; ingen ny PII eller flade |
+| Handoff mod `CLAUDE.md` | delvist | `latest.json` modent uden vej; nu planens `S6` |
+| Planen køreklar | delvist | forkert webcam-HEAD (`da98525`), `P_xplat` manglede i feltet, S9 uden WD-gendannelse, S4 for smal lukning, værn 1 falsk på tokenløs enhed, A10e manglede i ingen-migrering. Alle rettet |
+| Gate 4 | ja | tre urutede læringer; skrevet i `_styresystem/laering/2026-09-24-adgang-maalt-fra-en-maskine.md` |
+| Gate 7 | ja | `infra/enheder.md` og husk-webcams handoff var bagud; rettet |
+| Gate 8 | delvist | ingen secrets i diffen; den nye auth-flade er beskrevet i planen |
+| Gate 9, 11 | delvist | token rammer husk-webcam og `pc/spare.sh`; adb-parringen fra dell skrevet i `enheder.md` |
 
 ## Hvor resten står
 
