@@ -36,7 +36,7 @@
 >     tegn). Med `AutoUpdateMode: Version` lander en release UDEN denne fil med et tomt
 >     »What's New« i F-Droid.
 > 4. Opdatér `fdroid/co.xplat.husk.yml` og spejl den op i forken.
->    ⛔ **!40810 (15-09) og !49350 (20-09) er MERGET; 1.3's MR er `!49892` (åbnet 23-09). Er den også merget, kræver en opdatering en NY MR fra en gren frisk fra upstream master.**
+>    ⛔ **!40810 (15-09) og !49350 (20-09) er MERGET; 1.3's MR `!49892` blev merget 24-09. Derfor kræver en opdatering en NY MR fra en gren frisk fra upstream master.**
 >    Værktøjerne kræver `--adversarisk` og har et tegn-loft.
 > 5. Opdatér HUSK-konstanterne (`HUSK_VERSION_*`) i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
 > 6. **API-DOK-GATE (obligatorisk):** ændrer releasen endpoints/params/respons/adgangsmodel? Ajourfør
@@ -115,7 +115,7 @@ argv. `.gitignore` dækker `*.keystore` OG `*.jks`. Nøgleskiftet: `docs/BUILD.m
 Nuværende: **1.3 / versionCode 54** (2026-09-23, `HFs_Dell`, tagget på byggecommiten `4c42206`).
 1.3 husker kamerasiden over en opdatering (prefs `husk`/`use_front`, IKKE `Settings.Global`, som
 appen kun kan læse), og et sideskift åbner ikke længere et kamera en anden app holder. API-fladen
-er den samme som i 1.2. F-Droid-MR `!49892` er åben; forkens pipeline reproducerede 54.
+er den samme som i 1.2. F-Droid-MR `!49892` blev merget 2026-09-24; forkens pipeline reproducerede 54.
 Alle tidligere udgaver: `docs/versionshistorik.md`.
 
 ## Flåde, tailnet-transport og deploy til en KØRENDE rig
