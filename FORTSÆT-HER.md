@@ -101,6 +101,8 @@ Ad hoc-runde (flåde-ajourføring, token på A10e, 1.4-planen). Frisk `fable`-ag
 | Gate 8 | delvist | ingen secrets i diffen; den nye auth-flade er beskrevet i planen |
 | Gate 9, 11 | delvist | token rammer husk-webcam og `pc/spare.sh`; adb-parringen fra dell skrevet i `enheder.md` |
 
+**Trin 4 (baseline 120 poster):** NYE FUND 0 (cache `e2c76b7e7985` mod baselinen). UKENDT 8: seks har korpus `ingen`/intet felt og kan ikke stå i en baseline; `check-eol-vs-attributes.sh` og `check-trae-tilbagerulning.sh#1` kørt enkeltvis: fund i Kärnfull-repoer og uberørte webcam-scripts, intet i rundens filer. BAGGRUND 26, ingen i rundens korpus.
+
 ## Hvor resten står
 
 - **Release-proceduren, invarianterne og flåde-tabellen:** `CLAUDE.md`. Gentag dem ikke her.
