@@ -1,0 +1,5 @@
+Set the access token in the app.
+
+New Access token field with Generate, Copy and Save. A PC app can also ask for the token: the phone shows a notification, and you tap Approve (GET /token/request, /token/status; /token/set changes it).
+
+The token is no longer read from a global system setting set with adb. After updating, set the token again in the app. Without a token, anyone on your Tailscale network can control the phone.

@@ -10,28 +10,21 @@
 > ⚠️ **Fra 1.1 har appen INGEN indbygget updater** (F-Droid-fund 3-9, 15-09-2026: en app der henter
 > og installerer sine egne opdateringer omgår butikkens signering og review). Flåden opgraderes
 > derefter gennem **F-Droid-klienten** eller **`adb install` over husets Termux-ADB**.
-> **TRE flader hedder næsten det samme, og de har hver sin ejer. Hold dem fra hinanden:**
+> **To versionsflader, hver med sin ejer:**
 >
 > | Flade | Hvem læser den | Hvornår kan den gå væk |
 > |---|---|---|
 > | `HUSK_VERSION_NAME`/`_CODE` i `P_xplat/hosting/app.py` | websiden, og `pc/check-api-parity.sh`, som sammenligner `HUSK_VERSION_CODE` med `app/build.gradle` | aldrig – den er release-gaten |
-> | `https://xplat.co/husk/latest.json` | genereres af de konstanter; **læses desuden af 1.0-flådens updater som FØRSTE kilde** | når flåden er på 1.1 mister den sin app-læser, men bliver som websidens versionsvisning |
-> | `latest.json` **i dette repo** | KUN 1.0-flådens updater, som fallback når xplat.co ikke svarer | når flåden er på 1.1 har den **ingen læser tilbage** og kan slettes |
+> | `https://xplat.co/husk/latest.json` | genereres af de konstanter; websidens versionsvisning | bliver |
 >
-> ⚠️ `check-api-parity.sh` læser **ikke** `latest.json` – den sammenligner `app/build.gradle` med
-> `P_xplat`s `HUSK_VERSION_CODE`.
->
-> ⛔ **Undtagelsen udløber:** 1.0-telefoner HAR stadig updateren. Begge `latest.json`-flader skal
-> derfor stå rigtigt indtil hele flåden er på 1.1 – det er den sidste opgradering der kan ske i
-> appen. Rør ikke repoets `latest.json`s FORM før da, og slet den først når `/info` på hver enhed
-> viser 52 eller derover.
+> Repoets `latest.json` er SLETTET i 1.4: dens eneste læser var 1.0-updateren, og hele flåden viste
+> ≥52 (53, 54, 54, målt 2026-09-24). Genskab den ikke.
 >
 > **Release-huskeliste** (fuld procedure: `docs/BUILD.md` §4–7):
 > 1. Bump `versionCode` + `versionName` – ÉT sted: `app/build.gradle`.
 > 2. Byg `assembleRelease` i WSL + signér med release-keystoren (alias `husk`; adgangskode fra vaulten).
-> 3. Opdatér repo'ets `latest.json` (versionsfelter + `apk`-URL). ⛔ **Læg ALDRIG APK'en i repoet
->    igen** – binære filer i kildetræet kan ikke revideres, `.gitignore` dækker `*.apk`, og den
->    signerede APK hører i GitHub-releasen.
+> 3. ⛔ **Læg ALDRIG APK'en i repoet** – binære filer i kildetræet kan ikke revideres, `.gitignore`
+>    dækker `*.apk`, og den signerede APK hører i GitHub-releasen.
 > 3b. **Skriv `fastlane/metadata/android/{en-US,da}/changelogs/<versionCode>.txt`** (maks 500
 >     tegn). Med `AutoUpdateMode: Version` lander en release UDEN denne fil med et tomt
 >     »What's New« i F-Droid.
@@ -47,12 +40,11 @@
 >    sidde på PRÆCIS byggecommiten**, og tag og asset udledes af `versionName`, ikke af semver:
 >    F-Droids `Binaries:` er `.../download/v%v/husk-v%v.apk`. Er versionName `1.2`, hedder tagget
 >    `v1.2` og assettet `husk-v1.2.apk` – ellers henter F-Droid en 404 og indsendelsen brækker.
-> 8. Verificér: BÅDE `https://xplat.co/husk/latest.json` OG
->    `https://raw.githubusercontent.com/hf1985/husk/main/latest.json` viser den nye `versionCode` og
->    peger på en APK der FAKTISK kan hentes, og F-Droid/GitLab-pipelinen er GRØN. En 404 bag
->    `apk`-feltet er en fejlet releaseprøve, ikke en skønhedsfejl.
+> 8. Verificér: `https://xplat.co/husk/latest.json` viser den nye `versionCode` og peger på en APK
+>    der FAKTISK kan hentes, og F-Droid/GitLab-pipelinen er GRØN. En 404 bag `apk`-feltet er en
+>    fejlet releaseprøve, ikke en skønhedsfejl.
 >
-> **Definition af færdig:** begge `latest.json`-endpoints viser den nye version og en hentbar APK,
+> **Definition af færdig:** `xplat.co/husk/latest.json` viser den nye version og en hentbar APK,
 > F-Droid-pipelinen er grøn, **OG `pc/check-api-parity.sh` er grøn + `/husk/api` er ajour** (trin 6).
 > Før ALT dette er opgaven ÅBEN – uanset hvor grøn builden er lokalt.
 >
@@ -112,10 +104,9 @@ echo $ANDROID_HOME` gav TOM, og `local.properties` blev skrevet tom. Enkeltcitat
 login-item `Husk release-signeringsnoegle (keystore husk-release.jks, base64)`; arbejdskopi i WSL
 `~/android-build/husk-signing/husk-release.jks`. Kodeordet står ALDRIG i en fil i repoet og aldrig i
 argv. `.gitignore` dækker `*.keystore` OG `*.jks`. Nøgleskiftet: `docs/BUILD.md` §5.
-Nuværende: **1.3 / versionCode 54** (2026-09-23, `HFs_Dell`, tagget på byggecommiten `4c42206`).
-1.3 husker kamerasiden over en opdatering (prefs `husk`/`use_front`, IKKE `Settings.Global`, som
-appen kun kan læse), og et sideskift åbner ikke længere et kamera en anden app holder. API-fladen
-er den samme som i 1.2. F-Droid-MR `!49892` blev merget 2026-09-24; forkens pipeline reproducerede 54.
+Nuværende: **1.4 / versionCode 55** (2026-09-24, `HFs_Dell`, tag `v1.4` på byggecommiten).
+1.4: tokenet sættes i appen eller via `/token/request` (tre nye ruter); adb-vejen er væk.
+1.3 huskede kamerasiden (prefs `husk`/`use_front`). Status og F-Droid-MR: `FORTSÆT-HER.md`.
 Alle tidligere udgaver: `docs/versionshistorik.md`.
 
 ## Flåde, tailnet-transport og deploy til en KØRENDE rig

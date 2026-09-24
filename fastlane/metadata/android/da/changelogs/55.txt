@@ -1,0 +1,5 @@
+Adgangstokenet sættes i appen.
+
+Nyt felt Adgangstoken med Generér, Kopiér og Gem. En PC-app kan også bede om tokenet: telefonen viser en notifikation, og du trykker Godkend (GET /token/request, /token/status; /token/set skifter det).
+
+Tokenet læses ikke længere fra en global systemindstilling sat med adb. Sæt det igen i appen efter opdateringen. Uden token kan enhver på dit Tailscale-net styre telefonen.

@@ -88,7 +88,7 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
    `.../da/changelogs/<versionCode>.txt` (maks 500 tegn hver). Filnavnet er versionCode, ikke
    versionName. Uden den viser F-Droid et tomt »What's New« for udgivelsen, fordi
    `AutoUpdateMode: Version` ikke selv skriver en changelog.
-5. Opdatér `latest.json` (ny versionCode) + `fdroid/co.xplat.husk.yml` (ny Builds-entry
+5. Opdatér `fdroid/co.xplat.husk.yml` (ny Builds-entry
    `commit: <fuld 40-tegns sha>` + `CurrentVersion`/`CurrentVersionCode`; **quoting:**
    to-punktums-version som `0.9.26` er UNQUOTED).
    **Aldrig et tag eller et grennavn i `commit:`** - linsui bad udtrykkeligt om den fulde hash
@@ -109,9 +109,8 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
    IKKE i dette repo, kun i fdroiddata-forken) på branch `co.xplat.husk` via GitLab **commits-API**
    (`POST /projects/hf16%2Ff-droid/repository/commits`, `action: update`), og poll pipelinen til
    `success`. Kør med `py -3.11` + `urllib` (mønster: denne release-sessions `fdroid-update.py`).
-9. **Definition af færdig:** `curl https://xplat.co/husk/latest.json` OG
-   `curl https://raw.githubusercontent.com/hf1985/husk/main/latest.json` viser BEGGE den nye
-   `versionCode`, F-Droid/GitLab-pipelinen er grøn, **OG API-dok-gaten (trin 6b) er grøn +
+9. **Definition af færdig:** `curl https://xplat.co/husk/latest.json` viser den nye
+   `versionCode` (repoets egen `latest.json` er slettet i 1.4), F-Droid/GitLab-pipelinen er grøn, **OG API-dok-gaten (trin 6b) er grøn +
    `/husk/api` er ajour**. (Erfaring 2026-07-12: en release bumpede versionen men glemte 5 nye
    endpoints + CSRF-adgangsmodellen i `/husk/api`; `pc/check-api-parity.sh` fanger netop dét.)
 
@@ -305,13 +304,9 @@ annoncerer en version der ikke kan hentes):
 
 1. Bump `versionCode` + `versionName` i `app/build.gradle`.
 2. Byg + signér (afsnit 4–5).
-3. Opdater repo'ets `latest.json` – **kun** versionsfelterne og `apk`-URL'en, som skal pege på
-   release-assettet. Læg ALDRIG APK'en i repoet igen (se trin 4 i afsnit 0b).
-   ⚠️ Repoets `latest.json` har **én eneste læser tilbage**: 1.0-flådens indbyggede updater, som
-   bruger den som fallback når `xplat.co` ikke svarer. Den har ingen anden rolle - hverken for
-   websiden (den genereres af `HUSK_VERSION_*` i `P_xplat`) eller for `check-api-parity.sh` (som
-   sammenligner `app/build.gradle` med `HUSK_VERSION_CODE`). **Når hver enhed viser 52 eller
-   derover i `/info`, kan filen slettes, og så falder dette trin bort.**
+3. **Bortfaldet i 1.4:** repoets `latest.json` er slettet. Dens eneste læser var 1.0-flådens
+   indbyggede updater, og hver enhed viste 52 eller derover i `/info` (målt 2026-09-24). Læg
+   ALDRIG APK'en i repoet igen (se trin 4 i afsnit 0b).
 4. Opdater xplat HUSK-konstanter i `P_xplat/hosting/app.py` (`HUSK_VERSION_NAME`,
    `HUSK_VERSION_CODE`, `HUSK_APK` = release-assettet) **OG DEPLOY xplat.co** (`P_xplat`:
    `check-local.sh` grøn → kør fra **Git Bash**: `bash scripts/hosting-deploy.sh --apply`.
@@ -319,9 +314,6 @@ annoncerer en version der ikke kan hentes):
    Asura-nøglen gennem `scripts/deploy-asura/wsl-transport.sh`. Rettet 2026-09-04 efter at
    den gamle ordlyd fik en runde til at melde deployet umuligt)
    **+ verificér live**: `curl https://xplat.co/husk/latest.json` skal vise den nye `versionCode`.
-   KRITISK: appens updater spørger xplat.co FØRST (GitHub-raw er kun fallback) – glemmer man at
-   deploye xplat, siger enheder der nåer xplat "allerede nyeste" (set 0.9.18–0.9.21). Begge endpoints
-   skal vise samme version.
 4b. **API-dok-gate:** ajourfør `HUSK_API`-kataloget ved nye/ændrede endpoints/params/adgangsmodel, og
    kør `bash pc/check-api-parity.sh` (skal være grøn) – se §0b trin 6b. Opgaven er IKKE færdig før den.
 5. GitHub-release med den signerede APK.
@@ -407,12 +399,10 @@ curl -s --header "$H" "https://gitlab.com/api/v4/projects/$FORK/jobs/<JOB_ID>/tr
 
 **Øvrige post-publish-tjek** (ikke GitLab, men hører til samme runde):
 - GitHub-tag `vX` skal pege på den committede kilde (F-Droid bygger fra `commit: vX`).
-- Metadata: `https://raw.githubusercontent.com/hf1985/husk/main/latest.json` skal matche den nye
-  `versionCode`, og den `apk`-URL den navngiver skal kunne HENTES (fra 1.1 er det release-assettet,
-  ikke en fil i repoet). ⚠️ Release-assettet ligger på `github.com/.../releases/download/...`, som
-  kæder til USERTrust og kan fejle TLS på Android 9 - modsat `raw.githubusercontent.com` (ISRG Root
-  X1, betroet ned til 7.1.1). En telefon der ikke kan hente filen, opgraderes med `adb install`.
-- xplat: `https://xplat.co/husk/latest.json` opdateret (HUSK-konstanter i `P_xplat`).
+- xplat: `https://xplat.co/husk/latest.json` opdateret (HUSK-konstanter i `P_xplat`), og den
+  `apk`-URL den navngiver skal kunne HENTES (release-assettet). ⚠️ Assettet ligger på
+  `github.com/.../releases/download/...`, som kæder til USERTrust og kan fejle TLS på Android 9.
+  En telefon der ikke kan hente filen, opgraderes med `adb install`.
 
 ## 7b. Reproducerbar build mod F-Droid (indført 2026-09-03, MR !40810)
 
