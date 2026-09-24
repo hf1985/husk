@@ -76,8 +76,8 @@ Tokenet er tomt som standard, så kilde-IP-ACL'en er eneste spærre – og den l
    systemindstilling) læses ikke længere; den er fjernet uden migrering.
 4. Læs tilbage, og efterprøv **begge retninger**: `/info` skal svare **401 uden** token og 200 med.
    Den negative probe er hele pointen (måleregel 1).
-5. Ret `pc/spare.sh` og `pc/spare.ps1` så de sender tokenet. Søg efter flere forbrugere med
-   `grep -rn "8090" P_app_husk/pc P_kontor` før du erklærer dig færdig.
+5. `pc/spare.sh` og `pc/spare.ps1` sender allerede tokenet fra `HUSK_TOKEN` (målt 2026-09-24).
+   Søg efter flere forbrugere med `grep -rn "8090" P_app_husk/pc P_kontor` før du erklærer dig færdig.
 
 ### 3. Hvorfor kom kamera- og skærmtjenesten ikke op efter opdateringen? (var `S9`)
 

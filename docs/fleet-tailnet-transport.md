@@ -259,8 +259,8 @@ spare.ps1 a11 control                           # aabn browser-viewer: live skae
 ```
 
 **Deploy (ny Husk-build) headless – bevist loop:**
-1. Byg + signér + udgiv releasen normalt (RELEASE-PLIGT: begge `latest.json`-endpoints skal vise
-   den nye `versionCode`). Spares henter fra `xplat.co/husk/latest.json` ligesom Note10.
+1. Byg + signér + udgiv releasen normalt (RELEASE-PLIGT: `xplat.co/husk/latest.json` skal vise
+   den nye `versionCode`; repoets egen `latest.json` er slettet i 1.4).
 2. `spare.ps1 <a9|a11> update` → foreground + download + commit.
 3. `spare.ps1 <..> shot` for at se OS-dialogen:
    - **Play Protect »App scan recommended«** (fersk sideload): tap **More details**, `shot`, tap så

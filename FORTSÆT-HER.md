@@ -43,7 +43,8 @@ Genmåling før start afveg kun ved handoff-commits: Husk `4fca1b9` (planen: `31
 | F-Droid | **MR `!50000`** fra en gren genskabt oven på upstream master. Forkens pipeline `2880318030` grøn: F-Droid byggede 55 og verificerede mod vores binær. Ikke merget endnu |
 
 ⚠️ `check-api-parity.sh` så indtil 1.4 ikke ruter med to segmenter (tegnklassen manglede `/`); rettet.
-⚠️ `git grep -c '"/token/'` fra Git Bash taber det literale `"` på vej til `git.exe` og svarer 0; `grep -c` på filen svarer 3.
+⚠️ `git grep -c '"/token/'` fra Git Bash svarer 0, fordi MSYS sti-konverterer et argument med `/segment/` (måleregel 452-klassen), ikke fordi `"` tabes: `MSYS_NO_PATHCONV=1 git grep ...` svarer 3.
+⚠️ **Kendt fejl til næste release (fundet af Trin 3, ikke rettet i 1.4):** `TokenRequests.decide` fornyer ikke `createdMs` ved Godkend, så en godkendelse tæt på 120 s kan nå at udløbe før klienten henter; på en tokenløs enhed er tokenet da SAT uden at nogen fik det (læs det i appens felt). Kur: sæt `createdMs = now` ved Godkend.
 
 1.3 (2026-09-23, `4c42206`, MR `!49892` merget): kameraside huskes i prefs. Detaljer: `git show e650ff3`.
 
@@ -63,7 +64,8 @@ Genmåling før start afveg kun ved handoff-commits: Husk `4fca1b9` (planen: `31
 - **SM-A102U1 (A10e)** `.101.102`: var **1.3 / 54**. ⛔ **NEDE siden `adb reboot` 2026-09-24** - kræver
   ejeren ved telefonen. Når den er oppe og har fået 1.4 (F-Droid kan selv opdatere den): sæt tokenet i
   appens felt med værdien fra vault-itemet `Husk token SM-A102U1`. Den gamle adb-sætning læses ikke af 1.4.
-- **Sony 702SO** `.101.101`: **1.3 / 54**, tokenløs, ingen Wireless Debugging (Android 9). Når den har 1.4:
+- **Sony 702SO** `.101.101`: **1.3 / 54**, tokenløs, ingen Wireless Debugging (Android 9). Vejen til 1.4 er
+  F-Droid-klienten hvis den er installeret, ellers `adb install -r` med kabel på stedet. Når den har 1.4:
   klik »Hent fra telefonen« i husk-webcam, godkend på telefonen, og læg tokenet i vaulten som
   `Husk token 702SO` (`put-login`).
 
@@ -89,20 +91,24 @@ Opskrifterne står i `docs/besluttede-opgaver.md`.
 2. **Token på spares – ÅBEN:** 1.4 er udgivet; A10e er nede og 702SO står på 1.3 uden token. Trinene pr. enhed står i flåde-afsnittet.
 3. **503-årsagen fra 2026-09-07 – AFSKREVET af ejeren 2026-09-23** (»Den er overflødig«). Genrejs den ikke.
 
-## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-24, `HFs-lenovo`)
+## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-24, `HFs_Dell`)
 
-Ad hoc-runde (flåde-ajourføring, token på A10e, 1.4-planen). Frisk `fable`-agent over diffen og PLAN.md 4A. Runden 2026-09-23s tabel ligger i git (`e650ff3`).
+Planen `husk-token-i-appen` (1.4). Frisk `fable`-agent over de tre repoers diff og PLAN.md 4A. Forrige rundes tabel: `git show f2fadd2:FORTSÆT-HER.md`.
 
 | Linse | REFUTERET | Målt og gjort |
 |---|---|---|
-| Handoff mod `CLAUDE.md` | delvist | `latest.json` modent uden vej; nu planens `S6` |
-| Planen køreklar | delvist | forkert webcam-HEAD (`da98525`), `P_xplat` manglede i feltet, S9 uden WD-gendannelse, S4 for smal lukning, værn 1 falsk på tokenløs enhed, A10e manglede i ingen-migrering. Alle rettet |
-| Gate 4 | ja | tre urutede læringer; skrevet i `_styresystem/laering/2026-09-24-adgang-maalt-fra-en-maskine.md` |
-| Gate 7 | ja | `infra/enheder.md` og husk-webcams handoff var bagud; rettet |
-| Gate 8 | delvist | ingen secrets i diffen; den nye auth-flade er beskrevet i planen |
-| Gate 9, 11 | delvist | token rammer husk-webcam og `pc/spare.sh`; adb-parringen fra dell skrevet i `enheder.md` |
+| S1, S3, S5-S10 | nej | artefakter målt: tags, live `latest.json` 55, MR `!50000`, suite 217, Note10 401/200 |
+| S2, S4 | delvist | kodens krav holder; plan-grep `husk_token` rammer kanal-id'et `husk_token_request` (delstreng). Statuslinjerne omformuleret |
+| Gate 4 | delvist | `git grep`-fejlen var MSYS-sti-konvertering, ikke tabt `"`; rettet ovenfor. Læring skrevet i `_styresystem/laering/` |
+| Gate 7 | delvist | `docs/fleet-tailnet-transport.md` og `docs/besluttede-opgaver.md` forældede; 702SO's vej til 1.4 manglede. Rettet |
+| Gate 8 | delvist | ingen secrets; TTL-kant i `TokenRequests.decide` (kendt fejl ovenfor); README siger nu at en peer kan sætte sit eget token på en tokenløs enhed |
+| Gate 9 | nej | `pc/spare.*`, `P_kontor`, `P_add-on_phone-transport` bærer ingen adb-token-vej |
+| Gate 11 | ja | `infra/enheder.md` sagde 1.3/54; rettet (kun rundens egen linje committet) |
+| `P_xplat` | ja | to manglende mellemrum i API-teksten; rettet, deployet, live-målt (`a9c3d4c`) |
 
-**Trin 4 (baseline 120 poster):** NYE FUND 0 (cache `e2c76b7e7985` mod baselinen). UKENDT 8: seks har korpus `ingen`/intet felt og kan ikke stå i en baseline; `check-eol-vs-attributes.sh` og `check-trae-tilbagerulning.sh#1` kørt enkeltvis: fund i Kärnfull-repoer og uberørte webcam-scripts, intet i rundens filer. BAGGRUND 26, ingen i rundens korpus.
+⚠️ **Forrige runde (`HFs-lenovo`) efterlod governance-ændringer UCOMMITTEDE på Drive:** `infra/enheder.md`s
+A10e-/genmålings-linjer og `laering/2026-09-24-adgang-maalt-fra-en-maskine.md` findes ikke på `origin`.
+Denne runde har ikke committet dem (fremmed arbejde, måleregel 60/163).
 
 ## Hvor resten står
 

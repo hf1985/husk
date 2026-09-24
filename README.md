@@ -69,7 +69,8 @@ Other devices send the token as `?token=` to control the phone. There are two wa
 
 **A device without a token is open:** anyone on your Tailscale network can control it, and can
 therefore also tap *Approve* on the phone themselves (through the accessibility API). The approval
-only protects once a token is set. Until 1.3 the token could be set with adb as a global system
+only protects once a token is set. Such a peer can even set a token of its own choosing and lock
+you out; clear or replace it in the app's field. Set a token before you share the network. Until 1.3 the token could be set with adb as a global system
 setting; 1.4 no longer reads it, so set the token again after updating.
 
 ## Permissions (and why)
