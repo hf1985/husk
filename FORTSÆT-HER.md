@@ -44,7 +44,7 @@ app-koden**.
 to 52«, samme grennavn i botens eget projekt) og sprang vores MR over med exit 0. Rettet: kun MR'er
 fra forken tæller. Bot-MR'en står åben med `conflict`; den er F-Droids, ikke vores.
 
-## Flåden 2026-09-24: alle tre på ≥52, A10e NEDE efter en genstart
+## ⛔ Flåden 2026-09-24: alle tre på ≥52, A10e NEDE efter en genstart og kræver ejeren ved telefonen
 
 Målt 2026-09-24 fra `HFs-lenovo`. 2026-09-23-målingen fra `HFs_Dell` står i `docs/flaade-2026-09-23.tsv`.
 
