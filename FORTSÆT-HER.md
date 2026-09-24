@@ -30,6 +30,9 @@ app-koden**.
 
 ## ✅ 2026-09-24: 1.4 ER UDGIVET (`HFs_Dell`)
 
+Genmåling før start afveg kun ved handoff-commits: Husk `4fca1b9` (planen: `31a0575`), husk-webcam `ca86e2b`
+(planen: `da98525`); `P_xplat` `409780a` som planen, efter at det maskin-lokale indeks var fremført (måleregel 403).
+
 | Hvad | Tilstand |
 |---|---|
 | Version | **1.4 / versionCode 55**, tag `v1.4` på byggecommiten `237b7cb`, bygget fra `git archive HEAD`. Kode i `4a0c345` |
