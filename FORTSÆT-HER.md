@@ -48,18 +48,23 @@ fra forken tæller. Bot-MR'en står åben med `conflict`; den er F-Droids, ikke 
 
 Målt 2026-09-24 fra `HFs-lenovo` med `/info` på 8090 uden token. 2026-09-23-målingen fra `HFs_Dell` står i `docs/flaade-2026-09-23.tsv`.
 
-- **Note10** `.103.102`: `401 unauthorized` (token kræves); 2026-09-23 målt til **1.0 / 51**. Bevidst ikke rørt (kontor-mødekameraet).
+- **Note10** `.103.102`: **1.2 / 53**, målt 2026-09-24 med `husk-rig-token` fra vaulten (uden token: `401`). Ejeren har opgraderet den; 2026-09-23 stod den på 1.0 / 51.
 - **SM-A102U1** `.101.102` og **Sony 702SO** `.101.101`: online og **1.3 / 54** efter at ejeren har genforbundet
   og opdateret dem. Begge svarer `200` UDEN token, så ingen af dem har et endnu.
 
 Tilbage:
-1. **Token på den spare der kan nås over Wireless Debugging** (ejerens beslutning 2026-09-23):
+1. **Token på BEGGE spares** (ejerens ordre 2026-09-24, udvider beslutningen fra 23-09).
+   ⛔ **Headless adb findes ikke, målt 2026-09-24 fra `HFs-lenovo`:** `adb connect :15557` giver
+   `offline` på begge, `:5555` afvises (10061), og `/wd` svarer `wd recovery failed` på begge, også
+   efter `wake`. `/screen.jpg` svarer »No screen frame« trods `screen:true`, så UI'et kan ikke ses.
+   702SO (Android 9) har intet Wireless Debugging og kræver USB én gang (`adb tcpip 5555`).
+   Fremgangsmåde når adb er der:
    generér ≥24 tegn fra `/dev/urandom`, læg i vaulten FØR enheden (`put-login "husk token <enhed>"`),
    `adb shell settings put global husk_token`, installér 1.3. Negativ probe (uden token) skal give
    401/403, positiv 200 med 54. Mål samtidig `use_front` over en genstart.
    ⚠️ Tokenet lukker PC-webcam-klienten ude til den får det; skriv her hvilken enhed der fik et.
-2. **`latest.json` i repoet bliver stående:** de to spares viser 54, men Note10 stod på 51 ved
-   seneste målbare `/info`. Slet den først når `/info` på alle tre viser ≥52.
+2. **`latest.json` i repoet har ingen læser længere:** `/info` viser ≥52 på alle tre (54, 54, 53,
+   målt 2026-09-24), så betingelsen for at slette den er opfyldt. Ikke slettet endnu.
 
 ## BESLUTTEDE opgaver: status 2026-09-23
 
@@ -68,7 +73,7 @@ Opskrifterne står i `docs/besluttede-opgaver.md`.
 1. **Afpublicér APK-assets til og med `v0.9.30` – ✅ UDFØRT 2026-09-23** efter ejerens ja.
    42 assets slettet (releases og tags står); listen og værnene: `docs/afpubliceret-2026-09-23.txt`.
    Eftermålt: tre stikprøver 404, `v0.9.31`/`v1.0`/`v1.1`/`v1.2`/`v1.3` alle 200.
-2. **Token på spares – ÅBEN, ikke længere blokeret:** begge spares er online på 1.3/54 siden 2026-09-24, men ingen har token (se flåde-afsnittet).
+2. **Token på spares – ÅBEN, blokeret af adb:** begge spares er online på 1.3/54 siden 2026-09-24, men ingen har token, og ingen af dem kan nås med adb headless (se flåde-afsnittet).
 3. **503-årsagen fra 2026-09-07 – AFSKREVET af ejeren 2026-09-23** (»Den er overflødig«). Genrejs den ikke.
 
 ## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-23, `HFs_Dell`)
