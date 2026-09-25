@@ -103,7 +103,8 @@ function Request-Token([switch]$AllowOld) {
   }
   if ($r.Code -eq 429) { Fail 'Another token request is waiting on the phone. Approve or deny it there, then run setup again.' }
   if ($r.Code -eq 503) { Fail 'Notifications for Husk are off on the phone. Turn them on, then run setup again.' }
-  if ($r.Code -eq 404) { Fail 'The phone runs a Husk older than 1.4. Update Husk (F-Droid), then run setup again.' }
+  # A pre-1.4 Husk has no /token/request: 404 without a token, 401 with an old adb-set token.
+  if ($r.Code -eq 404 -or $r.Code -eq 401) { Fail 'The phone runs a Husk older than 1.4. Update Husk (F-Droid), then run setup again.' }
   if ($r.Code -ne 200) { Fail "/token/request answered $($r.Code): $($r.Body)" }
   $j = $null; try { $j = $r.Body | ConvertFrom-Json } catch { }
   if (-not $j -or -not $j.id) { Fail "/token/request gave an unreadable answer: $($r.Body)" }

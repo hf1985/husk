@@ -102,6 +102,9 @@ grøn). Følg den, så rammer du ikke de samme faldgruber igen. **Kør ALT fra B
    `P_xplat/hosting/app.py` (driver BÅDE `/husk/api` OG `/husk/openapi.json`) og re-deploy. Kør
    **`bash pc/check-api-parity.sh`** (fra `P_app_husk`) → **skal være GRØN** (fejler ved
    udokumenterede/stale endpoints + versionCode-drift). Verificér `/husk/api` live.
+6c. **Ændrer releasen adgangsmodellen** (token, auth, nye krav til klienter)? Efterprøv også
+   installationsvejledningen på `/husk` (`husk_body` i `P_xplat/hosting/app.py`) og
+   `pc/husk-companion.ps1` mod den nye model. Samme punkt som i `CLAUDE.md`s huskeliste.
 7. Commit (brug `git commit -F <fil>` med dansk besked, så æøå ikke mangler) + `git tag vX.Y.Z` +
    `git push origin main` + `git push origin vX.Y.Z`.
 8. **F-Droid-fork uden clone** (fdroiddata er for stor at klone): opdatér

@@ -36,6 +36,10 @@
 >    `HUSK_API`-kataloget (+ OpenAPI-beskrivelsen) i `P_xplat/hosting/app.py` (driver BÅDE `/husk/api`
 >    OG `/husk/openapi.json`), deploy xplat, og kør **`bash pc/check-api-parity.sh` → skal være GRØN**
 >    (fejler ved udokumenterede/stale endpoints + versionCode-drift). Verificér `/husk/api` live.
+> 6c. **ÆNDRER RELEASEN ADGANGSMODELLEN** (token, auth, nye krav til klienter)? Så efterprøv også
+>    installationsvejledningen på `/husk` (`husk_body` i `P_xplat/hosting/app.py`) og
+>    `pc/husk-companion.ps1` mod den nye model. 1.4 opdaterede API-docs, men vejledningen bad ikke
+>    om et token, og companionen fik 401 på `/pair` (rettet 2026-09-25, `7e324ef`).
 > 7. Commit + tag `v<versionName>` + push; GitHub-release med den signerede APK. ⛔ **Tagget SKAL
 >    sidde på PRÆCIS byggecommiten**, og tag og asset udledes af `versionName`, ikke af semver:
 >    F-Droids `Binaries:` er `.../download/v%v/husk-v%v.apk`. Er versionName `1.2`, hedder tagget

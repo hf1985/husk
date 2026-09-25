@@ -20,6 +20,13 @@ app-koden**.
 > (`e5bacb9`, `757f5f7`). Afleveringens »beslægtede fund« (to læsere af `konstanter.tsv`) er IKKE
 > udført; det står som fund 2 i `_styresystem/FORTSÆT-HER.md` 2026-09-20.
 
+## 2026-09-25: PC-companionen kører med 1.4 (`7e324ef` + runde-luk-rettelsen `[luk3b:companion-13-401]`, `HFs-lenovo`)
+
+Companionen henter tokenet via `/token/request` (Godkend på telefonen), gemmer det med DPAPI, kalder `/pair` og `/wd` med det, og genvejene genopretter via `/wd` efter en genstart.
+Målt mod Note10: 401 uden og med forkert token, 200 med det rigtige; token-blokkens tre grene korrekte med `Request-Token` stubbet.
+⚠️ **Ikke målt live:** selve Godkend-flowet, `/pair` og `/wd`-genopretningen. Første rigtige kørsel på en PC er beviset.
+Eksisterende companion-installationer (også husets egne PC'er) skal hentes og køres igen; ellers fejler genvejene på en telefon med token.
+
 ## Åbne småting fra runde-luk 2026-09-23
 
 - **`docs/versionshistorik.md` har 247 bytes tilbage** til `projekt-historik-loft` (50000).
