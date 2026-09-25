@@ -51,6 +51,10 @@ stutter" postmortem.
 ## PC companion (scrcpy)
 `pc/husk-companion.ps1` -- a PowerShell setup script for a fresh Windows 11 (bootstraps scrcpy via
 winget, pairs the PC hands-free via `/pair`, creates desktop shortcuts). See **xplat.co/husk**.
+Since 1.4 it asks the phone for the access token with `/token/request` (tap *Approve* on the phone),
+offers to set one if the phone has none, and stores it with Windows' per-user encryption (DPAPI).
+The shortcuts turn Wireless Debugging back on through `/wd` when the phone has rebooted.
+Run the script again after the token has changed.
 
 ## HTTP API (port 8090, loopback + Tailscale, optional `?token=`)
 `/healthz` (open) · `/snapshot` · `/stream` (MJPEG) · `/wd` (turn on Wireless Debugging, read ip:port)
