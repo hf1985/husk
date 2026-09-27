@@ -118,6 +118,10 @@ Ad hoc-runde »token på spares«. Frisk `fable`-agent over `76a0439`, `362a1ca`
 | Gate 9b (2 stemmer) | ja, begge | 503-årsagen og »lukket som overflødig/dublet« var stærkere end målingen; memory-påstanden for bred; `enheder.md`s gamle overskrift og A9-kabellinjen modsagde. Alt omformuleret. `spare.sh` grøn (401, curl-timeout, 200) |
 | Egen måling | ja | min diagnose »skærmdeling slået fra« for A10e's `/screen.jpg` 503 holdt ikke: 200 efter `wake` (årsag: sovende skærm eller dovne producer, se flåde-afsnittet) |
 
+**Trin 4 (`koer-tjek.sh --kun-nye`, baseline-filen, 81 kald: 47 målt, 34 sprunget):** NYE FUND 2, BAGGRUND 27, UKENDT 7.
+NYE: `check-memory-spejl.ps1` var rundens (memory rettet i én home) og er grøn efter `sync-config-homes.ps1`; `check-relative-refs.sh` stod på synk-gaten (to deltag-repoer bagud) og er grøn efter scopet `sync-repos.sh`.
+UKENDT: fire med `@tjek-korpus: ingen` og to uden feltet er baggrund pr. konstruktion; `check-trae-tilbagerulning.sh#1` målt særskilt: to filer i Kärnfull og dells paritetsmarkør, ingen fra runden. BAGGRUND: ti bash-tjek og tre PowerShell-tjek (de sidste scopet til `P_app_husk` og `-viewer`, rc=0) nævner ingen af rundens filer.
+
 `P_kontor/docs/tailscale-migration.md:66` bytter `xperia-hfb` og `.102` i en tabel dateret 2026-05-24; lukket som historik, ikke rettet.
 
 ## Hvor resten står
