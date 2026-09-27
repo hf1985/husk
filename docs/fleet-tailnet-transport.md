@@ -137,11 +137,12 @@ det var kun versionen der drev.
 | Rolle | Tailscale-IP | Model | Android | DeX | Token | Transport |
 |---|---|---|---|---|---|---|
 | Kontor-mødekamera (rig) | 100.100.103.102 | Samsung SM-N975U1 (Note10+) | 12 | ja | håndhævet | Termux+SSH (8022) **og** direkte 8090/15557 |
-| Spare A | 100.100.101.101 | Sony **702SO** (Xperia XZ1 Compact) | **9** (SDK 28) | nej | ingen | kun direkte 8090/15557 (ingen Termux) |
-| Spare B | 100.100.101.102 | Samsung **SM-A102U1** (Galaxy A10e) | **11** (SDK 30) | nej | ingen | kun direkte 8090/15557 (ingen Termux) |
+| Spare A | 100.100.101.101 | Sony **702SO** (Xperia XZ1 Compact) | **9** (SDK 28) | nej | håndhævet | kun direkte 8090/15557 (ingen Termux) |
+| Spare B | 100.100.101.102 | Samsung **SM-A102U1** (Galaxy A10e) | **11** (SDK 30) | nej | håndhævet | kun direkte 8090/15557 (ingen Termux) |
 
-Note10 = SM-N975U1; forveksl ALDRIG med den personlige S25 (SM-S938B). Spare A/B er tokenløse
-(verificeret: `/flags` + `/info` svarede 200 uden token) → ingen hemmelighed nødvendig for at nå dem.
+Note10 = SM-N975U1; forveksl ALDRIG med den personlige S25 (SM-S938B). Spare A/B har token siden
+2026-09-27 (1.4; `/info` 401 uden, 200 med): vault-items `Husk token 702SO` og `Husk token SM-A102U1`.
+Indtil da var de tokenløse.
 
 ## 3. Bevist Termux-løs cyklus på begge spares (health + kontrol)
 
