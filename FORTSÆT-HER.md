@@ -47,7 +47,7 @@ Genmåling før start afveg kun ved handoff-commits: Husk `4fca1b9` (planen: `31
 | Signatur | `96195cfd…c17d`; asset hentet fra GitHub er sha256-identisk (`83a1ddf7…cfa3`). 16 `uses-permission` som i 1.3 |
 | xplat.co | deployet (`P_xplat` `0563aef`); `latest.json` viser 55, APK 200; `check-api-parity.sh` grøn (46 endpoints) |
 | Repoets `latest.json` | slettet; `CLAUDE.md` og `docs/BUILD.md` nævner den ikke mere |
-| F-Droid | **MR `!50000`** fra en gren genskabt oven på upstream master. Forkens pipeline `2880318030` grøn: F-Droid byggede 55 og verificerede mod vores binær. Ikke merget endnu |
+| F-Droid | **Upstream på 1.4/55 via botten:** `!50097` »bot: Update Husk to 55« merget 2026-09-25 09:30; vores `!50000` lukket af `linsui` 11 min. senere som overflødig (målt 2026-09-27). `AutoUpdateMode` virker altså, så en release behøver ikke egen MR |
 
 ⚠️ `check-api-parity.sh` så indtil 1.4 ikke ruter med to segmenter (tegnklassen manglede `/`); rettet.
 ⚠️ `git grep -c '"/token/'` fra Git Bash svarer 0, fordi MSYS sti-konverterer et argument med `/segment/` (måleregel 452-klassen), ikke fordi `"` tabes: `MSYS_NO_PATHCONV=1 git grep ...` svarer 3.
