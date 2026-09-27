@@ -55,7 +55,14 @@ Genmåling før start afveg kun ved handoff-commits: Husk `4fca1b9` (planen: `31
 
 1.3 (2026-09-23, `4c42206`, MR `!49892` merget): kameraside huskes i prefs. Detaljer: `git show e650ff3`.
 
-## ⛔ Flåden 2026-09-24: Note10 på 1.4 med token; A10e NEDE; 702SO tokenløs
+## Flåden 2026-09-27: hele flåden på 1.4 med token
+
+**2026-09-27 (`HFs-lenovo`):** ejeren opdaterede begge spares til 1.4 og genererede et token i appen.
+Hentet med `/token/request?client=claude-lenovo` + Approve på telefonen, lagt i vaulten som
+`Husk token SM-A102U1` (opdateret) og `Husk token 702SO` (nyt). Målt med vault-værdien: `/info` 401 uden og
+med forkert token, 200 med og viser 1.4/55 på begge. `/snapshot` 200 på begge (702SO svarede 503 første gang,
+mens kameraet startede). `/screen.jpg`: 702SO 200, A10e 503 »no screen frame« (skærmdeling slået fra i appen).
+Punkterne om A10e og 702SO nedenfor er dermed historik.
 
 - **Note10** `.103.102`: **1.4 / 55**, opdateret headless 2026-09-24 fra `HFs_Dell` (Termux-ADB:
   `/wd`, `adb connect 127.0.0.1:15557`, `push` + `pm install -r`; ingen genstart, `MainActivity` ikke startet).
@@ -95,7 +102,7 @@ Opskrifterne står i `docs/besluttede-opgaver.md`.
 1. **Afpublicér APK-assets til og med `v0.9.30` – ✅ UDFØRT 2026-09-23** efter ejerens ja.
    42 assets slettet (releases og tags står); listen og værnene: `docs/afpubliceret-2026-09-23.txt`.
    Eftermålt: tre stikprøver 404, `v0.9.31`/`v1.0`/`v1.1`/`v1.2`/`v1.3` alle 200.
-2. **Token på spares – ÅBEN:** 1.4 er udgivet; A10e er nede og 702SO står på 1.3 uden token. Trinene pr. enhed står i flåde-afsnittet.
+2. **Token på spares – ✅ UDFØRT 2026-09-27:** begge på 1.4 med token i vaulten; målingen står i flåde-afsnittet.
 3. **503-årsagen fra 2026-09-07 – AFSKREVET af ejeren 2026-09-23** (»Den er overflødig«). Genrejs den ikke.
 
 ## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-24, `HFs_Dell`)
