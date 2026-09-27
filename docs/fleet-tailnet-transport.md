@@ -4,7 +4,7 @@ Dato: 2026-07-02. Kanonisk notat for hvordan Husk-enheder nås og styres **uden 
 flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-memory:
 `note10-meeting-camera`.
 
-> ## SENESTE STATUS (2026-09-04, handoff til enhver session/bruger)
+> ## HISTORISK STATUS (2026-09-04; aktuel tilstand: `FORTSÆT-HER.md` »Flåden 2026-09-27«)
 > - **HELE flåden på 0.9.31/50 med den NYE signeringsnøgle** (målt 2026-09-04 via `/info`):
 >   Note10 SM-N975U1 (A12), Sony 702SO (A9, sdk 28) og Samsung SM-A102U1 (A11, sdk 30). Alle tre
 >   har a11y oppe, skærmdeling til, batteri-undtagelsen på, og `/snapshot` svarer 200 med et
@@ -129,8 +129,8 @@ gjaldt HANDLINGEN, ikke transporten, og gælder derfor stadig.
 
 ⛔ **VERSIONS-KOLONNEN ER FLYTTET UD AF DETTE AFSNIT, og overskriften her lovede engang noget
 falsk.** Indtil 2026-09-19 stod der »alle på Husk 0.9.25 / versionCode 44«. Flåden har ikke
-været ensartet siden Husk 1.1: `100.100.101.102` kører 1.1 / 52, mens Note10 og `.101` bevidst
-står på 1.0 / 51. Kanonisk versionstabel med begrundelsen pr. enhed:
+været ensartet mellem Husk 1.1 og 1.4; pr. 2026-09-27 står hele flåden på 1.4 / 55 (mål altid
+`/info` frem for at stole på et tal her). Kanonisk versionstabel med begrundelsen pr. enhed:
 `_styresystem/infra/enheder.md`. **Rollerne, adresserne og transporten nedenfor er uændrede** -
 det var kun versionen der drev.
 
@@ -244,7 +244,7 @@ ved næste fysiske berøring / skærm-timeout. Ingen state-ændring udført.
 Kernen: **væk skærmen, SE den, HANDL på koordinater.** En idle spare sover; alt kontrol-arbejde
 starter med et `wake`. Harnessen `pc/spare.ps1` (Windows/PowerShell) og `pc/spare.sh` (Git Bash/WSL)
 pakker 8090-fladen ind. Aliaser: `a9`/`sony` = .101, `a11`/`samsung` = .102, `note10`/`rig` = .103.102
-(sidstnævnte kræver token i `$env:HUSK_TOKEN`; spares er tokenløse).
+(alle tre kræver token i `$env:HUSK_TOKEN`, spares siden 2026-09-27; uden token svarer de 401).
 
 ```
 spare.ps1 a11 health                          # /healthz + /flags + /info

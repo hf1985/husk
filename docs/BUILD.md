@@ -338,6 +338,7 @@ failed pipeline. Stående regel: erklær aldrig "færdig" før pipelinen er grø
 > ⛔ **RETTET 2026-09-19: !40810 er MERGET, og arbejdsgangen nedenfor er FORÆLDET på tre punkter.**
 > `!40810` (»New app«) blev merget 15-09-2026, og opdaterings-MR'en **`!49350`** fulgte 20-09-2026.
 > **Der er derfor INGEN levende MR** (målt 2026-09-22), og en opdatering kræver sin egen: hverken en ny commit på forkens gren eller en kommentar på en merget MR fører ændringen videre til upstream.
+> **Men en ren versions-release klarer F-Droids `checkupdates-bot` selv** (`AutoUpdateMode: Version`): 1.4 kom upstream via `!50097`, og vores `!50000` blev lukket uden merge 11 minutter senere (målt 2026-09-27). Egen MR kun når metadata ud over versionen ændres.
 > **Værktøjerne er desuden gatet:** `pc/fdroid-mr-comment.py` og
 > `pc/fdroid-fork-update.py --opret-mr` kræver nu `--adversarisk "<hvad blev gennemgået, og hvad
 > fandt den>"` og afviser en tekst over sit loft (`pc/udadvendt.py`). `fdroid-mr-comment.py`
@@ -397,7 +398,7 @@ curl -s --header "$H" "https://gitlab.com/api/v4/projects/$FORK/jobs/<JOB_ID>/tr
    også venter på pipelinen.
 3. Opdatér den LEVENDE MR med `py -3.11 pc/fdroid-mr-comment.py <fil> --mr <nr> --beskrivelse --adversarisk "<fund>"`, eller post en note uden `--beskrivelse`.
    Begge kræver `--adversarisk` og har et tegn-loft.
-   ⛔ **I dag findes der ingen levende MR** (`!49350` blev merget 20-09-2026), så åbn en NY med `--opret-mr` fra en gren der er frisk fra upstream master.
+   ⛔ **I dag findes der ingen levende MR** (`!49350` blev merget 20-09-2026), så åbn en NY med `--opret-mr` fra en gren der er frisk fra upstream master - men kun når metadata ud over versionen ændres; en ren versions-release tager botten (se ovenfor).
 4. Poll pipelinen til **success**.
 
 **Øvrige post-publish-tjek** (ikke GitLab, men hører til samme runde):

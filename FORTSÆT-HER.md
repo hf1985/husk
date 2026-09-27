@@ -47,7 +47,7 @@ Genmåling før start afveg kun ved handoff-commits: Husk `4fca1b9` (planen: `31
 | Signatur | `96195cfd…c17d`; asset hentet fra GitHub er sha256-identisk (`83a1ddf7…cfa3`). 16 `uses-permission` som i 1.3 |
 | xplat.co | deployet (`P_xplat` `0563aef`); `latest.json` viser 55, APK 200; `check-api-parity.sh` grøn (46 endpoints) |
 | Repoets `latest.json` | slettet; `CLAUDE.md` og `docs/BUILD.md` nævner den ikke mere |
-| F-Droid | **Upstream på 1.4/55 via botten:** `!50097` »bot: Update Husk to 55« merget 2026-09-25 09:30; vores `!50000` lukket af `linsui` 11 min. senere som overflødig (målt 2026-09-27). `AutoUpdateMode` virker altså, så en release behøver ikke egen MR |
+| F-Droid | **Upstream på 1.4/55 via botten:** `!50097` »bot: Update Husk to 55« merget 2026-09-25 09:30 UTC af `linsui`, bygget og publiceret (`f-droid.org/api/v1/packages/co.xplat.husk` viser 55); vores `!50000` lukket uden merge af `linsui` 11 min. senere (målt 2026-09-27; begrundelsen er ikke læst). `AutoUpdateMode` virker altså, så en release behøver ikke egen MR |
 
 ⚠️ `check-api-parity.sh` så indtil 1.4 ikke ruter med to segmenter (tegnklassen manglede `/`); rettet.
 ⚠️ `git grep -c '"/token/'` fra Git Bash svarer 0, fordi MSYS sti-konverterer et argument med `/segment/` (måleregel 452-klassen), ikke fordi `"` tabes: `MSYS_NO_PATHCONV=1 git grep ...` svarer 3.
@@ -61,8 +61,11 @@ Genmåling før start afveg kun ved handoff-commits: Husk `4fca1b9` (planen: `31
 Hentet med `/token/request?client=claude-lenovo` + Approve på telefonen, lagt i vaulten som
 `Husk token SM-A102U1` (opdateret) og `Husk token 702SO` (nyt). Målt med vault-værdien: `/info` 401 uden og
 med forkert token, 200 med og viser 1.4/55 på begge. `/snapshot` 200 på begge (702SO svarede 503 første gang,
-mens kameraet startede). `/screen.jpg`: 702SO 200, A10e 503 »no screen frame« (skærmdeling slået fra i appen).
-Punkterne om A10e og 702SO nedenfor er dermed historik.
+mens kameraet startede). `/screen.jpg`: 702SO 200; A10e svarede 503 »no screen frame« uden `wake`, og 200
+efter `spare.sh a11 shot` (som vækker først). Årsagen kan være den sovende skærm ELLER den dovne skærm-producers
+opstart (første kald vækker den selv); kontrollen, to kald i træk uden `wake`, er ikke taget.
+Opdateringen til 1.4 lavede ejeren ved telefonerne; vejen (F-Droid-klient eller kabel) er ikke noteret.
+Token-vejen i 1.4 bruges nu af alle tre enheder; `pc/spare.*` kræver derfor `HUSK_TOKEN` også mod spares.
 
 - **Note10** `.103.102`: **1.4 / 55**, opdateret headless 2026-09-24 fra `HFs_Dell` (Termux-ADB:
   `/wd`, `adb connect 127.0.0.1:15557`, `push` + `pm install -r`; ingen genstart, `MainActivity` ikke startet).
@@ -75,13 +78,8 @@ Punkterne om A10e og 702SO nedenfor er dermed historik.
   brødteksten (»…Approve to set one…«), ikke knappen; klik gav intet. Det der virkede: Termux-ADB
   `cmd statusbar expand-notifications`, swipe ned på notifikationen, `uiautomator dump`, `input tap`
   på knappen (`text="Approve"`). Telefonens UI er engelsk.
-- **SM-A102U1 (A10e)** `.101.102`: var **1.3 / 54**. ⛔ **NEDE siden `adb reboot` 2026-09-24** - kræver
-  ejeren ved telefonen. Når den er oppe og har fået 1.4 (F-Droid kan selv opdatere den): sæt tokenet i
-  appens felt med værdien fra vault-itemet `Husk token SM-A102U1`. Den gamle adb-sætning læses ikke af 1.4.
-- **Sony 702SO** `.101.101`: **1.3 / 54**, tokenløs, ingen Wireless Debugging (Android 9). Vejen til 1.4 er
-  F-Droid-klienten hvis den er installeret, ellers `adb install -r` med kabel på stedet. Når den har 1.4:
-  klik »Hent fra telefonen« i husk-webcam, godkend på telefonen, og læg tokenet i vaulten som
-  `Husk token 702SO` (`put-login`).
+- **SM-A102U1 (A10e)** `.101.102` og **Sony 702SO** `.101.101`: 1.4/55 med token siden 2026-09-27 (se ovenfor).
+  A10e var nede fra `adb reboot` 2026-09-24 til ejeren låste den op; 702SO har ingen Wireless Debugging (Android 9).
 
 ⛔ **Rettelse af handoff-commit `1e7aa0e`:** »headless adb findes ikke« og »/screen.jpg
 svarer No screen frame, så UI'et kan ikke ses« var FORKERT. `/control` (H.264) viser skærmen på begge
@@ -105,23 +103,22 @@ Opskrifterne står i `docs/besluttede-opgaver.md`.
 2. **Token på spares – ✅ UDFØRT 2026-09-27:** begge på 1.4 med token i vaulten; målingen står i flåde-afsnittet.
 3. **503-årsagen fra 2026-09-07 – AFSKREVET af ejeren 2026-09-23** (»Den er overflødig«). Genrejs den ikke.
 
-## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-24, `HFs_Dell`)
+## Adversarisk verifikation (`/luk-runde` Trin 3, 2026-09-27, `HFs-lenovo`)
 
-Planen `husk-token-i-appen` (1.4). Frisk `fable`-agent over de tre repoers diff og PLAN.md 4A. Forrige rundes tabel: `git show f2fadd2:FORTSÆT-HER.md`.
+Ad hoc-runde »token på spares«. Frisk `fable`-agent over `76a0439`, `362a1ca`, `1ed2db1` og `enheder.md`-diffen. Forrige rundes tabel (1.4-planen): `git show 1ed2db1:FORTSÆT-HER.md`.
 
 | Linse | REFUTERET | Målt og gjort |
 |---|---|---|
-| S1, S3, S5-S10 | nej | artefakter målt: tags, live `latest.json` 55, MR `!50000`, suite 217, Note10 401/200 |
-| S2, S4 | delvist | kodens krav holder; plan-grep `husk_token` rammer kanal-id'et `husk_token_request` (delstreng). Statuslinjerne omformuleret |
-| Gate 4 | delvist | `git grep`-fejlen var MSYS-sti-konvertering, ikke tabt `"`; rettet ovenfor. Læring skrevet i `_styresystem/laering/` |
-| Gate 7 | delvist | `docs/fleet-tailnet-transport.md` og `docs/besluttede-opgaver.md` forældede; 702SO's vej til 1.4 manglede. Rettet |
-| Gate 8 | delvist | ingen secrets; TTL-kant i `TokenRequests.decide` (kendt fejl ovenfor); README siger nu at en peer kan sætte sit eget token på en tokenløs enhed |
-| Gate 9 | nej | `pc/spare.*`, `P_kontor`, `P_add-on_phone-transport` bærer ingen adb-token-vej |
-| Gate 11 | ja | `infra/enheder.md` sagde 1.3/54; rettet (kun rundens egen linje committet) |
-| `P_xplat` | ja | to manglende mellemrum i API-teksten; rettet, deployet, live-målt (`a9c3d4c`) |
+| Gate 1-3 | nej | kun docs; intet modul, ingen vendored kilde, intet template-bidrag |
+| Gate 4 | delvist | F-Droid-bot-kapabiliteten stod kun i projektet; nu også i `infra/gitlab.md`. Memory `reference_husk_spare_wake_first` sagde »spares er tokenløse«; rettet kun i `~/.claude` (begge projektmapper); `.claude-k`, `.claude-dlm` og det kanoniske sæt får den ved næste memory-synk |
+| Gate 7 | delvist | 14 forældede steder (fleet-doc, `BUILD.md`, `besluttede-opgaver.md` §2, `fdroid-fork-update.py`, denne fil); rettet |
+| Gate 8 | nej | 0 tokens i diffen; `/info` 401 uden token på alle tre. Tokenet gik som `?token=` i lokal curl-argv under målingen, ikke via config-fil |
+| Gate 9 | delvist | `pc/spare.sh shot` meldte en 401 som »skærmen sov«; rettet til `ERR HTTP <kode>` og målt (401, 200, 200). husk-viewer-docs sagde »INGEN token«; rettet |
+| Gate 11 | delvist | `enheder.md` modsagde sig selv (»umålt«, »VALG«-afsnittet); rettet |
+| Gate 9b (2 stemmer) | ja, begge | 503-årsagen og »lukket som overflødig/dublet« var stærkere end målingen; memory-påstanden for bred; `enheder.md`s gamle overskrift og A9-kabellinjen modsagde. Alt omformuleret. `spare.sh` grøn (401, curl-timeout, 200) |
+| Egen måling | ja | min diagnose »skærmdeling slået fra« for A10e's `/screen.jpg` 503 holdt ikke: 200 efter `wake` (årsag: sovende skærm eller dovne producer, se flåde-afsnittet) |
 
-⚠️ Rettet efter gate-9b: forrige rundes governance-ændringer ER på `origin` (`8d850f7`). De lignede
-ucommitteret WIP fordi dells governance-HEAD var bagud, og en `git fetch` fejlede tavst på credential-kæden (måleregel 453).
+`P_kontor/docs/tailscale-migration.md:66` bytter `xperia-hfb` og `.102` i en tabel dateret 2026-05-24; lukket som historik, ikke rettet.
 
 ## Hvor resten står
 

@@ -59,7 +59,10 @@ invalid«). Git kan stadig pushe, fordi Windows Credential Manager bærer en bru
 kan hentes med `printf 'protocol=https\nhost=github.com\n\n' | git credential fill`. Den virkede
 til at oprette en release og lægge et asset op. Mål det FØR du planlægger en bulk-sletning.
 
-### 2. Sæt et token på de to spares (var `S2`) – SIKKERHED
+### 2. Sæt et token på de to spares (var `S2`) – SIKKERHED – ✅ UDFØRT 2026-09-27
+
+Begge spares på 1.4 med token i vaulten (`Husk token 702SO`, `Husk token SM-A102U1`); `/info` 401 uden,
+200 med. Målingen står i `FORTSÆT-HER.md` »Flåden 2026-09-27«. Opskriften nedenfor er historik.
 
 Tokenet er tomt som standard, så kilde-IP-ACL'en er eneste spærre – og den lukker hele
 `100.64.0.0/10` ind, ikke kun vores eget tailnet. **Det står nu offentligt i MR-tråden.** Genmålt

@@ -22,7 +22,9 @@
 #   .\spare.ps1 a11 rpc "dump 0"                  # raa 8127-RPC
 #
 # Aliaser (Tailscale-IP): a9/sony/702so=100.100.101.101, a11/samsung/a10e=100.100.101.102,
-#                          note10/rig=100.100.103.102 (KRAEVER token -> $env:HUSK_TOKEN el. -Token).
+#                          note10/rig=100.100.103.102. ALLE tre kraever token (spares siden
+#                          2026-09-27) -> $env:HUSK_TOKEN el. -Token; vault: husk-rig-token,
+#                          Husk token 702SO, Husk token SM-A102U1.
 
 [CmdletBinding()]
 param(
@@ -46,7 +48,7 @@ $ip = if ($Aliases.ContainsKey($Target.ToLower())) { $Aliases[$Target.ToLower()]
 $base = "http://${ip}:8090"
 
 function Q([string]$path) {
-    # append token som query-param hvis sat (spares er tokenloese -> tom)
+    # append token som query-param hvis sat (uden token svarer alle enheder 401)
     if ($Token) {
         $sep = if ($path.Contains('?')) { '&' } else { '?' }
         return "$base$path$sep`token=$Token"

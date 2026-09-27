@@ -14,7 +14,8 @@ Med `--opret-mr <fil>` åbnes desuden en NY merge request mod upstream, når pip
 grøn. Filens første linje er MR-titlen, resten er beskrivelsen. Det er nødvendigt fra og
 med 1.1: !40810 (»New app«) blev MERGET 15-09-2026, og hverken en ny commit på forkens
 gren eller en kommentar på den lukkede MR fører ændringen videre til upstream. En
-opdatering kræver sin egen MR.
+opdatering kræver sin egen MR. Undtagen en ren versions-release: den klarer F-Droids
+checkupdates-bot selv (1.4: !50097 merget, vores !50000 lukket uden merge, målt 2026-09-27).
 
 Exit 0 = pipelinen blev grøn (og MR'en oprettet, hvis der blev bedt om en).
 Exit 1 = den fejlede. Exit 2 = brugsfejl.

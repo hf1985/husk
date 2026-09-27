@@ -24,7 +24,9 @@
 #   ./spare.sh a11 rpc "dump 0"                  # raa 8127-RPC
 #
 # Aliaser (Tailscale-IP): a9/sony/702so=100.100.101.101, a11/samsung/a10e=100.100.101.102,
-#                          note10/rig=100.100.103.102 (KRAEVER token -> HUSK_TOKEN).
+#                          note10/rig=100.100.103.102. ALLE tre kraever token (spares siden
+#                          2026-09-27) -> HUSK_TOKEN; vault: husk-rig-token, Husk token 702SO,
+#                          Husk token SM-A102U1.
 
 set -uo pipefail
 
@@ -49,7 +51,7 @@ esac
 base="http://${ip}:8090"
 
 q() {
-    # append token som query-param hvis sat (spares er tokenloese -> tom)
+    # append token som query-param hvis sat (uden token svarer alle enheder 401)
     local path="$1" sep
     if [[ -n "$TOKEN" ]]; then
         if [[ "$path" == *\?* ]]; then sep='&'; else sep='?'; fi
@@ -108,10 +110,15 @@ case "${VERB,,}" in
         mkdir -p "$outdir"
         stamp=$(date -u +%Y%m%d-%H%M%S)
         if [[ $# -ge 1 ]]; then file="$1"; else file="$outdir/$TARGET-$stamp.jpg"; fi
-        if curl -s -m 12 -o "$file" "$(q '/screen.jpg')"; then
+        if code=$(curl -s -m 12 -o "$file" -w '%{http_code}' "$(q '/screen.jpg')"); then
             sz=$(wc -c < "$file" | tr -d '[:space:]')
-            echo "skaermbillede: $file ($sz B)"
-            if [[ "$sz" -lt 2000 ]]; then
+            if [[ "$code" != 200 ]]; then
+                # 401 = token mangler/forkert; 503 = ingen skaermramme (skaermen sover, eller deling er slaaet fra)
+                echo "ERR HTTP $code: $(head -c 200 "$file")"
+            else
+                echo "skaermbillede: $file ($sz B)"
+            fi
+            if [[ "$code" == 200 && "$sz" -lt 2000 ]]; then
                 echo "  ADVARSEL: lille fil -> skaermen sov maaske; koer 'shot' igen."
             fi
         else

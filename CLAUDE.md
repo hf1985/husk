@@ -32,7 +32,7 @@
 >    ⛔ **!40810 (15-09) og !49350 (20-09) er MERGET; 1.3's MR `!49892` blev merget 24-09. Derfor kræver en opdatering en NY MR fra en gren frisk fra upstream master.**
 >    Værktøjerne kræver `--adversarisk` og har et tegn-loft.
 >    **Men en ren versions-release klarer F-Droids bot selv:** 1.4 kom upstream via `!50097` »bot: Update Husk to 55«,
->    og vores `!50000` blev lukket som overflødig (målt 2026-09-27). Egen MR kun når metadata ud over versionen ændres.
+>    og vores `!50000` blev lukket uden merge 11 minutter senere (målt 2026-09-27). Egen MR kun når metadata ud over versionen ændres.
 > 5. Opdatér HUSK-konstanterne (`HUSK_VERSION_*`) i `P_xplat/hosting/app.py` **OG deploy xplat.co**.
 > 6. **API-DOK-GATE (obligatorisk):** ændrer releasen endpoints/params/respons/adgangsmodel? Ajourfør
 >    `HUSK_API`-kataloget (+ OpenAPI-beskrivelsen) i `P_xplat/hosting/app.py` (driver BÅDE `/husk/api`
