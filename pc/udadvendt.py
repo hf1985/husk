@@ -86,7 +86,7 @@ def laes_loft(navn, sti=None, ud=None):
         if len(felter) < 2 or felter[0].strip() != navn:
             continue
         vaerdi = felter[1].strip()
-        if not vaerdi.isdigit():
+        if not (vaerdi.isascii() and vaerdi.isdigit()):
             raise Afvist(
                 "KONSTANTEN %r har værdien %r, som ikke er et tal.\n"
                 "  fil: %s\n"
