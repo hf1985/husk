@@ -18,7 +18,7 @@ Tidligere: **1.0 / versionCode 51** (2026-09-07, bygget på `HFs-lenovo`. Tre ti
 # Arkiveret fra FORTSÆT-HER.md 2026-09-20
 
 Flyttet hertil ORDRET af spor `H7` i
-`_styresystem/planer/2026-09-19-husk-udgiv-loekkefix-plan.md`.
+`2026-09-19-husk-udgiv-loekkefix-plan.md` (fjernet i `1eb27c5`).
 
 ⛔ **Her stod »uden at slette noget«. Det var FALSK, og rettelsen står i »anden del« nederst i
 filen.** Flytningen tog linje 133-477 af en fil på 520 linjer; linje 104-132 og 478-520 blev
@@ -364,7 +364,7 @@ Dertil advarsel 10 og spørgsmål 11-15: hver netværksvært skal gøres rede fo
   samme ombæring, ellers genindfører næste release fejlen.
 
 **Arbejdet er skrevet som en køreklar plan, ikke som spor her:**
-`_styresystem/planer/2026-09-18-husk-webcam-produkt-plan.md`, sporene `H1`-`H7`.
+`2026-09-18-husk-webcam-produkt-plan.md` (fjernet i `630c6e6`), sporene `H1`-`H7`.
 Planen lukker de ni fejl OG tilføjer `/set?front=0|1` i samme release (1.1 / versionCode 52),
 fordi PC-siden ellers skal vælge forsidekamera gennem WSL → SSH → Termux → ADB, og den kæde kan en
 fremmed bruger ikke have. `Rig.useFront` findes allerede (`Rig.java` l. 39) og læses i
@@ -474,8 +474,8 @@ forbindelse.
 ## Register 2026-09-19 (ad hoc-runde `husk-loekkefix-og-korthed`, `HFs-lenovo`): MR'en er blokeret, og 1.1 bar TO fejl
 
 **Arbejdet er lagt i to planer, ikke her:**
-`_styresystem/planer/2026-09-19-husk-udgiv-loekkefix-plan.md` (spor `H1`-`H8`) og
-`_styresystem/planer/2026-09-19-korthed-med-et-maalt-loft-plan.md` (spor `K1`-`K7`).
+`2026-09-19-husk-udgiv-loekkefix-plan.md` (fjernet i `1eb27c5`) (spor `H1`-`H8`) og
+`2026-09-19-korthed-med-et-maalt-loft-plan.md` (fjernet i `73ea38f`) (spor `K1`-`K7`).
 
 ### 1. MR !49350 er BLOKERET, og reviewerens besked er en generel rettelse
 
@@ -532,7 +532,7 @@ Her stod først »44 sekunder«, regnet fra en mail-`Date` til et API-felt, hvil
 |---|---|---|
 | 18-09 23:52:06 | MR `created_at` | MR !49350 oprettes fra `hf16/f-droid:co.xplat.husk` |
 | 19-09 07:58:13 | note `created_at` | `linsui`: rebase grenen efter wiki'ens Git-Usage, og »Don't write so long description. We can't read it.« (allerede måleregel 476) |
-| 19-09 21:22:32 | system-note | vi rebaser oven på `fdroid:master`, så MR'en bliver én commit der kun rører `metadata/co.xplat.husk.yml` |
+| 19-09 21:22:32 | system-note | vi rebaser oven på `fdroid:master`, så MR'en bliver én commit der kun rører `co.xplat.husk.yml` i fdroiddata's metadata/ |
 | 19-09 21:40:49 | note `created_at` | vores svar: »Thanks. Rebased onto master ...«, altså begge anmodninger efterkommet |
 | 19-09 21:46:37 | system-note | commiten `1899e4c9` »Update Husk (co.xplat.husk) to 1.2 (53)« lægges på |
 | 20-09 07:32:24.5 | note `created_at` | `linsui` lægger en `suggestion:-6+0` på 1.1-entryen, altså en ren SLETNING af de seks linjer |
@@ -579,7 +579,7 @@ En adgang jeg selv kunne have skaffet, er ikke en umålelighed - den er en måli
 
 ## ✅ 2026-09-19: 1.2 ER UDGIVET
 
-Kørt på `hfs-dell` efter `_styresystem/planer/2026-09-19-husk-udgiv-loekkefix-plan.md`.
+Kørt på `hfs-dell` efter `2026-09-19-husk-udgiv-loekkefix-plan.md` (fjernet i `1eb27c5`).
 **Datoen er artefakternes, ikke sessionens** (måleregel 274/469): byggecommiten `390d9c5`
 bærer `2026-09-19 23:33 +0200`, og GitHub-releasens `published_at` er `2026-09-19T21:37:20Z`.
 Selve lukningen løb ind i den 20., og her stod først den dato.
