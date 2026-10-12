@@ -364,7 +364,7 @@ Dertil advarsel 10 og spørgsmål 11-15: hver netværksvært skal gøres rede fo
   samme ombæring, ellers genindfører næste release fejlen.
 
 **Arbejdet er skrevet som en køreklar plan, ikke som spor her:**
-`2026-09-18-husk-webcam-produkt-plan.md` (fjernet i `630c6e6`), sporene `H1`-`H7`.
+`2026-09-18-husk-webcam-produkt-plan.md` (fjernet i `dedd5f5`), sporene `H1`-`H7`.
 Planen lukker de ni fejl OG tilføjer `/set?front=0|1` i samme release (1.1 / versionCode 52),
 fordi PC-siden ellers skal vælge forsidekamera gennem WSL → SSH → Termux → ADB, og den kæde kan en
 fremmed bruger ikke have. `Rig.useFront` findes allerede (`Rig.java` l. 39) og læses i
