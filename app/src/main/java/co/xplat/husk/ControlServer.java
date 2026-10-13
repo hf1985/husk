@@ -504,8 +504,19 @@ public class ControlServer {
             try { c.sendBroadcast(i); } catch (Throwable t) { return "ERR " + t.getClass().getSimpleName(); }
             return "OK sent (" + extras + " extras)";
         }
+        // postDelayed koerer paa uptime-uret, som STAAR STILLE i dyb soevn: uden en wakelock kan et
+        // planlagt CONNECT efter et DISCONNECT komme timer for sent. Laasen har sin egen timeout, saa
+        // den aldrig kan blive haengende, og slippes straks efter afsendelsen.
+        android.os.PowerManager.WakeLock wl = null;
+        try {
+            android.os.PowerManager pm = (android.os.PowerManager) c.getSystemService(android.content.Context.POWER_SERVICE);
+            wl = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "husk:broadcast");
+            wl.acquire(delay + 10000L);
+        } catch (Throwable t) { Log.w(TAG, "broadcast-wakelock fejlede: " + t); }
+        final android.os.PowerManager.WakeLock lock = wl;
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
             try { c.sendBroadcast(i); } catch (Throwable t) { Log.w(TAG, "broadcast fejlede: " + t); }
+            finally { try { if (lock != null && lock.isHeld()) lock.release(); } catch (Throwable ignored) {} }
         }, delay);
         return "OK scheduled " + delay + "ms (" + extras + " extras)";
     }

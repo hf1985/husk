@@ -42,9 +42,16 @@ Builds:
     gradle:
       - yes
 
+  - versionName: '1.5'
+    versionCode: 56
+    commit: bb958e00f78f098f82764f21494ddc4c0533415a
+    subdir: app
+    gradle:
+      - yes
+
 AllowedAPKSigningKeys: 96195cfd540e75f8a34dfc08764438769d4bc3e5d7970a9527d97004d4f2c17d
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: '1.4'
-CurrentVersionCode: 55
+CurrentVersion: '1.5'
+CurrentVersionCode: 56
