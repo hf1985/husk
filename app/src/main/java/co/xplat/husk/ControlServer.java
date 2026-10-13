@@ -208,6 +208,8 @@ public class ControlServer {
         if (path.equals("/wd"))         { writeWd(out); return; }
         if (path.equals("/pair"))       { writePair(out); return; }
         if (path.equals("/devoptions")) { writeText(out, 200, rpc("devoptions" + ("1".equals(param(query,"probe")) ? " probe" : ""))); return; }
+        if (path.equals("/broadcast"))  { String r = broadcast(query);
+                                          writeText(out, r.startsWith("OK") ? 200 : 400, r); return; }
         // /update er FJERNET i 1.1 sammen med den indbyggede updater (F-Droid-fund 3-9: en app der
         // henter og installerer sine egne opdateringer omgaar butikkens signering og review).
         // Opdatering sker nu gennem F-Droid-klienten eller `adb install`.
@@ -469,6 +471,44 @@ public class ControlServer {
     }
 
     private static String opt(String s) { return (s == null || s.isEmpty()) ? "" : (" " + s); }
+
+    // /broadcast?action=<a>&pkg=<p>[&cls=<c>][&delay=<ms>][&es.<k>=<str>][&ez.<k>=<bool>]: send en
+    // EKSPLICIT broadcast som Husk. pkg er paakraevet, fordi Android 8+ ikke leverer implicitte
+    // broadcasts til manifest-receivere, og fordi en navngiven modtager ikke kan ramme alle apps.
+    // es./ez. svarer til am broadcasts --es/--ez. delay (loft 10 min) sender senere fra telefonen
+    // selv: planlaeg CONNECT med delay og send saa DISCONNECT, saa genforbinder en VPN af sig selv,
+    // ogsaa naar kalderens vej ind (fx Tailscale) forsvinder imellem. Et planlagt kald overlever ikke
+    // at processen doer.
+    private static String broadcast(String query) {
+        String action = dparam(query, "action"), pkg = dparam(query, "pkg"), cls = dparam(query, "cls");
+        if (action.isEmpty() || pkg.isEmpty()) return "ERR action and pkg are required";
+        int delay = Math.max(0, Math.min(intp(query, "delay", 0), 600000));
+        final android.content.Intent i = new android.content.Intent(action).setPackage(pkg);
+        if (!cls.isEmpty()) i.setClassName(pkg, cls.startsWith(".") ? pkg + cls : cls);
+        i.addFlags(android.content.Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+        int extras = 0;
+        for (String kv : query.split("&")) {
+            int eq = kv.indexOf('=');
+            String k = eq < 0 ? kv : kv.substring(0, eq);
+            if (!k.startsWith("es.") && !k.startsWith("ez.")) continue;
+            String v = eq < 0 ? "" : kv.substring(eq + 1), name = k.substring(3);
+            try { v = java.net.URLDecoder.decode(v, "UTF-8"); name = java.net.URLDecoder.decode(name, "UTF-8"); } catch (Throwable ignored) {}
+            if (name.isEmpty()) return "ERR empty extra name";
+            if (k.startsWith("es.")) i.putExtra(name, v);
+            else i.putExtra(name, "1".equals(v) || "true".equalsIgnoreCase(v));
+            extras++;
+        }
+        final android.content.Context c = Rig.ctx();
+        if (c == null) return "ERR no context";
+        if (delay == 0) {
+            try { c.sendBroadcast(i); } catch (Throwable t) { return "ERR " + t.getClass().getSimpleName(); }
+            return "OK sent (" + extras + " extras)";
+        }
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            try { c.sendBroadcast(i); } catch (Throwable t) { Log.w(TAG, "broadcast fejlede: " + t); }
+        }, delay);
+        return "OK scheduled " + delay + "ms (" + extras + " extras)";
+    }
 
     // Skriv med auto-valgt content-type: JSON hvis body ligner JSON ({ eller [), ellers text/plain.
     private void writeAuto(OutputStream out, String body) throws IOException {

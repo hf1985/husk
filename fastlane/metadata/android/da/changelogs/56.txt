@@ -1,0 +1,5 @@
+Send Android-broadcasts via API'et.
+
+Nyt GET /broadcast?action=...&pkg=... sender en eksplicit broadcast til en app, med valgfrie tekst- og ja/nej-extras (es.<navn>, ez.<navn>) og en valgfri forsinkelse i millisekunder.
+
+Forsinkelsen lader telefonen handle selv: planlæg fx Tailscales CONNECT_VPN og send så DISCONNECT_VPN, så forbinder telefonen igen, selvom den der styrer udefra mistede forbindelsen imens.

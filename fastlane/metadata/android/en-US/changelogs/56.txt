@@ -1,0 +1,5 @@
+Send Android broadcasts over the API.
+
+New GET /broadcast?action=...&pkg=... sends an explicit broadcast to an app, with optional string and boolean extras (es.<name>, ez.<name>) and an optional delay in milliseconds.
+
+The delay lets the phone act on its own: for example, schedule Tailscale's CONNECT_VPN and then send DISCONNECT_VPN, and the phone reconnects even though the remote caller lost its connection in between.
