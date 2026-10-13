@@ -62,6 +62,11 @@ flåde-inventar og en ærlig reboot-gap-analyse for spare-enhederne. Pointer-mem
 > komponerer det logiske display selv når panelet fysisk er slukket, så et skarpt launcher-billede
 > narrede diagnosen til at tro enheden var vågen + oplåst. **Løsningen er ét ord: `wake` FØRST.**
 
+> **Tre afvigelser målt 2026-10-13 på A10e, 1.4/55 (`Kontor`, Tailscale-appens subnet-opsætning) - punkt 1-2 nedenfor holder ikke helt:**
+> 1. **`launch` med `pkg` og uden `data` er en kodefejl:** `ControlServer.java:206` dropper tom `data` i `opt()`, så `pkg` lander som `dat=` (`ActivityNotFoundException`). Omvej: tap ikonet.
+> 2. **`text` fejler i en fremmed apps dialog** (`ERR set-text-false`; a11y-dumpen så kun navbar'en). Omvej: koordinat-tap på skærmtastaturet.
+> 3. **`/screen.jpg` kan levere en frossen frame** (samme bytes efter flere handlinger); en frame fra `/screen` (MJPEG) efter et eksplicit `/wake` var frisk.
+
 **Live-verificeret 2026-07-12 på BEGGE spares (Sony 702SO/A9 .101 og Samsung A10e/A11 .102), 0.9.26/45:**
 
 1. **Fuld menneske-ækvivalent kontrol virker på begge, når skærmen er vækket:** `wake` →
