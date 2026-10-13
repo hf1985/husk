@@ -30,6 +30,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- QUERY_ALL_PACKAGES: /broadcast (1.5) sender til en navngiven app. Fra Android 11 filtreres
+         usynlige pakker fra broadcast-leveringen, saa uden den naaede fx Tailscales IPNReceiver
+         aldrig frem (maalt paa A10e, Android 11, 2026-10-13; Android 9 har ingen pakkesynlighed).
+         Husk styrer allerede hele skaermen via a11y, saa app-listen afsloerer intet nyt. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
