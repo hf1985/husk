@@ -7,6 +7,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.accessibilityservice.GestureDescription;
 import android.app.ActivityOptions;
+import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Path;
@@ -330,6 +331,54 @@ public class RigAccessibilityService extends AccessibilityService {
         } catch (Throwable t) { return "ERR " + t; }
     }
 
+    // ---------------- Settings-guard (safety for the Settings-driving routines) ----------------
+    //
+    // ensureDeveloperOptions / recoverWirelessDebugging / startWdPairing drive the Settings UI by
+    // regex-matching on-screen text. Without a guard, findNode/findScrollable see EVERY window on the
+    // display, so if Settings did not come to the front (locked screen, another app on top, slow
+    // launch) the engine scrolls and taps whatever IS on screen for 10+ rounds and then reports
+    // "not found". Seen 2026-09-19 on a Moto G 5G (2022): a stacked /pair + /wd + AdbForward-triggered
+    // recovery toggled Developer options OFF and left the phone tapping itself.
+    //
+    // The guard: wake the screen, refuse to run behind a keyguard, wait for a Settings window to
+    // actually be in front, and restrict all node/scroll lookups to that package for the duration.
+    static final String SETTINGS_PKG = "com.android.settings";
+    private volatile String windowPkgFilter = null;   // non-null -> windowsForDisplay only returns this package
+
+    // Returns null if it is safe to drive Settings, else a short reason. Never taps anything.
+    String settingsPreflight() {
+        wakeScreen();
+        sleep(500);
+        try {
+            KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+            if (km != null && km.isKeyguardLocked()) return "screen locked";
+        } catch (Throwable t) { Log.w(TAG, "settingsPreflight keyguard", t); }
+        return null;
+    }
+
+    // Poll (up to ~6s) until a window whose root belongs to Settings is present on display d.
+    boolean awaitSettingsWindow(final int d) {
+        for (int i = 0; i < 12; i++) {
+            String r = onMain(new Job() { public String run() {
+                List<AccessibilityWindowInfo> wins = rawWindowsForDisplay(d);
+                if (wins == null) return "0";
+                for (int j = 0; j < wins.size(); j++) {
+                    AccessibilityWindowInfo w = wins.get(j);
+                    if (w == null) continue;
+                    AccessibilityNodeInfo root = w.getRoot();
+                    if (root == null) continue;
+                    CharSequence p = root.getPackageName();
+                    if (p != null && SETTINGS_PKG.contentEquals(p)) return "1";
+                }
+                return "0";
+            } }, 3000);
+            if ("1".equals(r)) return true;
+            sleep(500);
+        }
+        Log.w(TAG, "settings-guard: Settings never came to the front on display " + d + " - aborting, no taps");
+        return false;
+    }
+
 
     String gettextD(final int d, final String regex) {  // returnerer foerste match-tekst eller "NONE"
         final Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
@@ -422,10 +471,20 @@ public class RigAccessibilityService extends AccessibilityService {
                 }
             } catch (Throwable t) { }
         }
+        String pf = settingsPreflight();
+        if (pf != null) { Log.w(TAG, "dev-options: aborting - " + pf); return false; }
+        String prevFilter = windowPkgFilter;
+        windowPkgFilter = SETTINGS_PKG;
+        try { return ensureDeveloperOptionsInner(probeOnly, d); }
+        finally { windowPkgFilter = prevFilter; }
+    }
+
+    private boolean ensureDeveloperOptionsInner(boolean probeOnly, final int d) {
         final String bn = "build.?number|byggenummer|build.?nummer|versionsnummer";
         Log.i(TAG, "dev-options: aabner Om telefonen");
         launchD(d, "android.settings.DEVICE_INFO_SETTINGS");
         sleep(2000);
+        if (!awaitSettingsWindow(d)) { Log.w(TAG, "dev-options: Settings not in front"); return false; }
         // Samsung: Build-nummer ligger under "Software information". Gaa derind hvis raekken findes.
         for (int i = 0; i < 6; i++) {
             if ("1".equals(stateD(d, bn))) break;
@@ -462,13 +521,22 @@ public class RigAccessibilityService extends AccessibilityService {
     // synchronized: /wd (ControlServer) OG AdbForward kan begge kalde -> uden laas koerte to recovery-floer
     // samtidig og klikkede checkboxen to gange (TIL->FRA). Serialiseret saa kun ÉN driver Settings ad gangen.
     synchronized String recoverWirelessDebugging() {
+        String pf = settingsPreflight();
+        if (pf != null) { Log.w(TAG, "wd-recovery: aborting - " + pf); return cachedOrNull(); }
         ensureDeveloperOptions(false);   // automatisk 7-tap hvis Dev Options ikke er paa (ellers no-op)
+        windowPkgFilter = SETTINGS_PKG;
+        try { return recoverWirelessDebuggingInner(); }
+        finally { windowPkgFilter = null; }
+    }
+
+    private String recoverWirelessDebuggingInner() {
         final int d = 0;
         final Pattern ipPort = Pattern.compile("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+");
 
         Log.i(TAG, "wd-recovery: aabner udviklingsindstillinger");
         launchD(d, "android.settings.APPLICATION_DEVELOPMENT_SETTINGS");
         sleep(2000);
+        if (!awaitSettingsWindow(d)) { Log.w(TAG, "wd-recovery: Settings not in front"); return cachedOrNull(); }
 
         // Scroll til "Wireless debugging"-raekken. ^-anker undgaar statusbar-notifikationen.
         boolean found = false;
@@ -554,9 +622,18 @@ public class RigAccessibilityService extends AccessibilityService {
     // null. Bruges af companion-install (engangs pr. PC) saa scrcpy-broen kan tilgaaes Termux-uafhaengigt.
     // Android 12's Wireless Debugging er TLS -> en ny host SKAL parres foer 'adb connect' virker.
     synchronized String startWdPairing() {   // serialiseret med recoverWirelessDebugging (samme Settings-UI)
+        String pf = settingsPreflight();
+        if (pf != null) { Log.w(TAG, "wd-pair: aborting - " + pf); return null; }
+        windowPkgFilter = SETTINGS_PKG;
+        try { return startWdPairingInner(); }
+        finally { windowPkgFilter = null; }
+    }
+
+    private String startWdPairingInner() {
         final int d = 0;
         launchD(d, "android.settings.APPLICATION_DEVELOPMENT_SETTINGS");
         sleep(2000);
+        if (!awaitSettingsWindow(d)) { Log.w(TAG, "wd-pair: Settings not in front"); return null; }
         boolean found = false;
         for (int i = 0; i < 12; i++) {
             if ("1".equals(stateD(d, "^wireless debugging|^tr.dl.s fejlfinding"))) { found = true; break; }
@@ -781,13 +858,32 @@ public class RigAccessibilityService extends AccessibilityService {
     // Vinduer for et display. API 30+: alle displays (multi-display/DeX). <30: kun det aktive
     // (default) display via getWindows() - aeldre Android (8-10) har ikke getWindowsOnAllDisplays,
     // saa multi-display/DeX falder gracefuldt bort og appen virker enkelt-display.
-    private List<AccessibilityWindowInfo> windowsForDisplay(int d) {
+    private List<AccessibilityWindowInfo> rawWindowsForDisplay(int d) {
         if (Build.VERSION.SDK_INT >= 30) {
             SparseArray<List<AccessibilityWindowInfo>> all = getWindowsOnAllDisplays();
             return all == null ? null : all.get(d);
         }
         if (d == Display.DEFAULT_DISPLAY) return getWindows();
         return null;
+    }
+
+    // All node/scroll lookups go through here. While windowPkgFilter is set (Settings-driving
+    // routines), only windows of that package are visible to findNode/findScrollable/matchText,
+    // so a stray overlay, notification shade or foreground app can never be scrolled or tapped.
+    private List<AccessibilityWindowInfo> windowsForDisplay(int d) {
+        List<AccessibilityWindowInfo> wins = rawWindowsForDisplay(d);
+        String pkg = windowPkgFilter;
+        if (wins == null || pkg == null) return wins;
+        List<AccessibilityWindowInfo> out = new java.util.ArrayList<AccessibilityWindowInfo>();
+        for (int i = 0; i < wins.size(); i++) {
+            AccessibilityWindowInfo w = wins.get(i);
+            if (w == null) continue;
+            AccessibilityNodeInfo root = w.getRoot();
+            if (root == null) continue;
+            CharSequence p = root.getPackageName();
+            if (p != null && pkg.contentEquals(p)) out.add(w);
+        }
+        return out;
     }
 
     private String matchText(int d, Pattern pat) {
@@ -874,14 +970,17 @@ public class RigAccessibilityService extends AccessibilityService {
         return null;
     }
 
+    // Innermost scrollable wins. Stock Android 13+ Settings wraps each screen in an outer ScrollView
+    // whose only job is to collapse the toolbar; the real list (RecyclerView) is nested inside it.
+    // Returning the outer one meant "scroll" collapsed the toolbar and the list never moved, so
+    // rows below the fold (e.g. Wireless debugging) were never found. Seen on Moto G 5G (2022).
     private AccessibilityNodeInfo dfsScroll(AccessibilityNodeInfo n) {
         if (n == null) return null;
-        if (n.isScrollable()) return n;
         int cc = n.getChildCount();
         for (int i = 0; i < cc; i++) {
             AccessibilityNodeInfo r = dfsScroll(n.getChild(i));
             if (r != null) return r;
         }
-        return null;
+        return n.isScrollable() ? n : null;
     }
 }
